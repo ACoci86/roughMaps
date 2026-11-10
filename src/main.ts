@@ -7,6 +7,7 @@ import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSett
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
+import type { Pin } from './pins';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -14,6 +15,7 @@ import {
   DEFAULT_DPI,
   pixelSize,
   renderPng,
+  renderSvg,
   download,
   slug,
   parseConfig,
@@ -45,12 +47,37 @@ const saveConfigButton = document.querySelector<HTMLButtonElement>('#save-config
 const loadConfigButton = document.querySelector<HTMLButtonElement>('#load-config')!;
 const configFile = document.querySelector<HTMLInputElement>('#config-file')!;
 const exportStatus = document.querySelector<HTMLParagraphElement>('#export-status')!;
+const downloadSvgButton = document.querySelector<HTMLButtonElement>('#download-svg')!;
+const titleInput = document.querySelector<HTMLInputElement>('#title')!;
+const pinForm = document.querySelector<HTMLFormElement>('#pin-form')!;
+const pinNote = document.querySelector<HTMLInputElement>('#pin-note')!;
+const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
+const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
+const PIN_HINT = pinStatus.textContent ?? '';
+
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass';
 
 const map = createPicker(pickerBox);
 let scene: Scene | null = null;
 const settings: SketchSettings = { ...DEFAULT_SETTINGS };
 let redrawTimer = 0;
 let placeName = 'Dublin';
+let pins: Pin[] = [];
+let placingNote: string | null = null;
+titleInput.value = placeName;
+
+function placedPins() {
+  return pins.map((pin) => {
+    const { x, y } = map.project(pin.lngLat);
+    return { point: [x, y] as [number, number], note: pin.note };
+  });
+}
+
+function makeScene(): Scene {
+  const made = prepareScene(map, readFeatures(map), titleInput.value);
+  made.pins = placedPins();
+  return made;
+}
 
 sketchButton.disabled = true;
 map.once('load', () => (sketchButton.disabled = false));
@@ -87,24 +114,28 @@ function sketchingMode(): boolean {
 
 showNote();
 
+let sketchRun = 0;
+
 async function sketch(): Promise<void> {
+  const run = ++sketchRun;
   loading.hidden = false;
   showSketch(true);
-  scene = prepareScene(map, readFeatures(map));
+  scene = makeScene();
   await redraw();
-  loading.hidden = true;
+  if (run === sketchRun) loading.hidden = true;
 }
 
 function sketchWhenReady(): void {
   loading.hidden = false;
   showSketch(true);
+  map.off('idle', sketch);
   map.once('idle', sketch);
   map.triggerRepaint();
 }
 
 map.once('load', sketchWhenReady);
 
-sketchButton.addEventListener('click', sketch);
+sketchButton.addEventListener('click', sketchWhenReady);
 
 styleSelect.addEventListener('change', () => {
   showNote();
@@ -127,22 +158,91 @@ sliders.forEach((slider) => {
 });
 
 toggles.forEach((toggle) => {
-  const key = toggle.dataset.setting as 'labels' | 'doodles';
+  const key = toggle.dataset.setting as Toggle;
   toggle.addEventListener('change', () => {
     settings[key] = toggle.checked;
     redraw();
   });
 });
 
-moveButton.addEventListener('click', () => showSketch(false));
+moveButton.addEventListener('click', () => {
+  stopPlacing(PIN_HINT);
+  showSketch(false);
+});
+
+titleInput.addEventListener('input', () => {
+  if (!scene) return;
+  scene.title = titleInput.value;
+  redrawSoon();
+});
+
+function stopPlacing(message: string): void {
+  placingNote = null;
+  frame.classList.remove('placing');
+  pinStatus.textContent = message;
+}
+
+function refreshPins(): void {
+  renderPinList();
+  if (!scene) return;
+  scene.pins = placedPins();
+  redraw();
+}
+
+function renderPinList(): void {
+  pinList.replaceChildren(
+    ...pins.map((pin, i) => {
+      const note = document.createElement('span');
+      note.textContent = pin.note || '(no note)';
+      note.title = note.textContent;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', () => {
+        pins.splice(i, 1);
+        refreshPins();
+      });
+      const item = document.createElement('li');
+      item.append(note, remove);
+      return item;
+    }),
+  );
+}
+
+pinForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!scene || !sketchingMode()) {
+    pinStatus.textContent = 'Sketch the map first, then add pins to it.';
+    return;
+  }
+  placingNote = pinNote.value.trim();
+  frame.classList.add('placing');
+  pinStatus.textContent = 'Now click the map where the pin goes. Esc cancels.';
+});
+
+sketchCanvas.addEventListener('click', (event) => {
+  if (placingNote === null || !scene) return;
+  const scale = scene.width / sketchCanvas.clientWidth;
+  const { lng, lat } = map.unproject([event.offsetX * scale, event.offsetY * scale]);
+  pins.push({ lngLat: [lng, lat], note: placingNote });
+  pinNote.value = '';
+  stopPlacing(PIN_HINT);
+  refreshPins();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && placingNote !== null) stopPlacing(PIN_HINT);
+});
 
 const SEARCH_MIN_ZOOM = 15;
 const SEARCH_MAX_ZOOM = 17;
 
 function goTo(place: Place): void {
   placeName = place.name;
+  titleInput.value = place.name;
   loading.hidden = false;
   showSketch(true);
+  map.off('moveend', sketchWhenReady);
   map.once('moveend', sketchWhenReady);
   const fit = map.cameraForBounds(place.bounds, { padding: 20 })?.zoom ?? SEARCH_MIN_ZOOM;
   const zoom = Math.min(SEARCH_MAX_ZOOM, Math.max(SEARCH_MIN_ZOOM, fit));
@@ -204,7 +304,8 @@ function outputPixels() {
 
 const narrow = window.matchMedia('(max-width: 900px)');
 
-function fitPreview(): void {
+function fitPreview(): boolean {
+  const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
   frame.style.height = narrow.matches
     ? `${Math.min((frame.clientWidth * height) / width, window.innerHeight * 0.75)}px`
@@ -215,6 +316,7 @@ function fitPreview(): void {
     el.style.height = `${Math.floor(height * scale)}px`;
   }
   map.resize();
+  return before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
 }
 
 function showOutput(): void {
@@ -227,7 +329,7 @@ function reshape(): void {
   scene = null;
   showOutput();
   fitPreview();
-  if (sketchingMode() && map.loaded()) sketchWhenReady();
+  if (sketchingMode() && map.isStyleLoaded()) sketchWhenReady();
 }
 
 let resizeTimer = 0;
@@ -236,8 +338,9 @@ function redrawControls(): void {
 }
 
 function onWindowResize(): void {
-  fitPreview();
+  const changed = fitPreview();
   redrawControls();
+  if (!changed) return;
   clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
     if (sketchingMode() && scene) sketchWhenReady();
@@ -252,26 +355,43 @@ fitPreview();
 requestAnimationFrame(redrawControls);
 document.fonts.ready.then(redrawControls);
 
-downloadButton.addEventListener('click', async () => {
+async function exportFile(format: 'png' | 'svg'): Promise<void> {
   if (!scene || !sketchingMode()) {
-    if (!map.isStyleLoaded()) return;
-    scene = prepareScene(map, readFeatures(map));
+    if (!map.isStyleLoaded()) {
+      exportStatus.textContent = 'The map is still loading. Try again in a moment.';
+      return;
+    }
+    scene = makeScene();
   }
   const output = outputPixels();
-  downloadButton.disabled = true;
+  const buttons = [downloadButton, downloadSvgButton];
+  buttons.forEach((b) => (b.disabled = true));
   exportStatus.textContent = 'Drawing...';
   const started = performance.now();
   try {
-    const blob = await renderPng(scene, currentStyle(), settings, output);
-    download(blob, `${slug(placeName)}-${currentStyle().id}-${output.width}x${output.height}.png`);
-    const seconds = ((performance.now() - started) / 1000).toFixed(1);
-    exportStatus.textContent = `Done in ${seconds} s (${(blob.size / 1e6).toFixed(1)} MB)`;
+    const name = `${slug(placeName)}-${currentStyle().id}`;
+    if (format === 'png') {
+      const blob = await renderPng(scene, currentStyle(), settings, output);
+      download(blob, `${name}-${output.width}x${output.height}.png`);
+      exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
+    } else {
+      const blob = await renderSvg(scene, currentStyle(), settings, currentSize());
+      download(blob, `${name}-${currentSize().id}.svg`);
+      exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
+    }
   } catch (error) {
     exportStatus.textContent = `Export failed: ${(error as Error).message}`;
   } finally {
-    downloadButton.disabled = false;
+    buttons.forEach((b) => (b.disabled = false));
   }
-});
+}
+
+function seconds(started: number): string {
+  return ((performance.now() - started) / 1000).toFixed(1);
+}
+
+downloadButton.addEventListener('click', () => exportFile('png'));
+downloadSvgButton.addEventListener('click', () => exportFile('svg'));
 
 saveConfigButton.addEventListener('click', () => {
   const { lng, lat } = map.getCenter();
@@ -279,6 +399,8 @@ saveConfigButton.addEventListener('click', () => {
     app: 'roughMaps',
     version: 1,
     place: placeName,
+    title: titleInput.value,
+    pins: pins.map((pin) => ({ ...pin })),
     center: [lng, lat],
     zoom: map.getZoom(),
     style: currentStyle().id,
@@ -299,7 +421,7 @@ configFile.addEventListener('change', async () => {
   if (!file) return;
   try {
     const config = parseConfig(await file.text());
-    Object.assign(settings, DEFAULT_SETTINGS, config.settings);
+    Object.assign(settings, config.settings);
     styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
     fillStyleSelect.value = settings.fillStyle;
     sliders.forEach((slider) => {
@@ -307,10 +429,14 @@ configFile.addEventListener('change', async () => {
       slider.value = settings[key];
       document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
     });
-    toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as 'labels' | 'doodles']));
+    toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
     if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
     if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
     placeName = config.place || 'map';
+    titleInput.value = config.title;
+    pins = config.pins;
+    renderPinList();
+    stopPlacing(PIN_HINT);
     showNote();
     showOutput();
     fitPreview();

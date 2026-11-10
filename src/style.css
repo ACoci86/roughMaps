@@ -232,7 +232,8 @@ h2 {
 
 button,
 select,
-input[type='search'] {
+input[type='search'],
+input[type='text'] {
   font-size: 18px;
   padding: 4px 12px;
   border: 1.5px solid var(--ink);
@@ -316,9 +317,41 @@ button:disabled {
   --wired-slider-bar-color: var(--ink);
 }
 
+.card input[type='text'] {
+  width: 100%;
+}
+
+.search input[type='text'] {
+  width: auto;
+}
+
+.pins li {
+  display: flex;
+  gap: 6px;
+}
+
+.pins span {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pins button {
+  width: auto;
+  margin-bottom: 4px;
+}
+
+.frame.placing #map {
+  cursor: crosshair;
+}
+
 .toggles {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 8px 18px;
   margin-top: 12px;
   font-size: 17px;
 }

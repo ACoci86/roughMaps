@@ -6,6 +6,8 @@ export type Role = 'badge' | 'line' | 'accent' | 'canopy';
 export type Doodle = { drawable: Drawable; role: Role };
 
 type Ring = Point[];
+type Box = [number, number, number, number];
+type BoxedRing = { ring: Ring; box: Box };
 
 const generator = rough.generator();
 const MAX_TREES = 900;
@@ -20,9 +22,25 @@ function random(seed: number): () => number {
   };
 }
 
-function inside([x, y]: Point, rings: Ring[]): boolean {
+function boxOf(ring: Ring): Box {
+  let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [x, y] of ring) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  return [minX, minY, maxX, maxY];
+}
+
+function boxed(rings: Ring[]): BoxedRing[] {
+  return rings.map((ring) => ({ ring, box: boxOf(ring) }));
+}
+
+function inside([x, y]: Point, rings: BoxedRing[]): boolean {
   let hit = false;
-  for (const ring of rings) {
+  for (const { ring, box } of rings) {
+    if (x < box[0] || x > box[2] || y < box[1] || y > box[3]) continue;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
       const [xi, yi] = ring[i];
       const [xj, yj] = ring[j];
@@ -36,15 +54,19 @@ export function treeSpots(
   areas: Ring[][],
   spacing: number,
   seed: number,
+  [width, height]: [number, number],
   limit = MAX_TREES,
-  avoid: Ring[][] = [],
+  avoidAreas: Ring[][] = [],
 ): Point[] {
   const rand = random(seed);
   const spots: Point[] = [];
-  for (const rings of areas) {
-    const xs = rings.flat().map((p) => p[0]);
-    const ys = rings.flat().map((p) => p[1]);
-    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const avoid = avoidAreas.map(boxed);
+  for (const area of areas) {
+    const rings = boxed(area);
+    const minX = Math.max(0, Math.min(...rings.map((r) => r.box[0])));
+    const minY = Math.max(0, Math.min(...rings.map((r) => r.box[1])));
+    const maxX = Math.min(width, Math.max(...rings.map((r) => r.box[2])));
+    const maxY = Math.min(height, Math.max(...rings.map((r) => r.box[3])));
     const reach = spacing * 0.35;
     for (let row = 0, y = minY + spacing / 2; y < maxY; y += spacing * 0.87, row++) {
       for (let x = minX + (row % 2 ? spacing / 2 : 0); x < maxX; x += spacing) {

@@ -4,12 +4,14 @@
   "note": "Colours from the Rosé Pine Dawn theme",
   "order": 48,
   "paper": "#faf4ed",
-  "ink": "#9893a7",
+  "ink": "#807a96",
   "outline": 0.5,
   "buildings": [
     "#e0dada",
     "#d0cacf",
-    "#ecc6c1"
+    "#ebc4be",
+    "#bbcacd",
+    "#dacfd9"
   ],
   "water": {
     "color": "#b0c3c8",
@@ -47,5 +49,6 @@
       "secondary": "#f2c890"
     }
   },
-  "rail": "#9893a5"
+  "rail": "#9893a5",
+  "text": "#575279"
 }

@@ -80,13 +80,36 @@
         </wired-card>
 
         <wired-card class="card" elevation="2">
+          <h2>Poster</h2>
+          <label for="title">Title</label>
+          <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" />
+          <div class="toggles">
+            <wired-checkbox data-setting="poster" checked>Title</wired-checkbox>
+            <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
+          </div>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
+          <h2>Pins</h2>
+          <form id="pin-form" class="search">
+            <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
+            <button id="pin-button" type="submit">Add pin</button>
+          </form>
+          <p id="pin-status" class="note">Write a note, press Add pin, then click the map.</p>
+          <ul id="pin-list" class="results pins"></ul>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
           <h2>Export</h2>
           <div class="row">
             <select id="size" aria-label="Size"></select>
             <select id="dpi" aria-label="Resolution"></select>
           </div>
           <p id="pixels" class="note"></p>
-          <button id="download" class="primary" type="button">Download PNG</button>
+          <div class="row">
+            <button id="download" class="primary" type="button">Download PNG</button>
+            <button id="download-svg" class="primary" type="button">Download SVG</button>
+          </div>
           <div class="row">
             <button id="save-config" type="button">Save config</button>
             <button id="load-config" type="button">Load config</button>

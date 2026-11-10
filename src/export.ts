@@ -1,5 +1,7 @@
-import { drawSketch, type Scene, type SketchSettings } from './sketch';
+import { drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import type { StyleSpec } from './styles';
+import type { Pin } from './pins';
+import { svgCanvas } from './svg';
 
 export type OutputSize = {
   id: string;
@@ -40,6 +42,19 @@ export async function renderPng(
   );
 }
 
+export async function renderSvg(
+  scene: Scene,
+  style: StyleSpec,
+  settings: SketchSettings,
+  size: OutputSize,
+): Promise<Blob> {
+  const target = svgCanvas();
+  await drawSketch(target.canvas, scene, style, settings, { width: scene.width, height: scene.height });
+  const unit = size.unit === 'mm' ? 'mm' : '';
+  const svg = await target.toSvg({ width: `${size.width}${unit}`, height: `${size.height}${unit}` });
+  return new Blob([svg], { type: 'image/svg+xml' });
+}
+
 export function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -64,6 +79,8 @@ export type Config = {
   app: 'roughMaps';
   version: 1;
   place: string;
+  title: string;
+  pins: Pin[];
   center: [number, number];
   zoom: number;
   style: string;
@@ -72,11 +89,59 @@ export type Config = {
   dpi: number;
 };
 
+const FILL_STYLES = ['default', 'hachure', 'solid', 'cross-hatch', 'dashed', 'zigzag', 'zigzag-line', 'dots'];
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function clamp(value: unknown, min: number, max: number, fallback: number): number {
+  return isNumber(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function parsePins(value: unknown): Pin[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((pin): Pin[] => {
+    const [lng, lat] = Array.isArray(pin?.lngLat) ? pin.lngLat : [];
+    if (!isNumber(lng) || !isNumber(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 85) return [];
+    return [{ lngLat: [lng, lat], note: typeof pin.note === 'string' ? pin.note.slice(0, 40) : '' }];
+  });
+}
+
 export function parseConfig(text: string): Config {
-  const data = JSON.parse(text) as Partial<Config>;
-  if (data.app !== 'roughMaps' || data.version !== 1) throw new Error('This is not a roughMaps config file');
-  if (!Array.isArray(data.center) || typeof data.zoom !== 'number' || typeof data.style !== 'string') {
+  let data: Partial<Config> | null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('This file is not a config file');
+  }
+  if (data?.app !== 'roughMaps' || data.version !== 1) throw new Error('This is not a roughMaps config file');
+  const [lng, lat] = Array.isArray(data.center) ? data.center : [];
+  if (!isNumber(lng) || !isNumber(lat) || !isNumber(data.zoom) || Math.abs(lng) > 180 || Math.abs(lat) > 85) {
     throw new Error('This config file is incomplete');
   }
-  return data as Config;
+  const s: Partial<SketchSettings> = data.settings ?? {};
+  return {
+    app: 'roughMaps',
+    version: 1,
+    place: typeof data.place === 'string' ? data.place : '',
+    title: typeof data.title === 'string' ? data.title.slice(0, 80) : typeof data.place === 'string' ? data.place : '',
+    pins: parsePins(data.pins),
+    center: [lng, lat],
+    zoom: data.zoom,
+    style: String(data.style ?? ''),
+    settings: {
+      roughness: clamp(s.roughness, 0, 5, DEFAULT_SETTINGS.roughness),
+      strokeWidth: clamp(s.strokeWidth, 0, 5, DEFAULT_SETTINGS.strokeWidth),
+      innerStrokeWidth: clamp(s.innerStrokeWidth, 0, 3, DEFAULT_SETTINGS.innerStrokeWidth),
+      fillWeight: clamp(s.fillWeight, 0, 3, DEFAULT_SETTINGS.fillWeight),
+      fillStyle: FILL_STYLES.includes(String(s.fillStyle)) ? String(s.fillStyle) : 'default',
+      labels: s.labels !== false,
+      doodles: s.doodles !== false,
+      poster: s.poster !== false,
+      compass: s.compass !== false,
+    },
+    size: String(data.size ?? ''),
+    dpi: Number(data.dpi),
+  };
 }

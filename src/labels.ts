@@ -14,7 +14,7 @@ const SCRIPTS: [RegExp, string][] = [
   [/[\u0980-\u09ff]/, 'Galada'],
   [/[\u0e00-\u0e7f]/, 'Itim'],
   [/[\u0900-\u097f]/, 'Kalam'],
-  [/[\u0100-\u0130\u0132-\u0151\u0154-\u024f\u1e00-\u1eff]/, 'Patrick Hand'],
+  [/[\u00c0-\u024f\u1e00-\u1eff]/, 'Patrick Hand'],
 ];
 const JOINED = /[\u0590-\u08ff\u0900-\u0dff\u0e00-\u0fff\u1000-\u109f\u1780-\u17ff\ufb1d-\ufeff]/;
 const HAN = /[\u3400-\u9fff\uf900-\ufaff]/;

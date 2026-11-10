@@ -42,5 +42,6 @@
     "edgeRatio": 0.15,
     "path": "#ff48b0"
   },
-  "rail": "#00838a"
+  "rail": "#00838a",
+  "text": "#005f66"
 }

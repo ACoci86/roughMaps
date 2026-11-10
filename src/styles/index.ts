@@ -23,6 +23,7 @@ export type StyleSpec = {
   order: number;
   paper: string;
   ink: string;
+  text?: string;
   outline: number;
   buildings: string[];
   buildingPattern?: AreaPaint;

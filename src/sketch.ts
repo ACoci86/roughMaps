@@ -7,6 +7,9 @@ import { POI_ICONS, type MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
 import { Placer, layoutLabels, drawLabel, loadLabelFonts } from './labels';
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
+import { drawPosterTitle, loadTitleFont, bandHeight } from './poster';
+import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
+import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
@@ -20,6 +23,8 @@ export type Scene = {
   height: number;
   zoom: number;
   center: [number, number];
+  title: string;
+  pins: PlacedPin[];
   water: Shape[];
   green: Shape[];
   forest: Shape[];
@@ -112,10 +117,23 @@ function roadKind(cls: string): string {
   return ROAD_KINDS.includes(base) ? base : 'service';
 }
 
-export function prepareScene(map: MapLibreMap, features: MapFeatures): Scene {
+export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''): Scene {
   const { clientWidth: width, clientHeight: height } = map.getContainer();
+  const margin = 30;
+  const onScreen = (shape: Shape) => {
+    let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const { points } of shape) {
+      for (const [x, y] of points) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+    return maxX >= -margin && minX <= width + margin && maxY >= -margin && minY <= height + margin;
+  };
   const shapes = (geometries: Geometry[], minArea = 0) =>
-    geometries.map((g) => toShape(map, g, minArea)).filter((s) => s.length > 0);
+    geometries.map((g) => toShape(map, g, minArea)).filter((s) => s.length > 0 && onScreen(s));
   const geometries = (list: GeoJSONFeature[]) => list.map((f) => f.geometry);
 
   return {
@@ -123,16 +141,17 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures): Scene {
     height,
     zoom: map.getZoom(),
     center: map.getCenter().toArray() as [number, number],
+    title,
+    pins: [],
     water: shapes(mergeAreas(features.water)),
     green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
     forest: shapes(mergeAreas(features.forest), MIN_GREEN_AREA),
     sand: shapes(mergeAreas(features.sand)),
     buildings: shapes(splitPolygons(features.buildings)),
     bridges: shapes(geometries(features.bridges)),
-    roads: features.roads.map((f) => ({
-      shape: toShape(map, f.geometry),
-      kind: roadKind(String(f.properties.class)),
-    })),
+    roads: features.roads
+      .map((f) => ({ shape: toShape(map, f.geometry), kind: roadKind(String(f.properties.class)) }))
+      .filter((r) => onScreen(r.shape)),
     railways: shapes(geometries(features.railways)),
     ...prepareNames(map, features, width, height),
   };
@@ -204,6 +223,8 @@ export type SketchSettings = {
   fillWeight: number;
   labels: boolean;
   doodles: boolean;
+  poster: boolean;
+  compass: boolean;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -214,6 +235,8 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   fillWeight: 1,
   labels: true,
   doodles: true,
+  poster: true,
+  compass: true,
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -288,6 +311,7 @@ export async function drawSketch(
     rc.draw({ ...drawable, options: { ...drawable.options, ...options } });
 
   const wobble = { roughness, bowing: roughness };
+  const text = style.text ?? style.ink;
   const outlineWidth = style.outline * settings.strokeWidth;
   const hasOutline = outlineWidth > 0;
   const forced = settings.fillStyle === 'default' ? null : settings.fillStyle;
@@ -314,7 +338,7 @@ export async function drawSketch(
         if (!forced && (!p.pattern || !p.patternColor)) return;
         const fill = patternFill(p, forced, settings.fillWeight);
         const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
-        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureGap}|${dotSize}|${roughness}`;
+        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureAngle}|${fill.hachureGap}|${dotSize}|${roughness}`;
         const overlay = shaped(patternKey, i, () =>
           generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
         );
@@ -347,11 +371,11 @@ export async function drawSketch(
     if (!list) doodles.set(key, (list = []));
     return (list[i] ??= make());
   };
-  const paintDoodle = (items: Doodle[], fill: string) => {
+  const paintDoodle = (items: Doodle[], fill: string, stroke: string) => {
     for (const { drawable, role } of items) {
-      if (role === 'badge') paint(drawable, { stroke: style.ink, strokeWidth: 1, fill: style.paper });
-      else if (role === 'canopy') paint(drawable, { stroke: style.ink, strokeWidth: 0.6, fill, fillWeight: 0.8 });
-      else paint(drawable, { stroke: style.ink, strokeWidth: role === 'line' ? 1.1 : 1, fill });
+      if (role === 'badge') paint(drawable, { stroke, strokeWidth: 1, fill: style.paper });
+      else if (role === 'canopy') paint(drawable, { stroke, strokeWidth: 0.6, fill, fillWeight: 0.8 });
+      else paint(drawable, { stroke, strokeWidth: 1.1, fill });
     }
   };
 
@@ -359,8 +383,10 @@ export async function drawSketch(
     if (!treeCache.has(scene)) {
       const rings = (list: Shape[]) => list.map((shape) => shape.map((l) => l.points));
       const water = rings(scene.water);
-      const green = treeSpots(rings(scene.green), 24, 7, 900, water);
-      treeCache.set(scene, { green, forest: treeSpots(rings(scene.forest), 16, 11, 900 - green.length, water) });
+      const size: [number, number] = [width, height];
+      const green = treeSpots(rings(scene.green), 24, 7, size, 900, water);
+      const forest = treeSpots(rings(scene.forest), 16, 11, size, 900 - green.length, water);
+      treeCache.set(scene, { green, forest });
     }
     const spots = treeCache.get(scene)!;
     const treeColor = (paint: AreaPaint) => paint.patternColor ?? mix(paint.color, style.ink, 0.45);
@@ -371,7 +397,7 @@ export async function drawSketch(
       list.forEach((spot, i) => {
         steps.push(() => {
           const size = 8 + ((i * 7) % 5);
-          paintDoodle(doodled(`tree|${kind}|${roughness}`, i, () => tree(spot, size, i + 1, wobble)), colour);
+          paintDoodle(doodled(`tree|${kind}|${roughness}`, i, () => tree(spot, size, i + 1, wobble)), colour, style.ink);
         });
       });
     }
@@ -418,12 +444,23 @@ export async function drawSketch(
     );
   }
 
+  const poster = settings.poster && scene.title.trim() !== '';
+  const inset = Math.max(10, bandHeight(height) * 0.12);
+  const bottom = poster ? height - bandHeight(height) : height;
+  const colors = { paper: style.paper, ink: text };
+  const pins = scene.pins.filter(({ point: [x, y] }) => x > 0 && y > 0 && x < width && y < bottom);
+
+  await loadPinFonts(pins, scene.center);
+  if (cancelled()) return;
+  const placer = new Placer(width, bottom);
+  if (settings.compass) placer.add(furnitureBoxes(width, height, bottom));
+  placer.add(pinBoxes(ctx, pins, scene.center, width));
+
   if (settings.labels || settings.doodles) {
     if (settings.labels) {
       await loadLabelFonts(scene);
       if (cancelled()) return;
     }
-    const placer = new Placer(width, height);
     const labels = settings.labels ? layoutLabels(ctx, scene, placer) : [];
 
     if (settings.doodles) {
@@ -440,19 +477,34 @@ export async function drawSketch(
         });
       for (const { poi, i } of shown) {
         steps.push(() =>
-          paintDoodle(doodled(`icon|${roughness}`, i, () => icon(poi.icon, poi.point, i + 1, wobble)), style.ink),
+          paintDoodle(doodled(`icon|${roughness}`, i, () => icon(poi.icon, poi.point, i + 1, wobble)), text, text),
         );
       }
     }
 
-    const waterInk = style.water.patternColor ? mix(style.water.patternColor, style.ink, 0.35) : style.ink;
+    const waterInk = style.water.patternColor ? mix(style.water.patternColor, text, 0.35) : text;
     for (const label of labels) {
-      steps.push(() => drawLabel(ctx, label, label.role === 'water' ? waterInk : style.ink, style.paper));
+      steps.push(() => drawLabel(ctx, label, label.role === 'water' ? waterInk : text, style.paper));
     }
   }
 
+  if (settings.compass) {
+    steps.push(() => drawCompass(ctx, rc, width, height, colors, wobble));
+    steps.push(() => drawScaleBar(ctx, rc, width, bottom, scene.zoom, scene.center[1], colors, wobble));
+  }
+
+  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, width, colors, wobble)));
+
+  if (poster) {
+    await loadTitleFont(scene.title, scene.center);
+    if (cancelled()) return;
+    steps.push(() =>
+      drawPosterTitle(ctx, rc, scene.title, scene.center, { width, height }, colors, wobble),
+    );
+  }
+
   steps.push(() =>
-    rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: style.ink, strokeWidth: 2, seed: 1 }),
+    rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: text, strokeWidth: 2, seed: 1 }),
   );
   steps.push(() => {
     const credit = '© OpenStreetMap contributors';
@@ -463,9 +515,10 @@ export async function drawSketch(
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3;
     ctx.strokeStyle = style.paper;
-    ctx.fillStyle = style.ink;
-    ctx.strokeText(credit, width - 10, height - 7);
-    ctx.fillText(credit, width - 10, height - 7);
+    ctx.fillStyle = text;
+    const [x, y] = !poster ? [width - 10, height - 7] : width >= 640 ? [width - inset - 10, height - inset - 6] : [width - 10, bottom - 8];
+    ctx.strokeText(credit, x, y);
+    ctx.fillText(credit, x, y);
     ctx.restore();
   });
 

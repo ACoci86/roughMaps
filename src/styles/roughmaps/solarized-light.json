@@ -4,12 +4,14 @@
   "note": "Colours from the Solarized light theme",
   "order": 53,
   "paper": "#fdf6e3",
-  "ink": "#9aa4a1",
+  "ink": "#819090",
   "outline": 0.5,
   "buildings": [
     "#e3e0d1",
     "#d2d3c6",
-    "#e9b291"
+    "#e8ae8d",
+    "#bcd6de",
+    "#d2ceda"
   ],
   "water": {
     "color": "#b2d1dd",
@@ -47,5 +49,6 @@
       "secondary": "#d9c072"
     }
   },
-  "rail": "#93a1a1"
+  "rail": "#93a1a1",
+  "text": "#586e75"
 }
