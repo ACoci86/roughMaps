@@ -28,127 +28,155 @@
           <canvas id="map"></canvas>
           <div id="pin-ghost" class="pin-ghost" hidden></div>
           <p id="loading" class="loading">Sketching...</p>
+          <div class="frame-actions">
+            <button id="move-button" type="button">Move the map</button>
+            <button id="sketch-button" class="primary" type="button" hidden>Sketch this view</button>
+          </div>
         </div>
       </section>
 
       <div class="panel-wrap">
-      <aside id="panel" class="panel">
-        <wired-card class="card" elevation="2">
-          <h2>Place</h2>
-          <form id="search-form" class="search">
-            <input id="search" type="search" placeholder="Search a city, street or landmark" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" />
-            <button type="submit">Go</button>
-          </form>
-          <ul id="suggestions" class="results suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
-          <p id="search-status" class="note"></p>
-          <ul id="search-results" class="results"></ul>
-          <div id="framing" class="row" hidden>
-            <button id="fit-area" type="button">Whole area</button>
-            <button id="close-up" type="button">Close up</button>
-          </div>
-          <div class="row">
-            <button id="move-button" type="button">Move the map</button>
-            <button id="sketch-button" class="primary" type="button" hidden>Sketch this view</button>
-          </div>
-        </wired-card>
+        <div class="panel-scroll">
+          <aside id="panel" class="panel">
+            <p class="howto">Search a place, pick a style, download your poster.</p>
 
-        <wired-card class="card" elevation="2">
-          <h2>Style</h2>
-          <select id="style" aria-label="Style"></select>
-          <p id="style-note" class="note"></p>
-          <label for="fill-style">Fill style</label>
-          <select id="fill-style">
-            <option value="default">Style default</option>
-            <option value="hachure">Hachure</option>
-            <option value="solid">Solid</option>
-            <option value="cross-hatch">Cross-hatch</option>
-            <option value="dashed">Dashed</option>
-            <option value="zigzag">Zigzag</option>
-            <option value="zigzag-line">Zigzag line</option>
-            <option value="dots">Dots</option>
-          </select>
-        </wired-card>
+            <wired-card class="card step open" data-step="place" elevation="2">
+              <button class="step-head" type="button" aria-expanded="true">
+                <span class="num">1</span>
+                <span class="step-name">Place</span>
+                <span class="summary" id="summary-place"></span>
+              </button>
+              <div class="step-body">
+                <form id="search-form" class="search">
+                  <input id="search" type="search" placeholder="Search a city, street or landmark" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" />
+                  <button type="submit">Go</button>
+                </form>
+                <ul id="suggestions" class="results suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
+                <p id="search-status" class="note"></p>
+                <ul id="search-results" class="results"></ul>
+                <div id="framing" class="row" hidden>
+                  <button id="fit-area" type="button">Whole area</button>
+                  <button id="close-up" type="button">Close up</button>
+                </div>
+                <p class="note">Or press "Move the map" on the preview and frame the view by hand.</p>
+              </div>
+            </wired-card>
 
-        <wired-card class="card" elevation="2">
-          <h2>Drawing</h2>
-          <label>Roughness <span data-value="roughness">1</span></label>
-          <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
-          <label>strokeWidth <span data-value="strokeWidth">1</span></label>
-          <wired-slider data-setting="strokeWidth" min="0" max="5" step="0.25" value="1"></wired-slider>
-          <label>innerStrokeWidth <span data-value="innerStrokeWidth">1</span></label>
-          <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
-          <label>fillWeight <span data-value="fillWeight">1</span></label>
-          <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
-          <label>Label size <span data-value="labelScale">1</span></label>
-          <wired-slider data-setting="labelScale" min="0.5" max="2" step="0.1" value="1"></wired-slider>
-          <div class="toggles">
-            <wired-checkbox data-setting="labels" checked>Labels</wired-checkbox>
-            <wired-checkbox data-setting="doodles" checked>Doodles</wired-checkbox>
-          </div>
-        </wired-card>
+            <wired-card class="card step" data-step="look" elevation="2">
+              <button class="step-head" type="button" aria-expanded="false">
+                <span class="num">2</span>
+                <span class="step-name">Look</span>
+                <span class="summary" id="summary-look"></span>
+              </button>
+              <div class="step-body">
+                <select id="style" aria-label="Style" hidden></select>
+                <div id="style-grid" class="swatches" role="listbox" aria-label="Style"></div>
+                <p id="style-note" class="note"></p>
+                <label>Roughness <span data-value="roughness">1</span></label>
+                <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
+                <label>Label size <span data-value="labelScale">1</span></label>
+                <wired-slider data-setting="labelScale" min="0.5" max="2" step="0.1" value="1"></wired-slider>
+                <div class="toggles">
+                  <wired-checkbox data-setting="labels" checked>Labels</wired-checkbox>
+                  <wired-checkbox data-setting="doodles" checked>Doodles</wired-checkbox>
+                </div>
+                <details id="more-options" class="more">
+                  <summary>More options</summary>
+                  <label for="fill-style">Fill pattern</label>
+                  <select id="fill-style">
+                    <option value="default">Style default</option>
+                    <option value="hachure">Hachure</option>
+                    <option value="solid">Solid</option>
+                    <option value="cross-hatch">Cross-hatch</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="zigzag">Zigzag</option>
+                    <option value="zigzag-line">Zigzag line</option>
+                    <option value="dots">Dots</option>
+                  </select>
+                  <label>Outlines <span data-value="strokeWidth">1</span></label>
+                  <wired-slider data-setting="strokeWidth" min="0" max="5" step="0.25" value="1"></wired-slider>
+                  <label>Roads <span data-value="innerStrokeWidth">1</span></label>
+                  <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
+                  <label>Hatching <span data-value="fillWeight">1</span></label>
+                  <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
+                </details>
+              </div>
+            </wired-card>
 
-        <wired-card class="card" elevation="2">
-          <h2>Poster</h2>
-          <label for="title">Title</label>
-          <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" />
-          <div class="row">
-            <select id="title-font" aria-label="Title font"></select>
-            <select id="title-layout" aria-label="Title position"></select>
-          </div>
-          <div class="toggles">
-            <wired-checkbox data-setting="poster" checked>Title</wired-checkbox>
-            <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
-            <wired-checkbox data-setting="border">Poster border</wired-checkbox>
-          </div>
-        </wired-card>
+            <wired-card class="card step" data-step="decorate" elevation="2">
+              <button class="step-head" type="button" aria-expanded="false">
+                <span class="num">3</span>
+                <span class="step-name">Decorate</span>
+                <span class="summary" id="summary-decorate"></span>
+              </button>
+              <div class="step-body">
+                <h3>Title</h3>
+                <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" aria-label="Title" />
+                <div class="row">
+                  <select id="title-font" aria-label="Title font"></select>
+                  <select id="title-layout" aria-label="Title position"></select>
+                </div>
+                <div class="toggles">
+                  <wired-checkbox data-setting="poster" checked>Show title</wired-checkbox>
+                  <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
+                  <wired-checkbox data-setting="border">Poster border</wired-checkbox>
+                </div>
 
-        <wired-card class="card" elevation="2">
-          <h2>Pins</h2>
-          <form id="pin-form">
-            <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
-            <div class="row">
-              <select id="pin-icon" aria-label="Pin shape"></select>
-              <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
-              <button id="pin-button" type="submit">Add pin</button>
-            </div>
-          </form>
-          <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
-          <ul id="pin-list" class="results pins"></ul>
-        </wired-card>
+                <h3>Pins</h3>
+                <form id="pin-form">
+                  <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
+                  <div class="row">
+                    <select id="pin-icon" aria-label="Pin shape"></select>
+                    <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
+                    <button id="pin-button" type="submit">Add pin</button>
+                  </div>
+                </form>
+                <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
+                <ul id="pin-list" class="results pins"></ul>
 
-        <wired-card class="card" elevation="2">
-          <h2>Routes</h2>
-          <div class="row">
-            <input id="route-color" type="color" value="#2a6fdb" aria-label="Route colour" title="Route colour" />
-            <button id="route-button" type="button">Draw a route</button>
-            <button id="route-cancel" type="button" hidden>Cancel</button>
-          </div>
-          <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
-          <ul id="route-list" class="results pins"></ul>
-        </wired-card>
+                <h3>Routes</h3>
+                <div class="row">
+                  <input id="route-color" type="color" value="#2a6fdb" aria-label="Route colour" title="Route colour" />
+                  <button id="route-button" type="button">Draw a route</button>
+                  <button id="route-cancel" type="button" hidden>Cancel</button>
+                </div>
+                <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
+                <ul id="route-list" class="results pins"></ul>
+              </div>
+            </wired-card>
 
-        <wired-card class="card" elevation="2">
-          <h2>Export</h2>
-          <div class="row">
-            <select id="size" aria-label="Size"></select>
-            <select id="dpi" aria-label="Resolution"></select>
-          </div>
-          <p id="pixels" class="note"></p>
-          <label>Download</label>
-          <div class="row">
-            <button id="download" class="primary" type="button">PNG</button>
-            <button id="download-svg" class="primary" type="button">SVG</button>
-            <button id="download-pdf" class="primary" type="button">PDF</button>
-          </div>
-          <div class="row">
-            <button id="save-config" type="button">Save config</button>
-            <button id="load-config" type="button">Load config</button>
-          </div>
-          <input id="config-file" type="file" accept="application/json,.json" hidden />
+            <wired-card class="card step" data-step="size" elevation="2">
+              <button class="step-head" type="button" aria-expanded="false">
+                <span class="num">4</span>
+                <span class="step-name">Size</span>
+                <span class="summary" id="summary-size"></span>
+              </button>
+              <div class="step-body">
+                <div class="row">
+                  <select id="size" aria-label="Size"></select>
+                  <select id="dpi" aria-label="Resolution"></select>
+                </div>
+                <p id="pixels" class="note"></p>
+                <h3>Your settings</h3>
+                <div class="row">
+                  <button id="save-config" type="button">Save to a file</button>
+                  <button id="load-config" type="button">Load a file</button>
+                </div>
+                <input id="config-file" type="file" accept="application/json,.json" hidden />
+                <p class="note">A small file that reopens this exact map later.</p>
+              </div>
+            </wired-card>
+          </aside>
+          <div id="rough-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
+        </div>
+
+        <div class="download-bar">
+          <span class="download-label">Download</span>
+          <button id="download" class="primary" type="button">PNG</button>
+          <button id="download-svg" class="primary" type="button">SVG</button>
+          <button id="download-pdf" class="primary" type="button">PDF</button>
           <p id="export-status" class="note"></p>
-        </wired-card>
-      </aside>
-      <div id="rough-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
+        </div>
       </div>
     </main>
 

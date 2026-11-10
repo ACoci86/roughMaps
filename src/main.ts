@@ -7,6 +7,7 @@ import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSett
 import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
+import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
@@ -117,6 +118,11 @@ sketchButton.disabled = true;
 map.once('load', () => (sketchButton.disabled = false));
 
 for (const style of STYLES) styleSelect.add(new Option(style.name, style.id));
+const styleGrid = document.querySelector<HTMLElement>('#style-grid')!;
+buildSwatches(styleGrid, STYLES, (id) => {
+  styleSelect.value = id;
+  styleSelect.dispatchEvent(new Event('change'));
+});
 
 function currentStyle() {
   return STYLES.find((s) => s.id === styleSelect.value) ?? STYLES[0];
@@ -133,6 +139,13 @@ function redrawSoon(): void {
 
 function showNote(): void {
   styleNote.textContent = currentStyle().note;
+  selectSwatch(styleGrid, currentStyle().id);
+  setSummary('look', currentStyle().name);
+}
+
+function showSummaries(): void {
+  setSummary('place', placeName);
+  setSummary('decorate', [settings.poster && titleInput.value.trim(), pins.length && `${pins.length} pin${pins.length === 1 ? '' : 's'}`, routes.length && `${routes.length} route${routes.length === 1 ? '' : 's'}`].filter(Boolean).join(', '));
 }
 
 function showSketch(on: boolean): void {
@@ -208,6 +221,7 @@ toggles.forEach((toggle) => {
   const key = toggle.dataset.setting as Toggle;
   toggle.addEventListener('change', () => {
     settings[key] = toggle.checked;
+    showSummaries();
     redraw();
   });
 });
@@ -259,6 +273,7 @@ function placedRoutes() {
 
 function refreshRoutes(): void {
   renderRouteList();
+  showSummaries();
   if (!scene) return;
   scene.routes = placedRoutes();
   redraw();
@@ -405,6 +420,7 @@ function removeButton(label: string, onClick: () => void): HTMLButtonElement {
 
 function refreshPins(): void {
   renderPinList();
+  showSummaries();
   if (!scene) return;
   scene.pins = placedPins();
   redraw();
@@ -507,6 +523,7 @@ function frameArea(place: Place): void {
 function goTo(place: Place): void {
   placeName = place.name;
   titleInput.value = place.name;
+  showSummaries();
   lastPlace = place;
   framing.hidden = false;
   frameArea(place);
@@ -678,6 +695,8 @@ function showOutput(): void {
   const { width, height } = outputPixels();
   dpiSelect.hidden = currentSize().unit !== 'mm';
   pixelsNote.textContent = `${width} × ${height} px`;
+  const size = currentSize();
+  setSummary('size', size.unit === 'mm' ? `${size.label}, ${dpiSelect.value} DPI` : size.label);
 }
 
 function reshape(): void {
@@ -805,6 +824,7 @@ configFile.addEventListener('change', async () => {
     renderRouteList();
     stopPlacing(PIN_HINT);
     showNote();
+    showSummaries();
     showOutput();
     fitPreview();
     map.jumpTo({ center: config.center, zoom: config.zoom });
@@ -818,3 +838,7 @@ configFile.addEventListener('change', async () => {
 const panel = document.querySelector<HTMLElement>('#panel')!;
 roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
 new ResizeObserver(redrawControls).observe(panel);
+setupSteps(() => requestAnimationFrame(redrawControls));
+document.querySelector('#more-options')!.addEventListener('toggle', () => requestAnimationFrame(redrawControls));
+titleInput.addEventListener('input', showSummaries);
+showSummaries();

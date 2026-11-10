@@ -256,7 +256,7 @@ function mix(a: string, b: string, t: number): string {
   return '#' + x.map((c, i) => Math.round(c + (y[i] - c) * t).toString(16).padStart(2, '0')).join('');
 }
 
-function patternFill(paint: AreaPaint, forced: string | null, weightScale: number): Options {
+export function patternFill(paint: AreaPaint, forced: string | null, weightScale: number): Options {
   const gap = paint.gap ?? 5;
   const weight = (paint.weight ?? 0.8) * weightScale;
   if (forced) {
@@ -322,6 +322,7 @@ export async function drawSketch(
     rc.draw({ ...drawable, options: { ...drawable.options, ...options } });
 
   const wobble = { roughness, bowing: roughness };
+  const decor: Options = { roughness: 1, bowing: 1 };
   const text = style.text ?? style.ink;
   const outlineWidth = style.outline * settings.strokeWidth;
   const hasOutline = outlineWidth > 0;
@@ -475,7 +476,7 @@ export async function drawSketch(
   if (settings.compass) placer.add(furnitureBoxes(width, height, area));
   placer.add(pinBoxes(ctx, pins, scene.center, area.x1));
 
-  scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, wobble)));
+  scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, decor)));
 
   if (settings.labels || settings.doodles) {
     if (settings.labels) {
@@ -510,23 +511,23 @@ export async function drawSketch(
   }
 
   if (settings.compass) {
-    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, wobble));
-    steps.push(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, wobble));
+    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, decor));
+    steps.push(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor));
   }
 
-  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, wobble)));
+  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor)));
 
-  steps.push(() => drawBorder(ctx, rc, width, height, layout, colors, wobble));
+  steps.push(() => drawBorder(ctx, rc, width, height, layout, colors, decor));
 
   if (title) {
     await loadTitleFont(title, scene.center);
     if (cancelled()) return;
-    steps.push(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, wobble));
+    steps.push(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, decor));
   }
 
 
   steps.push(() =>
-    rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: text, strokeWidth: 2, seed: 1 }),
+    rc.rectangle(2, 2, width - 4, height - 4, { ...decor, stroke: text, strokeWidth: 2, seed: 1 }),
   );
   steps.push(() => {
     const note = '© OpenStreetMap contributors';
