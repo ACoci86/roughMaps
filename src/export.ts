@@ -12,14 +12,24 @@ export type OutputSize = {
   width: number;
   height: number;
   unit: 'mm' | 'px';
+  group: string;
 };
 
 export const SIZES: OutputSize[] = [
-  { id: 'a4', label: 'A4 portrait', width: 210, height: 297, unit: 'mm' },
-  { id: 'a3', label: 'A3 portrait', width: 297, height: 420, unit: 'mm' },
-  { id: 'square', label: 'Square 30 cm', width: 300, height: 300, unit: 'mm' },
-  { id: 'phone', label: 'Phone wallpaper', width: 1290, height: 2796, unit: 'px' },
-  { id: 'desktop', label: 'Desktop 4K', width: 3840, height: 2160, unit: 'px' },
+  { id: 'a4', label: 'A4 portrait', width: 210, height: 297, unit: 'mm', group: 'Print' },
+  { id: 'a3', label: 'A3 portrait', width: 297, height: 420, unit: 'mm', group: 'Print' },
+  { id: 'square', label: 'Square 30 cm', width: 300, height: 300, unit: 'mm', group: 'Print' },
+  { id: 'iphone-pro-max', label: 'iPhone 16 Pro Max', width: 1320, height: 2868, unit: 'px', group: 'iPhone' },
+  { id: 'iphone-pro', label: 'iPhone 16 Pro', width: 1206, height: 2622, unit: 'px', group: 'iPhone' },
+  { id: 'phone', label: 'iPhone 15 Pro Max', width: 1290, height: 2796, unit: 'px', group: 'iPhone' },
+  { id: 'iphone', label: 'iPhone 15 and 16', width: 1179, height: 2556, unit: 'px', group: 'iPhone' },
+  { id: 'iphone-se', label: 'iPhone SE', width: 750, height: 1334, unit: 'px', group: 'iPhone' },
+  { id: 'galaxy-ultra', label: 'Galaxy S24 Ultra', width: 1440, height: 3120, unit: 'px', group: 'Android' },
+  { id: 'galaxy', label: 'Galaxy S24', width: 1080, height: 2340, unit: 'px', group: 'Android' },
+  { id: 'pixel-xl', label: 'Pixel 9 Pro XL', width: 1344, height: 2992, unit: 'px', group: 'Android' },
+  { id: 'pixel', label: 'Pixel 9', width: 1080, height: 2424, unit: 'px', group: 'Android' },
+  { id: 'android', label: 'Most Android phones', width: 1080, height: 2400, unit: 'px', group: 'Android' },
+  { id: 'desktop', label: 'Desktop 4K', width: 3840, height: 2160, unit: 'px', group: 'Screen' },
 ];
 
 export const DPI_OPTIONS = [150, 200, 300];

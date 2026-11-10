@@ -108,7 +108,27 @@ h3:first-child {
 }
 
 .github {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 19px;
+}
+
+.code-icon {
+  flex: none;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.code-icon path:nth-child(even) {
+  stroke-width: 1.1;
+}
+
+.github:hover .code-icon {
+  stroke: var(--coral);
 }
 
 .app {

@@ -683,7 +683,15 @@ searchForm.addEventListener('submit', async (event) => {
   }
 });
 
-for (const size of SIZES) sizeSelect.add(new Option(size.label, size.id));
+for (const size of SIZES) {
+  let group = [...sizeSelect.querySelectorAll('optgroup')].find((g) => g.label === size.group);
+  if (!group) {
+    group = document.createElement('optgroup');
+    group.label = size.group;
+    sizeSelect.append(group);
+  }
+  group.append(new Option(`${size.label}`, size.id));
+}
 for (const dpi of DPI_OPTIONS) dpiSelect.add(new Option(`${dpi} DPI`, String(dpi)));
 sizeSelect.value = DEFAULT_SIZE;
 dpiSelect.value = String(DEFAULT_DPI);

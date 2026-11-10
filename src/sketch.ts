@@ -12,6 +12,7 @@ import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
 import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
 import { fillOffset, inkLines, onlyFill, onlyLines } from './ink';
+import { hatchAngle, mainAngle, ringArea, simplifyShape, splitPieces } from './shapes';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
@@ -29,6 +30,7 @@ export type Scene = {
   pins: PlacedPin[];
   routes: PlacedRoute[];
   water: Shape[];
+  waterParts: Shape[];
   green: Shape[];
   forest: Shape[];
   sand: Shape[];
@@ -148,6 +150,7 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     pins: [],
     routes: [],
     water: shapes(mergeAreas(features.water)),
+    waterParts: shapes(splitPolygons(features.water)),
     green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
     forest: shapes(mergeAreas(features.forest), MIN_GREEN_AREA),
     sand: shapes(mergeAreas(features.sand)),
@@ -259,6 +262,12 @@ function mix(a: string, b: string, t: number): string {
   return '#' + x.map((c, i) => Math.round(c + (y[i] - c) * t).toString(16).padStart(2, '0')).join('');
 }
 
+function fade(hex: string, alpha: number): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function patternFill(paint: AreaPaint, forced: string | null, weightScale: number): Options {
   const gap = paint.gap ?? 5;
   const weight = (paint.weight ?? 0.8) * weightScale;
@@ -285,6 +294,9 @@ const generator = rough.generator();
 const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
 const doodleCache = new WeakMap<Scene, Map<string, Doodle[][]>>();
 const treeCache = new WeakMap<Scene, { green: Point[]; forest: Point[] }>();
+const simplifiedCache = new WeakMap<Scene, Map<string, ({ shape: Shape; angle: number } | null)[]>>();
+const MIN_BUILDING_AREA = 45;
+const MIN_HOLE_AREA = 80;
 const MAX_ICONS = 40;
 const ICON_SPACING = 34;
 let currentJob = 0;
@@ -332,9 +344,55 @@ export async function drawSketch(
   const forced = settings.fillStyle === 'default' ? null : settings.fillStyle;
   const steps: Step[] = [];
 
-  const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint) => {
-    const baseKey = `${layer}|base|${hasOutline}|${roughness}`;
-    list.forEach((shape, i) => {
+  const inked = settings.inked;
+  const flows = scene.waterNames.filter((l) => l.points.length > 1).map((l) => l.points);
+  const flowAngle = (part: Shape): number | undefined => {
+    const inside = part.flatMap((l) => l.points).filter(([x, y]) => x >= 0 && y >= 0 && x <= width && y <= height);
+    if (!inside.length || !flows.length) return undefined;
+    const cx = inside.reduce((a, p) => a + p[0], 0) / inside.length;
+    const cy = inside.reduce((a, p) => a + p[1], 0) / inside.length;
+    let best = Infinity;
+    let angle: number | undefined;
+    for (const points of flows) {
+      for (let i = 1; i < points.length; i++) {
+        const [ax, ay] = points[i - 1];
+        const [bx, by] = points[i];
+        const d = Math.hypot((ax + bx) / 2 - cx, (ay + by) / 2 - cy);
+        if (d < best) {
+          best = d;
+          angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+        }
+      }
+    }
+    return best < Math.max(width, height) * 0.35 ? angle : undefined;
+  };
+  const marker = inked && forced !== 'solid';
+  const prepared = (layer: string, list: Shape[]) => {
+    if (!inked) return list.map((shape) => ({ shape, angle: undefined as number | undefined }));
+    const key = `${layer}|simple`;
+    let cached = simplifiedCache.get(scene)?.get(key);
+    if (!cached) {
+      const buildings = layer === 'buildings';
+      const pieces = buildings || layer === 'bridges' ? list : list.flatMap(splitPieces);
+      cached = pieces.map((shape) => {
+        if (buildings && ringArea(shape[0]?.points ?? []) < MIN_BUILDING_AREA) return null;
+        const kept = buildings ? shape.filter((ring, k) => k === 0 || ringArea(ring.points) >= MIN_HOLE_AREA) : shape;
+        const simple = simplifyShape(kept, buildings ? 1.9 : 0.8);
+        return { shape: simple, angle: mainAngle(simple) };
+      });
+      if (!simplifiedCache.has(scene)) simplifiedCache.set(scene, new Map());
+      simplifiedCache.get(scene)!.set(key, cached);
+    }
+    return cached.map((c) => c ?? { shape: [] as Shape, angle: undefined });
+  };
+
+  const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint, parts?: Shape[]) => {
+    const split = inked && parts !== undefined && parts.length > 0;
+    const mode = inked ? 'inked' : 'plain';
+    const baseKey = `${layer}|base|${hasOutline}|${roughness}|${mode}`;
+    const shapes = prepared(layer, list);
+    shapes.forEach(({ shape, angle }, i) => {
+      if (!shape.length) return;
       steps.push(() => {
         const p = look(i);
         const base = shaped(baseKey, i, () =>
@@ -348,27 +406,63 @@ export async function drawSketch(
             fillStyle: 'solid',
           }),
         );
-        const outline = () => {
-          if (!hasOutline) return;
-          if (settings.inked) inkLines(ctx, onlyLines(base), style.ink, Math.max(1.1, outlineWidth * 1.9), i + 7);
-          else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
-        };
-        const [dx, dy] = settings.inked ? fillOffset(i + layer.length * 101, roughness) : [0, 0];
+        const tilt = angle === undefined ? undefined : angle + ((i * 37) % 17) - 8;
+        const [dx, dy] = inked ? fillOffset(i + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
-        paint(onlyFill(base), { stroke: 'none', fill: p.color });
-        const patterned = forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
+        if (marker) {
+          const gap = layer === 'buildings' ? 2.6 : 3.4;
+          const strokes = shaped(`${layer}|marker|${roughness}`, i, () =>
+            generator.path(toPath(shape), {
+              ...wobble,
+              roughness: Math.min(1.6, 0.6 + 0.4 * roughness),
+              seed: i + 11,
+              stroke: 'none',
+              fill: '#000',
+              fillStyle: 'hachure',
+              hachureGap: gap,
+              fillWeight: gap * 1.45,
+              hachureAngle: tilt === undefined ? -41 : hatchAngle(tilt + 30),
+            }),
+          );
+          paint(onlyFill(base), { stroke: 'none', fill: fade(p.color, 0.45) });
+          paint(strokes, { fill: fade(p.color, 0.6), fillWeight: gap * 1.45 });
+        } else {
+          paint(onlyFill(base), { stroke: 'none', fill: p.color });
+        }
+        const patterned = !split && forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
         if (patterned) {
           const fill = patternFill(p, forced, settings.fillWeight);
+          if (tilt !== undefined && fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle(tilt);
           const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
-          const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureAngle}|${fill.hachureGap}|${dotSize}|${roughness}`;
+          const patternKey = `${layer}|${fill.fillStyle}|${tilt === undefined ? fill.hachureAngle : 'along'}|${fill.hachureGap}|${dotSize}|${roughness}`;
           const overlay = shaped(patternKey, i, () =>
             generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
           );
           paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
         }
         ctx.restore();
-        outline();
+        if (!hasOutline) return;
+        const pen = layer === 'buildings' ? Math.max(0.8, outlineWidth * 1.3) : Math.max(1.1, outlineWidth * 1.9);
+        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, i + 7);
+        else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
+      });
+    });
+    if (!split) return;
+    const p = look(0);
+    if (forced === 'solid' || settings.fillWeight <= 0 || (!forced && (!p.pattern || !p.patternColor))) return;
+    const [dx, dy] = fillOffset(layer.length * 101, roughness);
+    parts.forEach((part, k) => {
+      steps.push(() => {
+        const fill = patternFill(p, forced, settings.fillWeight);
+        if (fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle((flowAngle(part) ?? mainAngle(part)) + ((k * 37) % 11) - 5);
+        const overlay = shaped(`${layer}|parts|${fill.fillStyle}|${fill.hachureGap}|${roughness}`, k, () =>
+          generator.path(toPath(part), { ...wobble, ...fill, seed: k + 1, stroke: 'none', fill: '#000' }),
+        );
+        ctx.save();
+        ctx.translate(dx, dy);
+        paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
+        ctx.restore();
       });
     });
   };
@@ -388,7 +482,7 @@ export async function drawSketch(
   areas('sand', scene.sand, () => style.sand);
   areas('green', scene.green, () => style.park);
   areas('forest', scene.forest, () => style.wood);
-  areas('water', scene.water, () => style.water);
+  areas('water', scene.water, () => style.water, scene.waterParts);
 
   if (!doodleCache.has(scene)) doodleCache.set(scene, new Map());
   const doodles = doodleCache.get(scene)!;
