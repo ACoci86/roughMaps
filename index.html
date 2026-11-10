@@ -70,7 +70,10 @@
               </button>
               <div class="step-body">
                 <select id="style" aria-label="Style" hidden></select>
-                <div id="style-grid" class="swatches" role="listbox" aria-label="Style"></div>
+                <div class="swatch-wrap">
+                  <div id="style-grid" class="swatches" role="listbox" aria-label="Style"></div>
+                  <div id="swatch-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
+                </div>
                 <p id="style-note" class="note"></p>
                 <label>Roughness <span data-value="roughness">1</span></label>
                 <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>

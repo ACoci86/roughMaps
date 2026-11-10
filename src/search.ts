@@ -101,3 +101,57 @@ export async function suggestPlaces(query: string, signal: AbortSignal): Promise
   suggestCache.set(key, top);
   return top;
 }
+
+type City = [string, string, string, string, number, number, number];
+
+let cityList: Promise<City[]> | null = null;
+
+export function loadCities(): Promise<City[]> {
+  cityList ??= fetch('/cities.json')
+    .then((r) => (r.ok ? (r.json() as Promise<City[]>) : []))
+    .catch(() => []);
+  return cityList;
+}
+
+function fold(text: string): string {
+  return text
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+function cityPlace([name, , region, country, lng, lat, pop]: City): Place {
+  const km = 3 + Math.sqrt(pop) / 150;
+  const dLat = km / 111;
+  const dLng = km / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+  const label = [name, region, country].filter((v, i, all) => v && all.indexOf(v) === i).join(', ');
+  return {
+    name,
+    label,
+    center: [lng, lat],
+    bounds: [
+      [lng - dLng, lat - dLat],
+      [lng + dLng, lat + dLat],
+    ],
+  };
+}
+
+export async function matchCities(query: string, limit = 5): Promise<Place[]> {
+  const q = fold(query.trim());
+  if (q.length < 2) return [];
+  const cities = await loadCities();
+  const starts: City[] = [];
+  const words: City[] = [];
+  for (const city of cities) {
+    const names = [fold(city[0]), city[1] ? fold(city[1]) : ''];
+    if (names.some((n) => n.startsWith(q))) starts.push(city);
+    else if (names.some((n) => n.includes(` ${q}`) || n.includes(`-${q}`))) words.push(city);
+    if (starts.length >= limit) break;
+  }
+  return [...starts, ...words].slice(0, limit).map(cityPlace);
+}
+
+export function samePlace(a: Place, b: Place): boolean {
+  const near = Math.abs(a.center[0] - b.center[0]) < 1.5 && Math.abs(a.center[1] - b.center[1]) < 1.5;
+  return fold(a.label) === fold(b.label) || (near && fold(a.name) === fold(b.name));
+}

@@ -5,7 +5,7 @@ import 'wired-elements/lib/wired-checkbox.js';
 import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
-import { searchPlaces, suggestPlaces, type Place } from './search';
+import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
 import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
@@ -551,7 +551,8 @@ function showResults(places: Place[]): void {
   );
 }
 
-const SUGGEST_DELAY = 300;
+const SUGGEST_DELAY = 200;
+const MAX_SUGGESTIONS = 6;
 let suggestTimer = 0;
 let suggestRequest: AbortController | null = null;
 let suggestions: Place[] = [];
@@ -600,24 +601,39 @@ searchInput.addEventListener('input', () => {
   clearTimeout(suggestTimer);
   suggestRequest?.abort();
   const query = searchInput.value;
-  if (query.trim().length < 3) {
+  if (query.trim().length < 2) {
     hideSuggestions();
     return;
   }
+  let local: Place[] = [];
+  matchCities(query).then((cities) => {
+    if (searchInput.value !== query) return;
+    local = cities;
+    suggestions = cities;
+    activeSuggestion = -1;
+    showSuggestions();
+  });
+  if (query.trim().length < 3) return;
   suggestTimer = window.setTimeout(async () => {
     const request = new AbortController();
     suggestRequest = request;
     try {
       const places = await suggestPlaces(query, request.signal);
       if (request.signal.aborted || searchInput.value !== query) return;
-      suggestions = places;
-      activeSuggestion = -1;
+      const base = local.length ? local : suggestions;
+      const extra = places.filter((p) => !base.some((c) => samePlace(c, p)));
+      const merged = [...base, ...extra].slice(0, MAX_SUGGESTIONS);
+      const active = suggestions[activeSuggestion];
+      suggestions = merged;
+      activeSuggestion = active ? merged.indexOf(active) : -1;
       showSuggestions();
     } catch {
-      if (!request.signal.aborted) hideSuggestions();
+      return;
     }
   }, SUGGEST_DELAY);
 });
+
+searchInput.addEventListener('focus', () => void loadCities(), { once: true });
 
 searchInput.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -837,6 +853,7 @@ configFile.addEventListener('change', async () => {
 
 const panel = document.querySelector<HTMLElement>('#panel')!;
 roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
+roughScrollbar(styleGrid, document.querySelector<HTMLElement>('#swatch-scrollbar')!);
 new ResizeObserver(redrawControls).observe(panel);
 setupSteps(() => requestAnimationFrame(redrawControls));
 document.querySelector('#more-options')!.addEventListener('toggle', () => requestAnimationFrame(redrawControls));
