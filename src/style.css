@@ -94,6 +94,11 @@ a {
   max-width: 100%;
 }
 
+.controls input[type='range'] {
+  width: 80%;
+  accent-color: var(--ink);
+}
+
 .note {
   margin: 0;
   font-size: 15px;

@@ -153,7 +153,7 @@ function patternFill(paint: AreaPaint): Options {
   }
 }
 
-export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec): void {
+export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec, roughness = 1): void {
   const { width, height } = scene;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.replaceChildren();
@@ -164,7 +164,7 @@ export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec): 
   paper.setAttribute('fill', style.paper);
   svg.append(paper);
 
-  const rc = rough.svg(svg);
+  const rc = rough.svg(svg, { options: { roughness, bowing: roughness } });
   const outline = style.outline > 0 ? style.ink : 'none';
 
   const drawAreas = (list: Shape[], paint: (i: number) => AreaPaint) => {
@@ -177,7 +177,7 @@ export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec): 
           seed,
           stroke: outline,
           strokeWidth: style.outline,
-          roughness: 0.8,
+          roughness: 0.8 * roughness,
           disableMultiStroke: true,
           fill: p.color,
           fillStyle: 'solid',
@@ -201,7 +201,7 @@ export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec): 
   drawAreas(scene.buildings, building);
   drawAreas(scene.bridges, () => ({ color: style.paper }));
 
-  const lineStyle: Options = { roughness: 1, disableMultiStroke: true, preserveVertices: true };
+  const lineStyle: Options = { roughness, disableMultiStroke: true, preserveVertices: true };
 
   scene.railways.forEach((shape, i) => {
     svg.append(
@@ -257,5 +257,5 @@ export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec): 
     );
   }
 
-  svg.append(rc.rectangle(2, 2, width - 4, height - 4, { stroke: style.ink, strokeWidth: 2, roughness: 1, seed: 1 }));
+  svg.append(rc.rectangle(2, 2, width - 4, height - 4, { stroke: style.ink, strokeWidth: 2, roughness, seed: 1 }));
 }
