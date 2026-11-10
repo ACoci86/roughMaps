@@ -134,6 +134,12 @@ a {
   padding: 0;
 }
 
+.toggles {
+  display: flex;
+  gap: 16px;
+  font-size: 16px;
+}
+
 .controls label {
   margin: 0;
   font-size: 16px;

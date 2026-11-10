@@ -1,6 +1,7 @@
 import { createPicker } from './picker';
 import { readFeatures } from './features';
 import 'wired-elements/lib/wired-slider.js';
+import 'wired-elements/lib/wired-checkbox.js';
 import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
@@ -11,6 +12,7 @@ const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
 const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
 const sliders = document.querySelectorAll<HTMLElement & { value: number }>('wired-slider[data-setting]');
+const toggles = document.querySelectorAll<HTMLElement & { checked: boolean }>('wired-checkbox[data-setting]');
 const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
 const backButton = document.querySelector<HTMLButtonElement>('#back-button')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
@@ -71,12 +73,20 @@ fillStyleSelect.addEventListener('change', () => {
 });
 
 sliders.forEach((slider) => {
-  const key = slider.dataset.setting as keyof Omit<SketchSettings, 'fillStyle'>;
+  const key = slider.dataset.setting as 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight';
   const label = document.querySelector<HTMLSpanElement>(`[data-value="${key}"]`)!;
   slider.addEventListener('change', () => {
     settings[key] = Number(slider.value);
     label.textContent = String(settings[key]);
     redrawSoon();
+  });
+});
+
+toggles.forEach((toggle) => {
+  const key = toggle.dataset.setting as 'labels' | 'doodles';
+  toggle.addEventListener('change', () => {
+    settings[key] = toggle.checked;
+    redraw();
   });
 });
 

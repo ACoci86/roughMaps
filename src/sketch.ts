@@ -3,13 +3,17 @@ import { union, type Geom } from 'polyclip-ts';
 import type { Drawable, Options } from 'roughjs/bin/core';
 import type { Map as MapLibreMap, GeoJSONFeature } from 'maplibre-gl';
 import type { Geometry, Polygon, Position } from 'geojson';
-import type { MapFeatures } from './features';
+import { POI_ICONS, type MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
+import { Placer, layoutLabels, drawLabel, LABEL_FONT } from './labels';
+import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
 
-type Point = [number, number];
+export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
 type Shape = Line[];
 type Road = { shape: Shape; kind: string };
+export type Label = { name: string; kind: string; points: Point[] };
+export type Poi = { name: string; icon: string; rank: number; point: Point };
 
 export type Scene = {
   width: number;
@@ -23,6 +27,10 @@ export type Scene = {
   bridges: Shape[];
   roads: Road[];
   railways: Shape[];
+  streetNames: Label[];
+  places: Label[];
+  waterNames: Label[];
+  pois: Poi[];
 };
 
 const MIN_GREEN_AREA = 60;
@@ -124,6 +132,56 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures): Scene {
       kind: roadKind(String(f.properties.class)),
     })),
     railways: shapes(geometries(features.railways)),
+    ...prepareNames(map, features, width, height),
+  };
+}
+
+function prepareNames(map: MapLibreMap, features: MapFeatures, width: number, height: number) {
+  const margin = 40;
+  const visible = ([x, y]: Point) => x > -margin && y > -margin && x < width + margin && y < height + margin;
+  const name = (f: GeoJSONFeature) => String(f.properties.name ?? '').trim();
+  const project = (p: Position): Point => {
+    const { x, y } = map.project([p[0], p[1]]);
+    return [x, y];
+  };
+  const lines = (list: GeoJSONFeature[]): Label[] =>
+    list.flatMap((f) =>
+      toShape(map, f.geometry)
+        .filter((l) => l.points.length > 1 && l.points.some(visible))
+        .map((l) => ({ name: name(f), kind: String(f.properties.class), points: l.points })),
+    );
+  const points = (list: GeoJSONFeature[]): Label[] => {
+    const seen = new Set<string>();
+    return list.flatMap((f) => {
+      if (f.geometry.type !== 'Point' || seen.has(name(f))) return [];
+      const point = project(f.geometry.coordinates);
+      if (!visible(point)) return [];
+      seen.add(name(f));
+      return [{ name: name(f), kind: String(f.properties.class), points: [point] }];
+    });
+  };
+
+  const seenPoi = new Set<string>();
+  const pois = features.pois
+    .flatMap((f): Poi[] => {
+      if (f.geometry.type !== 'Point') return [];
+      const point = project(f.geometry.coordinates);
+      const key = `${name(f)}|${Math.round(point[0] / 20)}|${Math.round(point[1] / 20)}`;
+      if (!visible(point) || seenPoi.has(key)) return [];
+      seenPoi.add(key);
+      const icon = POI_ICONS[String(f.properties.class)] ?? 'star';
+      return [{ name: name(f), icon, rank: Number(f.properties.rank ?? 99), point }];
+    })
+    .sort((a, b) => a.rank - b.rank);
+
+  return {
+    streetNames: lines(features.streetNames).filter((l) => l.name),
+    places: points(features.places),
+    waterNames: [
+      ...points(features.waterNames.filter((f) => f.geometry.type === 'Point')),
+      ...lines(features.waterNames.filter((f) => f.geometry.type !== 'Point')),
+    ],
+    pois,
   };
 }
 
@@ -142,6 +200,8 @@ export type SketchSettings = {
   strokeWidth: number;
   innerStrokeWidth: number;
   fillWeight: number;
+  labels: boolean;
+  doodles: boolean;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -150,6 +210,8 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   strokeWidth: 1,
   innerStrokeWidth: 1,
   fillWeight: 1,
+  labels: true,
+  doodles: true,
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -182,6 +244,10 @@ type Step = () => void;
 
 const generator = rough.generator();
 const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
+const doodleCache = new WeakMap<Scene, Map<string, Doodle[][]>>();
+const treeCache = new WeakMap<Scene, { green: Point[]; forest: Point[] }>();
+const MAX_ICONS = 40;
+const ICON_SPACING = 34;
 let currentJob = 0;
 
 function nextFrame(): Promise<void> {
@@ -269,6 +335,44 @@ export async function drawSketch(
   areas('green', scene.green, () => style.park);
   areas('forest', scene.forest, () => style.wood);
   areas('water', scene.water, () => style.water);
+
+  if (!doodleCache.has(scene)) doodleCache.set(scene, new Map());
+  const doodles = doodleCache.get(scene)!;
+  const doodled = (key: string, i: number, make: () => Doodle[]): Doodle[] => {
+    let list = doodles.get(key);
+    if (!list) doodles.set(key, (list = []));
+    return (list[i] ??= make());
+  };
+  const paintDoodle = (items: Doodle[], fill: string) => {
+    for (const { drawable, role } of items) {
+      if (role === 'badge') paint(drawable, { stroke: style.ink, strokeWidth: 1, fill: style.paper });
+      else if (role === 'canopy') paint(drawable, { stroke: style.ink, strokeWidth: 0.6, fill, fillWeight: 0.8 });
+      else paint(drawable, { stroke: style.ink, strokeWidth: role === 'line' ? 1.1 : 1, fill });
+    }
+  };
+
+  if (settings.doodles) {
+    if (!treeCache.has(scene)) {
+      const rings = (list: Shape[]) => list.map((shape) => shape.map((l) => l.points));
+      const water = rings(scene.water);
+      const green = treeSpots(rings(scene.green), 24, 7, 900, water);
+      treeCache.set(scene, { green, forest: treeSpots(rings(scene.forest), 16, 11, 900 - green.length, water) });
+    }
+    const spots = treeCache.get(scene)!;
+    const treeColor = (paint: AreaPaint) => paint.patternColor ?? mix(paint.color, style.ink, 0.45);
+    for (const [kind, list, colour] of [
+      ['green', spots.green, treeColor(style.park)],
+      ['forest', spots.forest, treeColor(style.wood)],
+    ] as const) {
+      list.forEach((spot, i) => {
+        steps.push(() => {
+          const size = 8 + ((i * 7) % 5);
+          paintDoodle(doodled(`tree|${kind}|${roughness}`, i, () => tree(spot, size, i + 1, wobble)), colour);
+        });
+      });
+    }
+  }
+
   areas('buildings', scene.buildings, (i) => ({
     ...style.buildingPattern,
     color: style.buildings[i % style.buildings.length],
@@ -308,6 +412,39 @@ export async function drawSketch(
     steps.push(() =>
       paint(line('road', r.shape, r.i), { stroke: road.colors?.[r.kind] ?? road.fill, strokeWidth: r.width }),
     );
+  }
+
+  if (settings.labels || settings.doodles) {
+    if (settings.labels) {
+      await Promise.all([document.fonts.load(`400 16px ${LABEL_FONT}`), document.fonts.load(`700 16px ${LABEL_FONT}`)]);
+      if (job !== currentJob) return;
+    }
+    const placer = new Placer(width, height);
+    const labels = settings.labels ? layoutLabels(ctx, scene, placer) : [];
+
+    if (settings.doodles) {
+      const r = ICON_RADIUS + 1;
+      const kept: Point[] = [];
+      const shown = scene.pois
+        .map((poi, i) => ({ poi, i }))
+        .filter(({ poi: { point: [x, y] } }) => {
+          if (kept.length >= MAX_ICONS) return false;
+          if (kept.some(([kx, ky]) => Math.hypot(kx - x, ky - y) < ICON_SPACING * 2)) return false;
+          if (!placer.tryAdd([[x - r, y - r, x + r, y + r]])) return false;
+          kept.push([x, y]);
+          return true;
+        });
+      for (const { poi, i } of shown) {
+        steps.push(() =>
+          paintDoodle(doodled(`icon|${roughness}`, i, () => icon(poi.icon, poi.point, i + 1, wobble)), style.ink),
+        );
+      }
+    }
+
+    const waterInk = style.water.patternColor ? mix(style.water.patternColor, style.ink, 0.35) : style.ink;
+    for (const label of labels) {
+      steps.push(() => drawLabel(ctx, label, label.role === 'water' ? waterInk : style.ink, style.paper));
+    }
   }
 
   steps.push(() =>

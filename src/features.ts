@@ -9,11 +9,37 @@ export type MapFeatures = {
   bridges: GeoJSONFeature[];
   roads: GeoJSONFeature[];
   railways: GeoJSONFeature[];
+  streetNames: GeoJSONFeature[];
+  places: GeoJSONFeature[];
+  waterNames: GeoJSONFeature[];
+  pois: GeoJSONFeature[];
 };
 
 const SOURCE = 'openmaptiles';
 
 const RAIL = ['rail', 'transit'];
+
+export const POI_ICONS: Record<string, string> = {
+  cafe: 'cafe',
+  ice_cream: 'cafe',
+  bakery: 'cafe',
+  restaurant: 'restaurant',
+  fast_food: 'restaurant',
+  bar: 'bar',
+  beer: 'bar',
+  place_of_worship: 'worship',
+  museum: 'museum',
+  art_gallery: 'museum',
+  castle: 'museum',
+  monument: 'museum',
+  hospital: 'hospital',
+  school: 'school',
+  college: 'school',
+  library: 'school',
+  attraction: 'star',
+  theatre: 'star',
+  cinema: 'star',
+};
 
 const isLine: ExpressionSpecification = ['match', ['geometry-type'], ['LineString', 'MultiLineString'], true, false];
 const isArea: ExpressionSpecification = ['match', ['geometry-type'], ['Polygon', 'MultiPolygon'], true, false];
@@ -38,5 +64,9 @@ export function readFeatures(map: Map): MapFeatures {
     bridges: read(map, 'transportation', isArea),
     roads: read(map, 'transportation', ['all', isLine, notRail]),
     railways: read(map, 'transportation', ['all', isLine, isRail]),
+    streetNames: read(map, 'transportation_name', ['has', 'name']),
+    places: read(map, 'place', ['match', ['get', 'class'], ['city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood'], true, false]),
+    waterNames: [...read(map, 'water_name', ['has', 'name']), ...read(map, 'waterway', ['all', ['has', 'name'], isLine])],
+    pois: read(map, 'poi', ['all', ['has', 'name'], ['match', ['get', 'class'], Object.keys(POI_ICONS), true, false]]),
   };
 }
