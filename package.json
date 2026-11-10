@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "maplibre-gl": "^6.17.0",
     "roughjs": "^4.6.6"
   },
   "devDependencies": {
