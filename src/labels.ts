@@ -1,6 +1,56 @@
 import type { Label, Point, Scene } from './sketch';
 
-export const LABEL_FONT = 'Gaegu';
+const LATIN_FONT = 'Gaegu';
+const FALLBACK = `"${LATIN_FONT}", "LXGW WenKai TC", sans-serif`;
+
+const SCRIPTS: [RegExp, string][] = [
+  [/[\u3040-\u30ff\u31f0-\u31ff]/, 'Yomogi'],
+  [/[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/, LATIN_FONT],
+  [/[\u0e00-\u0e7f]/, 'Itim'],
+  [/[\u0900-\u097f]/, 'Kalam'],
+];
+const HAN = /[\u3400-\u9fff\uf900-\ufaff]/;
+
+type Area = [number, number, number, number];
+const TRADITIONAL: Area[] = [
+  [119, 21.5, 122.5, 25.6],
+  [113.4, 22.1, 114.5, 22.6],
+];
+const JAPAN: Area[] = [[122.5, 24, 154, 46]];
+
+function within([lng, lat]: [number, number], areas: Area[]): boolean {
+  return areas.some(([w, s, e, n]) => lng >= w && lng <= e && lat >= s && lat <= n);
+}
+
+export function fontFamily(text: string, center: [number, number]): string {
+  for (const [pattern, family] of SCRIPTS) if (pattern.test(text)) return family;
+  if (HAN.test(text)) {
+    if (within(center, TRADITIONAL)) return 'LXGW WenKai TC';
+    if (within(center, JAPAN)) return 'Yomogi';
+    return 'ZCOOL KuaiLe';
+  }
+  return LATIN_FONT;
+}
+
+function allLabels(scene: Scene): string[] {
+  return [...scene.places, ...scene.waterNames, ...scene.streetNames].map((l) => l.name);
+}
+
+export async function loadLabelFonts(scene: Scene): Promise<void> {
+  const byFamily = new Map<string, Set<string>>();
+  for (const text of allLabels(scene)) {
+    const family = fontFamily(text, scene.center);
+    if (!byFamily.has(family)) byFamily.set(family, new Set());
+    for (const char of text) byFamily.get(family)!.add(char);
+  }
+  byFamily.set(LATIN_FONT, new Set([...(byFamily.get(LATIN_FONT) ?? []), ...'Aa']));
+  await Promise.all(
+    [...byFamily].flatMap(([family, chars]) => {
+      const sample = [...chars].join('');
+      return [400, 700].map((weight) => document.fonts.load(`${weight} 16px "${family}"`, sample).catch(() => []));
+    }),
+  );
+}
 
 type Box = [number, number, number, number];
 type Glyph = { char: string; x: number; y: number; angle: number };
@@ -10,6 +60,7 @@ export type PlacedLabel = {
   size: number;
   bold: boolean;
   role: 'place' | 'street' | 'water';
+  family: string;
 };
 
 const PLACE_SIZES: Record<string, number> = {
@@ -61,8 +112,8 @@ export class Placer {
   }
 }
 
-function font(size: number, bold: boolean): string {
-  return `${bold ? 700 : 400} ${size}px ${LABEL_FONT}`;
+function font(size: number, bold: boolean, family: string): string {
+  return `${bold ? 700 : 400} ${size}px "${family}", ${FALLBACK}`;
 }
 
 function glyphBoxes(glyphs: Glyph[], size: number): Box[] {
@@ -129,16 +180,18 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
   const placed: PlacedLabel[] = [];
 
   const placePoint = (label: Label, size: number, bold: boolean, role: PlacedLabel['role']) => {
-    ctx.font = font(size, bold);
+    const family = fontFamily(label.name, scene.center);
+    ctx.font = font(size, bold, family);
     const glyphs = straight(ctx, label.name, label.points[0]);
-    if (placer.tryAdd(glyphBoxes(glyphs, size))) placed.push({ glyphs, size, bold, role });
+    if (placer.tryAdd(glyphBoxes(glyphs, size))) placed.push({ glyphs, size, bold, role, family });
   };
 
   const placeLines = (labels: Label[], size: (l: Label) => number, role: PlacedLabel['role']) => {
     const centres = new Map<string, Point[]>();
     for (const label of labels) {
       const s = size(label);
-      ctx.font = font(s, false);
+      const family = fontFamily(label.name, scene.center);
+      ctx.font = font(s, false, family);
       const glyphs = along(ctx, label.name, label.points);
       if (!glyphs) continue;
       const middle = glyphs[Math.floor(glyphs.length / 2)];
@@ -146,7 +199,7 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
       if (same.some(([x, y]) => Math.hypot(x - middle.x, y - middle.y) < SAME_NAME_GAP)) continue;
       if (!placer.tryAdd(glyphBoxes(glyphs, s))) continue;
       centres.set(label.name, [...same, [middle.x, middle.y]]);
-      placed.push({ glyphs, size: s, bold: false, role });
+      placed.push({ glyphs, size: s, bold: false, role, family });
     }
   };
 
@@ -177,7 +230,7 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
 
 export function drawLabel(ctx: CanvasRenderingContext2D, label: PlacedLabel, ink: string, halo: string): void {
   ctx.save();
-  ctx.font = font(label.size, label.bold);
+  ctx.font = font(label.size, label.bold, label.family);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';

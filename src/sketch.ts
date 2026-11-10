@@ -5,7 +5,7 @@ import type { Map as MapLibreMap, GeoJSONFeature } from 'maplibre-gl';
 import type { Geometry, Polygon, Position } from 'geojson';
 import { POI_ICONS, type MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
-import { Placer, layoutLabels, drawLabel, LABEL_FONT } from './labels';
+import { Placer, layoutLabels, drawLabel, loadLabelFonts } from './labels';
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
 
 export type Point = [number, number];
@@ -19,6 +19,7 @@ export type Scene = {
   width: number;
   height: number;
   zoom: number;
+  center: [number, number];
   water: Shape[];
   green: Shape[];
   forest: Shape[];
@@ -121,6 +122,7 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures): Scene {
     width,
     height,
     zoom: map.getZoom(),
+    center: map.getCenter().toArray() as [number, number],
     water: shapes(mergeAreas(features.water)),
     green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
     forest: shapes(mergeAreas(features.forest), MIN_GREEN_AREA),
@@ -418,7 +420,7 @@ export async function drawSketch(
 
   if (settings.labels || settings.doodles) {
     if (settings.labels) {
-      await Promise.all([document.fonts.load(`400 16px ${LABEL_FONT}`), document.fonts.load(`700 16px ${LABEL_FONT}`)]);
+      await loadLabelFonts(scene);
       if (cancelled()) return;
     }
     const placer = new Placer(width, height);
