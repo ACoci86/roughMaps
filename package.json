@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "logo": "node scripts/logo.mjs"
   },
   "dependencies": {
     "maplibre-gl": "^6.17.0",

@@ -2,6 +2,7 @@ import { createPicker } from './picker';
 import { readFeatures } from './features';
 import 'wired-elements/lib/wired-slider.js';
 import 'wired-elements/lib/wired-checkbox.js';
+import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
@@ -23,15 +24,18 @@ const sketchCanvas = document.querySelector<HTMLCanvasElement>('#map')!;
 const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
 const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
-const sliders = document.querySelectorAll<HTMLElement & { value: number }>('wired-slider[data-setting]');
+const sliders = document.querySelectorAll<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>(
+  'wired-slider[data-setting]',
+);
 const toggles = document.querySelectorAll<HTMLElement & { checked: boolean }>('wired-checkbox[data-setting]');
 const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
-const backButton = document.querySelector<HTMLButtonElement>('#back-button')!;
+const moveButton = document.querySelector<HTMLButtonElement>('#move-button')!;
+const loading = document.querySelector<HTMLParagraphElement>('#loading')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
 const searchInput = document.querySelector<HTMLInputElement>('#search')!;
 const searchStatus = document.querySelector<HTMLParagraphElement>('#search-status')!;
 const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
-const stage = document.querySelector<HTMLDivElement>('#stage')!;
+const frame = document.querySelector<HTMLDivElement>('#frame')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
 const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
@@ -56,8 +60,8 @@ function currentStyle() {
   return STYLES.find((s) => s.id === styleSelect.value) ?? STYLES[0];
 }
 
-function redraw(): void {
-  if (scene) drawSketch(sketchCanvas, scene, currentStyle(), settings);
+async function redraw(): Promise<void> {
+  if (scene) await drawSketch(sketchCanvas, scene, currentStyle(), settings);
 }
 
 function redrawSoon(): void {
@@ -70,19 +74,34 @@ function showNote(): void {
 }
 
 function showSketch(on: boolean): void {
-  pickerBox.hidden = on;
   sketchCanvas.hidden = !on;
+  frame.classList.toggle('sketching', on);
   sketchButton.hidden = on;
-  backButton.hidden = !on;
+  moveButton.hidden = !on;
+}
+
+function sketchingMode(): boolean {
+  return !sketchCanvas.hidden;
 }
 
 showNote();
 
-function sketch(): void {
-  scene = prepareScene(map, readFeatures(map));
-  redraw();
+async function sketch(): Promise<void> {
+  loading.hidden = false;
   showSketch(true);
+  scene = prepareScene(map, readFeatures(map));
+  await redraw();
+  loading.hidden = true;
 }
+
+function sketchWhenReady(): void {
+  loading.hidden = false;
+  showSketch(true);
+  map.once('idle', sketch);
+  map.triggerRepaint();
+}
+
+map.once('load', sketchWhenReady);
 
 sketchButton.addEventListener('click', sketch);
 
@@ -114,14 +133,16 @@ toggles.forEach((toggle) => {
   });
 });
 
-backButton.addEventListener('click', () => showSketch(false));
+moveButton.addEventListener('click', () => showSketch(false));
 
 const SEARCH_MIN_ZOOM = 15;
 const SEARCH_MAX_ZOOM = 17;
 
 function goTo(place: Place): void {
-  showSketch(false);
   placeName = place.name;
+  loading.hidden = false;
+  showSketch(true);
+  map.once('moveend', sketchWhenReady);
   const fit = map.cameraForBounds(place.bounds, { padding: 20 })?.zoom ?? SEARCH_MIN_ZOOM;
   const zoom = Math.min(SEARCH_MAX_ZOOM, Math.max(SEARCH_MIN_ZOOM, fit));
   map.flyTo({ center: place.center, zoom, duration: 1500 });
@@ -180,9 +201,14 @@ function outputPixels() {
   return pixelSize(currentSize(), Number(dpiSelect.value));
 }
 
+const narrow = window.matchMedia('(max-width: 900px)');
+
 function fitPreview(): void {
   const { width, height } = outputPixels();
-  const scale = Math.min(stage.clientWidth / width, stage.clientHeight / height);
+  frame.style.height = narrow.matches
+    ? `${Math.min((frame.clientWidth * height) / width, window.innerHeight * 0.75)}px`
+    : '';
+  const scale = Math.min(frame.clientWidth / width, frame.clientHeight / height);
   for (const el of [pickerBox, sketchCanvas]) {
     el.style.width = `${Math.floor(width * scale)}px`;
     el.style.height = `${Math.floor(height * scale)}px`;
@@ -197,22 +223,36 @@ function showOutput(): void {
 }
 
 function reshape(): void {
-  const wasSketch = !sketchCanvas.hidden;
   scene = null;
-  showSketch(false);
   showOutput();
   fitPreview();
-  if (wasSketch) map.once('idle', sketch);
+  if (sketchingMode() && map.loaded()) sketchWhenReady();
+}
+
+let resizeTimer = 0;
+function redrawControls(): void {
+  sliders.forEach((slider) => slider.wiredRender?.(true));
+}
+
+function onWindowResize(): void {
+  fitPreview();
+  redrawControls();
+  clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(() => {
+    if (sketchingMode() && scene) sketchWhenReady();
+  }, 400);
 }
 
 sizeSelect.addEventListener('change', reshape);
 dpiSelect.addEventListener('change', showOutput);
-window.addEventListener('resize', fitPreview);
+window.addEventListener('resize', onWindowResize);
 showOutput();
 fitPreview();
+requestAnimationFrame(redrawControls);
+document.fonts.ready.then(redrawControls);
 
 downloadButton.addEventListener('click', async () => {
-  if (!scene || sketchCanvas.hidden) {
+  if (!scene || !sketchingMode()) {
     if (!map.isStyleLoaded()) return;
     scene = prepareScene(map, readFeatures(map));
   }
@@ -271,11 +311,10 @@ configFile.addEventListener('change', async () => {
     if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
     placeName = config.place || 'map';
     showNote();
-    showSketch(false);
     showOutput();
     fitPreview();
     map.jumpTo({ center: config.center, zoom: config.zoom });
-    map.once('idle', sketch);
+    sketchWhenReady();
     exportStatus.textContent = `Loaded ${placeName}`;
   } catch (error) {
     exportStatus.textContent = (error as Error).message;

@@ -1,23 +1,44 @@
-# roughMaps
+<p align="center">
+  <img src="public/logo.svg" alt="roughMaps logo" width="120" />
+</p>
 
-Turn any place into a hand-drawn, doodle-style map.
+<h1 align="center">roughMaps</h1>
 
-Pick an area, and roughMaps pulls the streets, buildings, parks and water from OpenStreetMap and redraws them with a sketchy, hand-drawn look. Download the result as SVG or PNG.
+<p align="center">Turn any place into a hand-drawn, doodle-style map.</p>
+
+Search for a place and roughMaps redraws its streets, buildings, parks and water as a sketch, with handwritten labels, little trees and doodled icons. Pick one of 55 styles, tune the roughness and line weights, and download it as a PNG for print or screen.
+
+## Features
+
+- Hand-drawn maps of anywhere, drawn with Rough.js
+- 55 styles, from pencil and chalkboard to Bauhaus, Ukiyo-e and editor themes like Gruvbox and Dracula
+- Roughness, stroke, fill and fill style controls
+- Street and place names in handwriting, for Latin, Cyrillic, Greek, Arabic, Hebrew, Chinese, Japanese, Korean, Thai, Hindi and Bengali
+- Trees in parks and icons for cafés, restaurants, museums and more
+- PNG export at A4, A3, square, phone and 4K sizes, up to 300 DPI
+- Save and load your setup as a small config file
 
 ## How it works
 
-- **Data:** OpenStreetMap via the Overpass API, place search via Nominatim
-- **Drawing:** d3-geo for the projection, Rough.js for the hand-drawn look
-- **App:** static site built with Vite, hosted on Cloudflare Pages
+- **Map data:** OpenStreetMap, served as vector tiles by OpenFreeMap
+- **Map picker:** MapLibre GL
+- **Drawing:** Rough.js on a canvas
+- **Search:** Nominatim
+- **App:** a static site built with Vite and TypeScript
 
 Everything runs in the browser, so there's no backend.
 
-## Status
+## Run it locally
 
-Early days, nothing to run yet.
+```bash
+npm install
+npm run dev
+```
+
+`npm run build` makes a production build in `dist/`. `npm run logo` redraws the logo in `public/logo.svg`.
 
 ## Credits
 
-Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL.
+Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL. Tiles by [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://www.openmaptiles.org).
 
 The editor theme styles use the colours of Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Rosé Pine, Everforest, Monokai, One Dark, Kanagawa and Solarized.

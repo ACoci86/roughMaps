@@ -1,14 +1,22 @@
 import type { Label, Point, Scene } from './sketch';
 
 const LATIN_FONT = 'Gaegu';
-const FALLBACK = `"${LATIN_FONT}", "LXGW WenKai TC", sans-serif`;
+const FALLBACK = `"${LATIN_FONT}", "Patrick Hand", "LXGW WenKai TC", sans-serif`;
 
 const SCRIPTS: [RegExp, string][] = [
   [/[\u3040-\u30ff\u31f0-\u31ff]/, 'Yomogi'],
   [/[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/, LATIN_FONT],
+  [/[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]/, 'Aref Ruqaa'],
+  [/[\u0590-\u05ff\ufb1d-\ufb4f]/, 'Gveret Levin'],
+  [/[\u0400-\u052f\u1c80-\u1c8f\ua640-\ua69f]/, 'Pangolin'],
+  [/[\u0370-\u03ff\u1f00-\u1fff]/, 'Arima'],
+  [/[\u0b80-\u0bff\u0d00-\u0d7f]/, 'Arima'],
+  [/[\u0980-\u09ff]/, 'Galada'],
   [/[\u0e00-\u0e7f]/, 'Itim'],
   [/[\u0900-\u097f]/, 'Kalam'],
+  [/[\u0100-\u0130\u0132-\u0151\u0154-\u024f\u1e00-\u1eff]/, 'Patrick Hand'],
 ];
+const JOINED = /[\u0590-\u08ff\u0900-\u0dff\u0e00-\u0fff\u1000-\u109f\u1780-\u17ff\ufb1d-\ufeff]/;
 const HAN = /[\u3400-\u9fff\uf900-\ufaff]/;
 
 type Area = [number, number, number, number];
@@ -53,7 +61,7 @@ export async function loadLabelFonts(scene: Scene): Promise<void> {
 }
 
 type Box = [number, number, number, number];
-type Glyph = { char: string; x: number; y: number; angle: number };
+type Glyph = { char: string; x: number; y: number; angle: number; width: number };
 
 export type PlacedLabel = {
   glyphs: Glyph[];
@@ -112,27 +120,30 @@ export class Placer {
   }
 }
 
+const FONT_SCALE: Record<string, number> = { 'Aref Ruqaa': 1.25 };
+
 function font(size: number, bold: boolean, family: string): string {
-  return `${bold ? 700 : 400} ${size}px "${family}", ${FALLBACK}`;
+  return `${bold ? 700 : 400} ${size * (FONT_SCALE[family] ?? 1)}px "${family}", ${FALLBACK}`;
 }
 
 function glyphBoxes(glyphs: Glyph[], size: number): Box[] {
   const half = size * 0.45;
-  return glyphs.map(({ x, y }) => [x - half, y - half, x + half, y + half]);
-}
-
-function straight(ctx: CanvasRenderingContext2D, text: string, [x, y]: Point): Glyph[] {
-  const total = ctx.measureText(text).width;
-  let cursor = x - total / 2;
-  return [...text].map((char) => {
-    const w = ctx.measureText(char).width;
-    const glyph = { char, x: cursor + w / 2, y, angle: 0 };
-    cursor += w;
-    return glyph;
+  return glyphs.flatMap(({ x, y, angle, width }) => {
+    const steps = Math.max(1, Math.ceil(width / (half * 2)));
+    return Array.from({ length: steps }, (_, i): Box => {
+      const offset = steps === 1 ? 0 : (i / (steps - 1) - 0.5) * (width - half * 2);
+      const cx = x + Math.cos(angle) * offset;
+      const cy = y + Math.sin(angle) * offset;
+      return [cx - half, cy - half, cx + half, cy + half];
+    });
   });
 }
 
-function along(ctx: CanvasRenderingContext2D, text: string, points: Point[]): Glyph[] | null {
+function straight(ctx: CanvasRenderingContext2D, text: string, [x, y]: Point): Glyph[] {
+  return [{ char: text, x, y, angle: 0, width: ctx.measureText(text).width }];
+}
+
+function along(ctx: CanvasRenderingContext2D, text: string, points: Point[], size: number): Glyph[] | null {
   const pts = points[points.length - 1][0] < points[0][0] ? [...points].reverse() : points;
   const cumulative = [0];
   for (let i = 1; i < pts.length; i++) {
@@ -140,7 +151,7 @@ function along(ctx: CanvasRenderingContext2D, text: string, points: Point[]): Gl
   }
   const length = cumulative[cumulative.length - 1];
   const widths = [...text].map((char) => ctx.measureText(char).width);
-  const total = widths.reduce((a, b) => a + b, 0);
+  const total = JOINED.test(text) ? ctx.measureText(text).width : widths.reduce((a, b) => a + b, 0);
   if (total > length * 0.85) return null;
 
   const at = (distance: number) => {
@@ -153,6 +164,18 @@ function along(ctx: CanvasRenderingContext2D, text: string, points: Point[]): Gl
     return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t, angle: Math.atan2(y1 - y0, x1 - x0) };
   };
 
+  if (JOINED.test(text)) {
+    const start = at((length - total) / 2);
+    const end = at((length + total) / 2);
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    for (let k = 1; k < 8; k++) {
+      const p = at((length - total) / 2 + (total * k) / 8);
+      const offLine = Math.abs((p.x - start.x) * Math.sin(angle) - (p.y - start.y) * Math.cos(angle));
+      if (offLine > size * 0.4) return null;
+    }
+    return [{ char: text, x: (start.x + end.x) / 2, y: (start.y + end.y) / 2, angle, width: total }];
+  }
+
   const glyphs: Glyph[] = [];
   let cursor = (length - total) / 2;
   for (const [i, char] of [...text].entries()) {
@@ -162,7 +185,7 @@ function along(ctx: CanvasRenderingContext2D, text: string, points: Point[]): Gl
       const bend = Math.abs(Math.atan2(Math.sin(angle - previous.angle), Math.cos(angle - previous.angle)));
       if (bend > MAX_BEND) return null;
     }
-    glyphs.push({ char, x, y, angle });
+    glyphs.push({ char, x, y, angle, width: widths[i] });
     cursor += widths[i];
   }
   return glyphs;
@@ -192,7 +215,7 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
       const s = size(label);
       const family = fontFamily(label.name, scene.center);
       ctx.font = font(s, false, family);
-      const glyphs = along(ctx, label.name, label.points);
+      const glyphs = along(ctx, label.name, label.points, s);
       if (!glyphs) continue;
       const middle = glyphs[Math.floor(glyphs.length / 2)];
       const same = centres.get(label.name) ?? [];

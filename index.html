@@ -4,28 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>roughMaps</title>
+    <meta name="description" content="Turn any place into a hand-drawn map, right in your browser." />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Yomogi&family=ZCOOL+KuaiLe&family=LXGW+WenKai+TC:wght@400;700&family=Itim&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Yomogi&family=ZCOOL+KuaiLe&family=LXGW+WenKai+TC:wght@400;700&family=Itim&family=Kalam:wght@400;700&family=Patrick+Hand&family=Pangolin&family=Arima:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gveret+Levin&family=Galada&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main>
-      <header class="intro">
-        <h1>rough<span>Maps</span></h1>
-        <p>Turn any place into a hand-drawn map, right in your browser.</p>
-      </header>
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="" width="48" height="50" />
+        <span class="wordmark">rough<span>Maps</span></span>
+      </a>
+      <p class="tagline">Turn any place into a hand-drawn map, right in your browser.</p>
+      <a class="github" href="https://github.com/ACoci86/roughMaps" target="_blank" rel="noopener">GitHub</a>
+    </header>
 
-      <section class="workspace">
-        <div id="controls" class="controls">
+    <main class="app">
+      <section id="stage" class="stage">
+        <div id="frame" class="frame sketching">
+          <div id="picker"></div>
+          <canvas id="map"></canvas>
+          <p id="loading" class="loading">Sketching...</p>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <wired-card class="card" elevation="2">
+          <h2>Place</h2>
           <form id="search-form" class="search">
-            <input id="search" type="search" placeholder="Search a place" autocomplete="off" />
+            <input id="search" type="search" placeholder="Search a city, street or landmark" autocomplete="off" />
             <button type="submit">Go</button>
           </form>
           <p id="search-status" class="note"></p>
           <ul id="search-results" class="results"></ul>
-          <label for="style">Style</label>
-          <select id="style"></select>
+          <div class="row">
+            <button id="move-button" type="button">Move the map</button>
+            <button id="sketch-button" class="primary" type="button" hidden>Sketch this view</button>
+          </div>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
+          <h2>Style</h2>
+          <select id="style" aria-label="Style"></select>
           <p id="style-note" class="note"></p>
           <label for="fill-style">Fill style</label>
           <select id="fill-style">
@@ -38,43 +60,47 @@
             <option value="zigzag-line">Zigzag line</option>
             <option value="dots">Dots</option>
           </select>
-          <label>Roughness: <span data-value="roughness">1</span></label>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
+          <h2>Drawing</h2>
+          <label>Roughness <span data-value="roughness">1</span></label>
           <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
-          <label>strokeWidth: <span data-value="strokeWidth">1</span></label>
+          <label>strokeWidth <span data-value="strokeWidth">1</span></label>
           <wired-slider data-setting="strokeWidth" min="0" max="5" step="0.25" value="1"></wired-slider>
-          <label>innerStrokeWidth: <span data-value="innerStrokeWidth">1</span></label>
+          <label>innerStrokeWidth <span data-value="innerStrokeWidth">1</span></label>
           <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
-          <label>fillWeight: <span data-value="fillWeight">1</span></label>
+          <label>fillWeight <span data-value="fillWeight">1</span></label>
           <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
           <div class="toggles">
             <wired-checkbox data-setting="labels" checked>Labels</wired-checkbox>
             <wired-checkbox data-setting="doodles" checked>Doodles</wired-checkbox>
           </div>
-          <button id="sketch-button" type="button">Sketch it</button>
-          <button id="back-button" type="button" hidden>Back to map</button>
-          <h2 class="section">Export</h2>
-          <select id="size"></select>
-          <select id="dpi"></select>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
+          <h2>Export</h2>
+          <div class="row">
+            <select id="size" aria-label="Size"></select>
+            <select id="dpi" aria-label="Resolution"></select>
+          </div>
           <p id="pixels" class="note"></p>
-          <button id="download" type="button">Download PNG</button>
+          <button id="download" class="primary" type="button">Download PNG</button>
           <div class="row">
             <button id="save-config" type="button">Save config</button>
             <button id="load-config" type="button">Load config</button>
           </div>
           <input id="config-file" type="file" accept="application/json,.json" hidden />
           <p id="export-status" class="note"></p>
-        </div>
-        <div id="stage" class="stage">
-          <div id="picker"></div>
-          <canvas id="map" hidden></canvas>
-        </div>
-      </section>
-
-      <footer>
-        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
-        · <a href="https://github.com/ACoci86/roughMaps" target="_blank" rel="noopener">GitHub</a>
-      </footer>
+        </wired-card>
+      </aside>
     </main>
+
+    <footer class="credits">
+      Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+      · Tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org" target="_blank" rel="noopener">OpenMapTiles</a>
+      · Search by <a href="https://nominatim.org" target="_blank" rel="noopener">Nominatim</a>
+    </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

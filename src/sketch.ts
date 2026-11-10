@@ -454,6 +454,20 @@ export async function drawSketch(
   steps.push(() =>
     rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: style.ink, strokeWidth: 2, seed: 1 }),
   );
+  steps.push(() => {
+    const credit = '© OpenStreetMap contributors';
+    ctx.save();
+    ctx.font = '13px "Gaegu", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = style.paper;
+    ctx.fillStyle = style.ink;
+    ctx.strokeText(credit, width - 10, height - 7);
+    ctx.fillText(credit, width - 10, height - 7);
+    ctx.restore();
+  });
 
   let i = 0;
   while (i < steps.length) {
