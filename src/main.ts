@@ -6,6 +6,7 @@ import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
+import { roughScrollbar } from './scrollbar';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -320,3 +321,7 @@ configFile.addEventListener('change', async () => {
     exportStatus.textContent = (error as Error).message;
   }
 });
+
+const panel = document.querySelector<HTMLElement>('#panel')!;
+roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
+new ResizeObserver(redrawControls).observe(panel);
