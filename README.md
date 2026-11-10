@@ -23,7 +23,7 @@ Search for a place and roughMaps redraws its streets, buildings, parks and water
 - **Map data:** OpenStreetMap, served as vector tiles by OpenFreeMap
 - **Map picker:** MapLibre GL
 - **Drawing:** Rough.js on a canvas
-- **Search:** Nominatim
+- **Search:** Nominatim, with suggestions while typing from Photon
 - **App:** a static site built with Vite and TypeScript
 
 Everything runs in the browser, so there's no backend.

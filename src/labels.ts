@@ -199,10 +199,11 @@ function lineLength(points: Point[]): number {
   return total;
 }
 
-export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer: Placer): PlacedLabel[] {
+export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer: Placer, scale = 1): PlacedLabel[] {
   const placed: PlacedLabel[] = [];
 
-  const placePoint = (label: Label, size: number, bold: boolean, role: PlacedLabel['role']) => {
+  const placePoint = (label: Label, base: number, bold: boolean, role: PlacedLabel['role']) => {
+    const size = Math.round(base * scale * 10) / 10;
     const family = fontFamily(label.name, scene.center);
     ctx.font = font(size, bold, family);
     const glyphs = straight(ctx, label.name, label.points[0]);
@@ -212,7 +213,7 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
   const placeLines = (labels: Label[], size: (l: Label) => number, role: PlacedLabel['role']) => {
     const centres = new Map<string, Point[]>();
     for (const label of labels) {
-      const s = size(label);
+      const s = Math.round(size(label) * scale * 10) / 10;
       const family = fontFamily(label.name, scene.center);
       ctx.font = font(s, false, family);
       const glyphs = along(ctx, label.name, label.points, s);

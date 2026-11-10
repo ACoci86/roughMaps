@@ -270,7 +270,10 @@ export function svgCanvas(): SvgCanvas {
         `<?xml version="1.0" encoding="UTF-8"?>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${target.width} ${target.height}">`,
         fonts ? `<style><![CDATA[${fonts}]]></style>` : '',
+        `<clipPath id="frame"><rect width="${target.width}" height="${target.height}"/></clipPath>`,
+        `<g clip-path="url(#frame)">`,
         ...ctx.parts,
+        `</g>`,
         `</svg>`,
       ].join('\n');
     },

@@ -1,7 +1,10 @@
 import { drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import type { StyleSpec } from './styles';
-import { PIN_COLOR, type Pin } from './pins';
+import { PIN_COLOR, PIN_ICONS, type Pin } from './pins';
+import { TITLE_FONTS, TITLE_LAYOUTS } from './poster';
 import { svgCanvas } from './svg';
+import { imagePdf } from './pdf';
+import { ROUTE_COLOR, type Route } from './routes';
 
 export type OutputSize = {
   id: string;
@@ -55,6 +58,23 @@ export async function renderSvg(
   return new Blob([svg], { type: 'image/svg+xml' });
 }
 
+export async function renderPdf(
+  scene: Scene,
+  style: StyleSpec,
+  settings: SketchSettings,
+  size: OutputSize,
+  output: { width: number; height: number },
+  title: string,
+): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  await drawSketch(canvas, scene, style, settings, output);
+  const jpeg = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not create the image'))), 'image/jpeg', 0.92),
+  );
+  const toPoints = size.unit === 'mm' ? 72 / 25.4 : 0.75;
+  return imagePdf(jpeg, output, { width: size.width * toPoints, height: size.height * toPoints }, title);
+}
+
 export function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -81,6 +101,7 @@ export type Config = {
   place: string;
   title: string;
   pins: Pin[];
+  routes: Route[];
   center: [number, number];
   zoom: number;
   style: string;
@@ -99,13 +120,31 @@ function clamp(value: unknown, min: number, max: number, fallback: number): numb
   return isNumber(value) ? Math.min(max, Math.max(min, value)) : fallback;
 }
 
+function validColor(value: unknown, fallback: string): string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+}
+
+function parseRoutes(value: unknown): Route[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((route): Route[] => {
+    if (!Array.isArray(route?.points)) return [];
+    const points = route.points.filter(
+      (p: unknown): p is [number, number] =>
+        Array.isArray(p) && isNumber(p[0]) && isNumber(p[1]) && Math.abs(p[0]) <= 180 && Math.abs(p[1]) <= 85,
+    );
+    if (points.length < 2) return [];
+    return [{ points: points.slice(0, 500).map(([lng, lat]: [number, number]) => [lng, lat]), color: validColor(route.color, ROUTE_COLOR) }];
+  });
+}
+
 function parsePins(value: unknown): Pin[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((pin): Pin[] => {
     const [lng, lat] = Array.isArray(pin?.lngLat) ? pin.lngLat : [];
     if (!isNumber(lng) || !isNumber(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 85) return [];
-    const color = typeof pin.color === 'string' && /^#[0-9a-f]{6}$/i.test(pin.color) ? pin.color : PIN_COLOR;
-    return [{ lngLat: [lng, lat], note: typeof pin.note === 'string' ? pin.note.slice(0, 40) : '', color }];
+    const color = validColor(pin.color, PIN_COLOR);
+    const icon = PIN_ICONS.find((i) => i.id === pin.icon)?.id ?? 'pin';
+    return [{ lngLat: [lng, lat], note: typeof pin.note === 'string' ? pin.note.slice(0, 40) : '', color, icon }];
   });
 }
 
@@ -128,6 +167,7 @@ export function parseConfig(text: string): Config {
     place: typeof data.place === 'string' ? data.place : '',
     title: typeof data.title === 'string' ? data.title.slice(0, 80) : typeof data.place === 'string' ? data.place : '',
     pins: parsePins(data.pins),
+    routes: parseRoutes(data.routes),
     center: [lng, lat],
     zoom: data.zoom,
     style: String(data.style ?? ''),
@@ -141,6 +181,10 @@ export function parseConfig(text: string): Config {
       doodles: s.doodles !== false,
       poster: s.poster !== false,
       compass: s.compass !== false,
+      border: s.border === true,
+      labelScale: clamp(s.labelScale, 0.5, 2, DEFAULT_SETTINGS.labelScale),
+      titleFont: TITLE_FONTS.includes(String(s.titleFont)) ? String(s.titleFont) : DEFAULT_SETTINGS.titleFont,
+      titleLayout: TITLE_LAYOUTS.find((l) => l.id === s.titleLayout)?.id ?? DEFAULT_SETTINGS.titleLayout,
     },
     size: String(data.size ?? ''),
     dpi: Number(data.dpi),

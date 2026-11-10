@@ -53,3 +53,51 @@ export async function searchPlaces(query: string): Promise<Place[]> {
   cache.set(key, places);
   return places;
 }
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number] };
+  properties: {
+    name?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    extent?: [number, number, number, number];
+  };
+};
+
+const PHOTON = 'https://photon.komoot.io/api/';
+const PHOTON_LANGUAGES = ['en', 'de', 'fr'];
+const SPAN = 0.004;
+const suggestCache = new Map<string, Place[]>();
+
+export async function suggestPlaces(query: string, signal: AbortSignal): Promise<Place[]> {
+  const key = query.trim().toLowerCase();
+  if (key.length < 3) return [];
+  const cached = suggestCache.get(key);
+  if (cached) return cached;
+
+  const params = new URLSearchParams({ q: query.trim(), limit: '8' });
+  const language = navigator.language.slice(0, 2);
+  if (PHOTON_LANGUAGES.includes(language)) params.set('lang', language);
+  const response = await fetch(`${PHOTON}?${params}`, { signal });
+  if (!response.ok) throw new Error(`Suggestions failed (${response.status})`);
+
+  const { features } = (await response.json()) as { features: PhotonFeature[] };
+  const seen = new Set<string>();
+  const places = features.flatMap((f): Place[] => {
+    const p = f.properties;
+    const name = p.name ?? p.street;
+    if (!name) return [];
+    const parts = [name, p.city, p.state, p.country].filter((v, i, all): v is string => !!v && all.indexOf(v) === i);
+    const label = parts.join(', ');
+    if (seen.has(label)) return [];
+    seen.add(label);
+    const [lng, lat] = f.geometry.coordinates;
+    const [west, north, east, south] = p.extent ?? [lng - SPAN, lat + SPAN, lng + SPAN, lat - SPAN];
+    return [{ name, label, center: [lng, lat], bounds: [[west, south], [east, north]] }];
+  });
+  const top = places.slice(0, 5);
+  suggestCache.set(key, top);
+  return top;
+}

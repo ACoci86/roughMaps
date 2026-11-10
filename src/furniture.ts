@@ -1,5 +1,6 @@
 import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
+import type { Rect } from './poster';
 
 type Box = [number, number, number, number];
 export type Colors = { paper: string; ink: string };
@@ -11,9 +12,8 @@ export function compassRadius(width: number, height: number): number {
   return Math.round(Math.min(38, Math.max(18, Math.min(width, height) * 0.04)));
 }
 
-function compassCenter(width: number, height: number): [number, number] {
-  const r = compassRadius(width, height);
-  return [width - MARGIN - r, MARGIN + r + 16];
+function compassCenter(area: Rect, r: number): [number, number] {
+  return [area.x1 - MARGIN - r, area.y0 + MARGIN + r + 16];
 }
 
 function scaleLength(zoom: number, lat: number, maxPx: number): { px: number; label: string } {
@@ -25,12 +25,13 @@ function scaleLength(zoom: number, lat: number, maxPx: number): { px: number; la
   return { px: metres / metresPerPx, label: metres >= 1000 ? `${metres / 1000} km` : `${metres} m` };
 }
 
-export function furnitureBoxes(width: number, height: number, bottom: number): Box[] {
+export function furnitureBoxes(width: number, height: number, area: Rect): Box[] {
   const r = compassRadius(width, height);
-  const [cx, cy] = compassCenter(width, height);
+  const [cx, cy] = compassCenter(area, r);
+  const x = area.x0 + MARGIN;
   return [
     [cx - r - 4, cy - r - 22, cx + r + 4, cy + r + 4],
-    [MARGIN - 6, bottom - MARGIN - 34, MARGIN + width * 0.24, bottom - MARGIN + 8],
+    [x - 6, area.y1 - MARGIN - 34, x + (area.x1 - area.x0) * 0.24, area.y1 - MARGIN + 8],
   ];
 }
 
@@ -39,11 +40,12 @@ export function drawCompass(
   rc: RoughCanvas,
   width: number,
   height: number,
+  area: Rect,
   colors: Colors,
   wobble: Options,
 ): void {
   const r = compassRadius(width, height);
-  const [x, y] = compassCenter(width, height);
+  const [x, y] = compassCenter(area, r);
   const line = { ...wobble, stroke: colors.ink, strokeWidth: 1.4 };
   rc.circle(x, y, r * 2, { ...line, seed: 21, fill: colors.paper, fillStyle: 'solid' });
   rc.circle(x, y, r * 1.55, { ...line, seed: 22, strokeWidth: 0.8 });
@@ -78,16 +80,15 @@ export function drawCompass(
 export function drawScaleBar(
   ctx: CanvasRenderingContext2D,
   rc: RoughCanvas,
-  width: number,
-  bottom: number,
+  area: Rect,
   zoom: number,
   lat: number,
   colors: Colors,
   wobble: Options,
 ): void {
-  const { px, label } = scaleLength(zoom, lat, width * 0.22);
-  const x = MARGIN;
-  const y = bottom - MARGIN - 8;
+  const { px, label } = scaleLength(zoom, lat, (area.x1 - area.x0) * 0.22);
+  const x = area.x0 + MARGIN;
+  const y = area.y1 - MARGIN - 8;
   const h = 7;
   const parts = 4;
   const piece = px / parts;

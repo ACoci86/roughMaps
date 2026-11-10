@@ -7,9 +7,10 @@ import { POI_ICONS, type MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
 import { Placer, layoutLabels, drawLabel, loadLabelFonts } from './labels';
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
-import { drawPosterTitle, loadTitleFont, bandHeight } from './poster';
+import { drawPosterTitle, drawBorder, loadTitleFont, posterLayout, type TitleLayout } from './poster';
 import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
 import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
+import { drawRoute, type PlacedRoute } from './routes';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
@@ -25,6 +26,7 @@ export type Scene = {
   center: [number, number];
   title: string;
   pins: PlacedPin[];
+  routes: PlacedRoute[];
   water: Shape[];
   green: Shape[];
   forest: Shape[];
@@ -143,6 +145,7 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     center: map.getCenter().toArray() as [number, number],
     title,
     pins: [],
+    routes: [],
     water: shapes(mergeAreas(features.water)),
     green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
     forest: shapes(mergeAreas(features.forest), MIN_GREEN_AREA),
@@ -225,6 +228,10 @@ export type SketchSettings = {
   doodles: boolean;
   poster: boolean;
   compass: boolean;
+  border: boolean;
+  labelScale: number;
+  titleFont: string;
+  titleLayout: TitleLayout;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -237,6 +244,10 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   doodles: true,
   poster: true,
   compass: true,
+  border: false,
+  labelScale: 1,
+  titleFont: 'Gaegu',
+  titleLayout: 'bottom',
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -444,24 +455,34 @@ export async function drawSketch(
     );
   }
 
-  const poster = settings.poster && scene.title.trim() !== '';
-  const inset = Math.max(10, bandHeight(height) * 0.12);
-  const bottom = poster ? height - bandHeight(height) : height;
+  const title =
+    settings.poster && scene.title.trim()
+      ? { title: scene.title.trim(), layout: settings.titleLayout, font: settings.titleFont, border: settings.border }
+      : null;
+  const layout = posterLayout(width, height, settings.border, title);
+  const area = layout.map;
   const colors = { paper: style.paper, ink: text };
-  const pins = scene.pins.filter(({ point: [x, y] }) => x > 0 && y > 0 && x < width && y < bottom);
+  const pins = scene.pins.filter(
+    ({ point: [x, y] }) => x > area.x0 && y > area.y0 && x < area.x1 && y < area.y1,
+  );
+  const credit = [area.x1 - 10, area.y1 - 7] as const;
 
   await loadPinFonts(pins, scene.center);
   if (cancelled()) return;
-  const placer = new Placer(width, bottom);
-  if (settings.compass) placer.add(furnitureBoxes(width, height, bottom));
-  placer.add(pinBoxes(ctx, pins, scene.center, width));
+  const placer = new Placer(width, height);
+  placer.add(layout.reserved);
+  placer.add([[credit[0] - 175, credit[1] - 16, credit[0], credit[1]]]);
+  if (settings.compass) placer.add(furnitureBoxes(width, height, area));
+  placer.add(pinBoxes(ctx, pins, scene.center, area.x1));
+
+  scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, wobble)));
 
   if (settings.labels || settings.doodles) {
     if (settings.labels) {
       await loadLabelFonts(scene);
       if (cancelled()) return;
     }
-    const labels = settings.labels ? layoutLabels(ctx, scene, placer) : [];
+    const labels = settings.labels ? layoutLabels(ctx, scene, placer, settings.labelScale) : [];
 
     if (settings.doodles) {
       const r = ICON_RADIUS + 1;
@@ -489,25 +510,26 @@ export async function drawSketch(
   }
 
   if (settings.compass) {
-    steps.push(() => drawCompass(ctx, rc, width, height, colors, wobble));
-    steps.push(() => drawScaleBar(ctx, rc, width, bottom, scene.zoom, scene.center[1], colors, wobble));
+    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, wobble));
+    steps.push(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, wobble));
   }
 
-  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, width, colors, wobble)));
+  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, wobble)));
 
-  if (poster) {
-    await loadTitleFont(scene.title, scene.center);
+  steps.push(() => drawBorder(ctx, rc, width, height, layout, colors, wobble));
+
+  if (title) {
+    await loadTitleFont(title, scene.center);
     if (cancelled()) return;
-    steps.push(() =>
-      drawPosterTitle(ctx, rc, scene.title, scene.center, { width, height }, colors, wobble),
-    );
+    steps.push(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, wobble));
   }
+
 
   steps.push(() =>
     rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: text, strokeWidth: 2, seed: 1 }),
   );
   steps.push(() => {
-    const credit = '© OpenStreetMap contributors';
+    const note = '© OpenStreetMap contributors';
     ctx.save();
     ctx.font = '13px "Gaegu", sans-serif';
     ctx.textAlign = 'right';
@@ -516,9 +538,8 @@ export async function drawSketch(
     ctx.lineWidth = 3;
     ctx.strokeStyle = style.paper;
     ctx.fillStyle = text;
-    const [x, y] = !poster ? [width - 10, height - 7] : width >= 640 ? [width - inset - 10, height - inset - 6] : [width - 10, bottom - 8];
-    ctx.strokeText(credit, x, y);
-    ctx.fillText(credit, x, y);
+    ctx.strokeText(note, ...credit);
+    ctx.fillText(note, ...credit);
     ctx.restore();
   });
 

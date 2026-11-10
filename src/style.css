@@ -294,6 +294,10 @@ button:disabled {
   white-space: nowrap;
 }
 
+.suggestions button.active {
+  background: var(--highlight);
+}
+
 .row {
   display: flex;
   gap: 6px;
@@ -340,6 +344,36 @@ input[type='color'] {
   height: 30px;
 }
 
+.row > input[type='color'] {
+  flex: none;
+}
+
+.pins select {
+  width: 82px;
+  height: 30px;
+  padding: 0 4px;
+  font-size: 15px;
+}
+
+.pins .remove {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.remove svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.remove:hover:not(:disabled) {
+  color: var(--coral);
+}
+
 .pins li {
   display: flex;
   gap: 6px;
@@ -361,6 +395,22 @@ input[type='color'] {
 
 .frame.placing #map {
   cursor: crosshair;
+}
+
+.frame.dragging #map {
+  cursor: grabbing;
+}
+
+.pin-ghost {
+  position: absolute;
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  margin: -27px 0 0 -10px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  pointer-events: none;
 }
 
 .toggles {

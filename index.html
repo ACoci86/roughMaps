@@ -26,6 +26,7 @@
         <div id="frame" class="frame sketching">
           <div id="picker"></div>
           <canvas id="map"></canvas>
+          <div id="pin-ghost" class="pin-ghost" hidden></div>
           <p id="loading" class="loading">Sketching...</p>
         </div>
       </section>
@@ -35,11 +36,16 @@
         <wired-card class="card" elevation="2">
           <h2>Place</h2>
           <form id="search-form" class="search">
-            <input id="search" type="search" placeholder="Search a city, street or landmark" autocomplete="off" />
+            <input id="search" type="search" placeholder="Search a city, street or landmark" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" />
             <button type="submit">Go</button>
           </form>
+          <ul id="suggestions" class="results suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
           <p id="search-status" class="note"></p>
           <ul id="search-results" class="results"></ul>
+          <div id="framing" class="row" hidden>
+            <button id="fit-area" type="button">Whole area</button>
+            <button id="close-up" type="button">Close up</button>
+          </div>
           <div class="row">
             <button id="move-button" type="button">Move the map</button>
             <button id="sketch-button" class="primary" type="button" hidden>Sketch this view</button>
@@ -73,6 +79,8 @@
           <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
           <label>fillWeight <span data-value="fillWeight">1</span></label>
           <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
+          <label>Label size <span data-value="labelScale">1</span></label>
+          <wired-slider data-setting="labelScale" min="0.5" max="2" step="0.1" value="1"></wired-slider>
           <div class="toggles">
             <wired-checkbox data-setting="labels" checked>Labels</wired-checkbox>
             <wired-checkbox data-setting="doodles" checked>Doodles</wired-checkbox>
@@ -83,21 +91,40 @@
           <h2>Poster</h2>
           <label for="title">Title</label>
           <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" />
+          <div class="row">
+            <select id="title-font" aria-label="Title font"></select>
+            <select id="title-layout" aria-label="Title position"></select>
+          </div>
           <div class="toggles">
             <wired-checkbox data-setting="poster" checked>Title</wired-checkbox>
             <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
+            <wired-checkbox data-setting="border">Poster border</wired-checkbox>
           </div>
         </wired-card>
 
         <wired-card class="card" elevation="2">
           <h2>Pins</h2>
-          <form id="pin-form" class="search">
+          <form id="pin-form">
             <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
-            <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
-            <button id="pin-button" type="submit">Add pin</button>
+            <div class="row">
+              <select id="pin-icon" aria-label="Pin shape"></select>
+              <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
+              <button id="pin-button" type="submit">Add pin</button>
+            </div>
           </form>
-          <p id="pin-status" class="note">Write a note, press Add pin, then click the map.</p>
+          <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
           <ul id="pin-list" class="results pins"></ul>
+        </wired-card>
+
+        <wired-card class="card" elevation="2">
+          <h2>Routes</h2>
+          <div class="row">
+            <input id="route-color" type="color" value="#2a6fdb" aria-label="Route colour" title="Route colour" />
+            <button id="route-button" type="button">Draw a route</button>
+            <button id="route-cancel" type="button" hidden>Cancel</button>
+          </div>
+          <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
+          <ul id="route-list" class="results pins"></ul>
         </wired-card>
 
         <wired-card class="card" elevation="2">
@@ -107,9 +134,11 @@
             <select id="dpi" aria-label="Resolution"></select>
           </div>
           <p id="pixels" class="note"></p>
+          <label>Download</label>
           <div class="row">
-            <button id="download" class="primary" type="button">Download PNG</button>
-            <button id="download-svg" class="primary" type="button">Download SVG</button>
+            <button id="download" class="primary" type="button">PNG</button>
+            <button id="download-svg" class="primary" type="button">SVG</button>
+            <button id="download-pdf" class="primary" type="button">PDF</button>
           </div>
           <div class="row">
             <button id="save-config" type="button">Save config</button>
@@ -127,6 +156,7 @@
       Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
       · Tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org" target="_blank" rel="noopener">OpenMapTiles</a>
       · Search by <a href="https://nominatim.org" target="_blank" rel="noopener">Nominatim</a>
+      · Suggestions by <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>
     </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
