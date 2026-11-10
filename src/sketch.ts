@@ -25,10 +25,12 @@ export type Scene = {
   width: number;
   height: number;
   zoom: number;
+  bearing: number;
   center: [number, number];
   title: string;
   pins: PlacedPin[];
   routes: PlacedRoute[];
+  highlights: { point: Point; color: string }[];
   water: Shape[];
   waterParts: Shape[];
   green: Shape[];
@@ -122,6 +124,36 @@ function roadKind(cls: string): string {
   return ROAD_KINDS.includes(base) ? base : 'service';
 }
 
+function insideRing([x, y]: Point, ring: Point[]): boolean {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+export function buildingAt(scene: Scene, point: Point): number {
+  let best = -1;
+  let bestArea = Infinity;
+  scene.buildings.forEach((shape, i) => {
+    const [outer, ...holes] = shape;
+    if (!outer || !insideRing(point, outer.points)) return;
+    if (holes.some((h) => insideRing(point, h.points))) return;
+    let sum = 0;
+    for (let a = 0, b = outer.points.length - 1; a < outer.points.length; b = a++) {
+      sum += outer.points[b][0] * outer.points[a][1] - outer.points[a][0] * outer.points[b][1];
+    }
+    const size = Math.abs(sum);
+    if (size < bestArea) {
+      bestArea = size;
+      best = i;
+    }
+  });
+  return best;
+}
+
 export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''): Scene {
   const { clientWidth: width, clientHeight: height } = map.getContainer();
   const margin = 30;
@@ -145,10 +177,12 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     width,
     height,
     zoom: map.getZoom(),
+    bearing: map.getBearing(),
     center: map.getCenter().toArray() as [number, number],
     title,
     pins: [],
     routes: [],
+    highlights: [],
     water: shapes(mergeAreas(features.water)),
     waterParts: shapes(splitPolygons(features.water)),
     green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
@@ -527,6 +561,45 @@ export async function drawSketch(
     ...style.buildingPattern,
     color: style.buildings[i % style.buildings.length],
   }));
+  scene.highlights.forEach(({ point, color }, k) => {
+    const index = buildingAt(scene, point);
+    if (index < 0) return;
+    const shape = scene.buildings[index];
+    steps.push(() => {
+      const body = shaped(`highlight|${roughness}`, index, () =>
+        generator.path(toPath(shape), {
+          ...wobble,
+          roughness: 0.8 * roughness,
+          seed: index + 1,
+          stroke: '#000',
+          disableMultiStroke: true,
+          fill: '#000',
+          fillStyle: 'solid',
+        }),
+      );
+      const [dx, dy] = inked ? fillOffset(index + 977, roughness) : [0, 0];
+      ctx.save();
+      ctx.translate(dx, dy);
+      paint(onlyFill(body), { stroke: 'none', fill: color });
+      const hatch = shaped(`highlight-hatch|${roughness}`, index, () =>
+        generator.path(toPath(shape), {
+          ...wobble,
+          seed: index + 5,
+          stroke: 'none',
+          fill: '#000',
+          fillStyle: 'hachure',
+          hachureGap: 3.2,
+          hachureAngle: inked ? hatchAngle(mainAngle(shape) + 30) : -41,
+        }),
+      );
+      paint(hatch, { fill: mix(color, style.ink, 0.35), fillWeight: 0.9 });
+      ctx.restore();
+      const pen = Math.max(2.2, outlineWidth * 2.6);
+      if (inked) inkLines(ctx, onlyLines(body), style.ink, pen, index + k + 7);
+      else paint(onlyLines(body), { stroke: style.ink, strokeWidth: pen * 0.8 });
+    });
+  });
+
   areas('bridges', scene.bridges, () => ({ color: style.paper }));
 
   const inner = settings.innerStrokeWidth;
@@ -581,7 +654,7 @@ export async function drawSketch(
   const placer = new Placer(width, height);
   placer.add(layout.reserved);
   placer.add([[credit[0] - 175, credit[1] - 16, credit[0], credit[1]]]);
-  if (settings.compass) placer.add(furnitureBoxes(width, height, area));
+  if (settings.compass) placer.add(furnitureBoxes(width, height, area, scene.bearing));
   placer.add(pinBoxes(ctx, pins, scene.center, area.x1));
 
   scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, decor)));
@@ -621,7 +694,7 @@ export async function drawSketch(
   }
 
   if (settings.compass) {
-    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, decor));
+    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing));
     steps.push(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor));
   }
 

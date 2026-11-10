@@ -658,6 +658,23 @@ input[type='color'] {
   pointer-events: none;
 }
 
+.rotate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rotate-row wired-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.rotate-row button {
+  flex: none;
+  font-size: 15px;
+  padding: 3px 10px;
+}
+
 .toggles {
   display: flex;
   flex-wrap: wrap;
@@ -708,19 +725,56 @@ input[type='color'] {
 }
 
 .coffee {
+  position: relative;
   display: block;
+  margin: 8px;
   line-height: 0;
-  transition: transform 0.15s ease;
-}
-
-.coffee:hover {
-  transform: rotate(-2deg) scale(1.04);
+  outline: none;
 }
 
 .coffee img {
+  position: relative;
   display: block;
   height: 44px;
   width: auto;
+  border-radius: 6px;
+  transition: transform 0.12s ease;
+}
+
+.rough-frame {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rough-frame .shadow {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.rough-frame .frame-line path {
+  transition: stroke 0.12s ease;
+}
+
+.coffee:hover .shadow,
+.coffee:focus-visible .shadow {
+  opacity: 1;
+}
+
+.coffee:hover .frame-line path,
+.coffee:focus-visible .frame-line path {
+  stroke: var(--coral);
+}
+
+.coffee:hover img,
+.coffee:focus-visible img {
+  transform: translate(-1px, -1px);
+}
+
+.coffee:active img {
+  transform: translate(1px, 1px);
 }
 
 .credits {

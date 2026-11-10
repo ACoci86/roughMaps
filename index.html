@@ -64,6 +64,11 @@
                   <button id="close-up" type="button">Close up</button>
                 </div>
                 <p class="note">Or press "Move the map" on the preview and frame the view by hand.</p>
+                <label>Rotate <span id="rotate-value">0°</span></label>
+                <div class="rotate-row">
+                  <wired-slider id="rotate" min="-180" max="180" step="1" value="0"></wired-slider>
+                  <button id="straighten" type="button">Straighten</button>
+                </div>
               </div>
             </wired-card>
 
@@ -142,6 +147,14 @@
                 </form>
                 <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
                 <ul id="pin-list" class="results pins"></ul>
+
+                <h3>Buildings</h3>
+                <div class="row">
+                  <input id="highlight-color" type="color" value="#f2b134" aria-label="Building colour" title="Building colour" />
+                  <button id="highlight-button" type="button">Highlight a building</button>
+                </div>
+                <p id="highlight-status" class="note">Press Highlight a building, then click a building on the map.</p>
+                <ul id="highlight-list" class="results pins"></ul>
 
                 <h3>Routes</h3>
                 <div class="row">

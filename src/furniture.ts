@@ -12,8 +12,9 @@ export function compassRadius(width: number, height: number): number {
   return Math.round(Math.min(38, Math.max(18, Math.min(width, height) * 0.04)));
 }
 
-function compassCenter(area: Rect, r: number): [number, number] {
-  return [area.x1 - MARGIN - r, area.y0 + MARGIN + r + 16];
+function compassCenter(area: Rect, r: number, bearing = 0): [number, number] {
+  const side = bearing ? 18 : 0;
+  return [area.x1 - MARGIN - r - side, area.y0 + MARGIN + r + 16];
 }
 
 function scaleLength(zoom: number, lat: number, maxPx: number): { px: number; label: string } {
@@ -25,12 +26,13 @@ function scaleLength(zoom: number, lat: number, maxPx: number): { px: number; la
   return { px: metres / metresPerPx, label: metres >= 1000 ? `${metres / 1000} km` : `${metres} m` };
 }
 
-export function furnitureBoxes(width: number, height: number, area: Rect): Box[] {
+export function furnitureBoxes(width: number, height: number, area: Rect, bearing = 0): Box[] {
   const r = compassRadius(width, height);
-  const [cx, cy] = compassCenter(area, r);
+  const [cx, cy] = compassCenter(area, r, bearing);
   const x = area.x0 + MARGIN;
+  const reach = bearing ? r + 22 : r + 4;
   return [
-    [cx - r - 4, cy - r - 22, cx + r + 4, cy + r + 4],
+    [cx - reach, cy - r - 22, cx + reach, cy + reach],
     [x - 6, area.y1 - MARGIN - 34, x + (area.x1 - area.x0) * 0.24, area.y1 - MARGIN + 8],
   ];
 }
@@ -43,9 +45,13 @@ export function drawCompass(
   area: Rect,
   colors: Colors,
   wobble: Options,
+  bearing = 0,
 ): void {
   const r = compassRadius(width, height);
-  const [x, y] = compassCenter(area, r);
+  const [x, y] = compassCenter(area, r, bearing);
+  const turn = (-bearing * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+  const at = (dx: number, dy: number): [number, number] => [x + dx * cos - dy * sin, y + dx * sin + dy * cos];
   const line = { ...wobble, stroke: colors.ink, strokeWidth: 1.4 };
   rc.circle(x, y, r * 2, { ...line, seed: 21, fill: colors.paper, fillStyle: 'solid' });
   rc.circle(x, y, r * 1.55, { ...line, seed: 22, strokeWidth: 0.8 });
@@ -53,27 +59,28 @@ export function drawCompass(
   for (const angle of [0, 90, 180, 270]) {
     const a = (angle * Math.PI) / 180;
     const [sx, sy] = [Math.sin(a), -Math.cos(a)];
-    rc.line(x + sx * r * 0.78, y + sy * r * 0.78, x + sx * r, y + sy * r, { ...line, seed: 23 + angle });
+    rc.line(...at(sx * r * 0.78, sy * r * 0.78), ...at(sx * r, sy * r), { ...line, seed: 23 + angle });
   }
 
   const tip = r * 0.82;
   const side = r * 0.24;
   const solid = { ...line, fill: colors.ink, fillStyle: 'solid' };
-  rc.polygon([[x, y - tip], [x - side, y], [x, y]], { ...solid, seed: 31 });
-  rc.polygon([[x, y - tip], [x + side, y], [x, y]], { ...line, seed: 32 });
-  rc.polygon([[x, y + tip], [x + side, y], [x, y]], { ...solid, seed: 33 });
-  rc.polygon([[x, y + tip], [x - side, y], [x, y]], { ...line, seed: 34 });
+  rc.polygon([at(0, -tip), at(-side, 0), at(0, 0)], { ...solid, seed: 31 });
+  rc.polygon([at(0, -tip), at(side, 0), at(0, 0)], { ...line, seed: 32 });
+  rc.polygon([at(0, tip), at(side, 0), at(0, 0)], { ...solid, seed: 33 });
+  rc.polygon([at(0, tip), at(-side, 0), at(0, 0)], { ...line, seed: 34 });
 
   ctx.save();
   ctx.font = `700 ${Math.round(r * 0.6 + 6)}px "Gaegu", sans-serif`;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
+  ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 3;
   ctx.strokeStyle = colors.paper;
   ctx.fillStyle = colors.ink;
-  ctx.strokeText('N', x, y - r - 1);
-  ctx.fillText('N', x, y - r - 1);
+  const [nx, ny] = at(0, -r - Math.round(r * 0.3 + 3) - 3);
+  ctx.strokeText('N', nx, ny);
+  ctx.fillText('N', nx, ny);
   ctx.restore();
 }
 

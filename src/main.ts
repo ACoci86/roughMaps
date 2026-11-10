@@ -3,12 +3,12 @@ import { readFeatures } from './features';
 import 'wired-elements/lib/wired-slider.js';
 import 'wired-elements/lib/wired-checkbox.js';
 import 'wired-elements/lib/wired-card.js';
-import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
+import { prepareScene, drawSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
 import { pickPreset } from './presets';
-import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
+import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
@@ -22,6 +22,7 @@ import {
   renderPng,
   renderSvg,
   renderPdf,
+  HIGHLIGHT_COLOR,
   download,
   slug,
   parseConfig,
@@ -94,7 +95,7 @@ type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked';
 
 const preset = pickPreset();
 const map = createPicker(pickerBox);
-map.jumpTo({ center: preset.center, zoom: preset.zoom });
+map.jumpTo({ center: preset.center, zoom: preset.zoom, bearing: preset.bearing ?? 0 });
 let scene: Scene | null = null;
 const settings: SketchSettings = { ...DEFAULT_SETTINGS, roughness: preset.roughness };
 let redrawTimer = 0;
@@ -114,6 +115,7 @@ function makeScene(): Scene {
   const made = prepareScene(map, readFeatures(map), titleInput.value);
   made.pins = placedPins();
   made.routes = placedRoutes();
+  made.highlights = placedHighlights();
   return made;
 }
 
@@ -245,8 +247,84 @@ titleInput.addEventListener('input', () => {
 });
 
 function updateCursor(): void {
-  frame.classList.toggle('placing', placingNote !== null || draft !== null);
+  frame.classList.toggle('placing', placingNote !== null || draft !== null || highlighting);
 }
+
+type Highlight = { lngLat: [number, number]; color: string };
+const highlightColor = document.querySelector<HTMLInputElement>('#highlight-color')!;
+const highlightButton = document.querySelector<HTMLButtonElement>('#highlight-button')!;
+const highlightStatus = document.querySelector<HTMLParagraphElement>('#highlight-status')!;
+const highlightList = document.querySelector<HTMLUListElement>('#highlight-list')!;
+const HIGHLIGHT_HINT = highlightStatus.textContent ?? '';
+highlightColor.value = HIGHLIGHT_COLOR;
+let highlights: Highlight[] = [];
+let highlighting = false;
+
+function placedHighlights() {
+  return highlights.map((h) => {
+    const { x, y } = map.project(h.lngLat);
+    return { point: [x, y] as [number, number], color: h.color };
+  });
+}
+
+function stopHighlighting(message: string): void {
+  highlighting = false;
+  highlightButton.textContent = 'Highlight a building';
+  highlightStatus.textContent = message;
+  updateCursor();
+}
+
+function refreshHighlights(): void {
+  renderHighlightList();
+  showSummaries();
+  if (!scene) return;
+  scene.highlights = placedHighlights();
+  redraw();
+}
+
+function renderHighlightList(): void {
+  highlightList.replaceChildren(
+    ...highlights.map((h, i) => {
+      const name = document.createElement('span');
+      name.textContent = `Building ${i + 1}`;
+      const color = document.createElement('input');
+      color.type = 'color';
+      color.value = h.color;
+      color.title = 'Building colour';
+      color.setAttribute('aria-label', `Colour of building ${i + 1}`);
+      color.addEventListener('input', () => {
+        h.color = color.value;
+        if (!scene) return;
+        scene.highlights = placedHighlights();
+        redrawSoon();
+      });
+      const remove = removeButton(`Remove building ${i + 1}`, () => {
+        highlights.splice(i, 1);
+        refreshHighlights();
+      });
+      const item = document.createElement('li');
+      item.append(color, name, remove);
+      return item;
+    }),
+  );
+}
+
+highlightButton.addEventListener('click', () => {
+  if (highlighting) {
+    stopHighlighting(HIGHLIGHT_HINT);
+    return;
+  }
+  if (!scene || !sketchingMode()) {
+    highlightStatus.textContent = 'Sketch the map first, then pick a building.';
+    return;
+  }
+  stopPlacing(PIN_HINT);
+  finishRoute();
+  highlighting = true;
+  highlightButton.textContent = 'Cancel';
+  highlightStatus.textContent = 'Now click a building on the map. Esc cancels.';
+  updateCursor();
+});
 
 function stopPlacing(message: string): void {
   placingNote = null;
@@ -318,6 +396,7 @@ routeButton.addEventListener('click', () => {
     return;
   }
   stopPlacing(PIN_HINT);
+  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
   draft = { points: [], color: routeColor.value };
   routeStatus.textContent = 'Click the map to add points. Press Finish route when done, Esc cancels.';
   routeUi();
@@ -470,6 +549,7 @@ function renderPinList(): void {
 pinForm.addEventListener('submit', (event) => {
   event.preventDefault();
   finishRoute();
+  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
   if (!scene || !sketchingMode()) {
     pinStatus.textContent = 'Sketch the map first, then add pins to it.';
     return;
@@ -488,6 +568,17 @@ sketchCanvas.addEventListener('click', (event) => {
     refreshRoutes();
     return;
   }
+  if (highlighting) {
+    const point = clickPoint(event);
+    if (buildingAt(scene, point) < 0) {
+      highlightStatus.textContent = 'No building there. Try clicking right inside one.';
+      return;
+    }
+    highlights.push({ lngLat: lngLatAt(point), color: highlightColor.value });
+    stopHighlighting(HIGHLIGHT_HINT);
+    refreshHighlights();
+    return;
+  }
   if (placingNote === null) return;
   const lngLat = lngLatAt(clickPoint(event));
   pins.push({ lngLat, note: placingNote, color: pinColor.value, icon: pinIcon.value as PinIcon });
@@ -499,6 +590,7 @@ sketchCanvas.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (placingNote !== null) stopPlacing(PIN_HINT);
+  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
   cancelRoute();
 });
 
@@ -739,6 +831,7 @@ function reshape(): void {
 let resizeTimer = 0;
 function redrawControls(): void {
   sliders.forEach((slider) => slider.wiredRender?.(true));
+  document.querySelector<HTMLElement & { wiredRender?: (force?: boolean) => void }>('#rotate')?.wiredRender?.(true);
 }
 
 function onWindowResize(): void {
@@ -811,8 +904,10 @@ saveConfigButton.addEventListener('click', () => {
     title: titleInput.value,
     pins: pins.map((pin) => ({ ...pin })),
     routes: routes.map((route) => ({ ...route, points: route.points.map((p) => [...p] as [number, number]) })),
+    highlights: highlights.map((h) => ({ ...h, lngLat: [...h.lngLat] as [number, number] })),
     center: [lng, lat],
     zoom: map.getZoom(),
+    bearing: Math.round(map.getBearing()),
     style: currentStyle().id,
     settings: { ...settings },
     size: sizeSelect.value,
@@ -850,6 +945,8 @@ configFile.addEventListener('change', async () => {
     renderPinList();
     draft = null;
     routes = config.routes;
+    highlights = config.highlights;
+    renderHighlightList();
     routeUi();
     renderRouteList();
     stopPlacing(PIN_HINT);
@@ -857,13 +954,46 @@ configFile.addEventListener('change', async () => {
     showSummaries();
     showOutput();
     fitPreview();
-    map.jumpTo({ center: config.center, zoom: config.zoom });
+    map.jumpTo({ center: config.center, zoom: config.zoom, bearing: config.bearing });
+    showRotation();
     sketchWhenReady();
     exportStatus.textContent = `Loaded ${placeName}`;
   } catch (error) {
     exportStatus.textContent = (error as Error).message;
   }
 });
+
+const rotateSlider = document.querySelector<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>('#rotate')!;
+const rotateValue = document.querySelector<HTMLSpanElement>('#rotate-value')!;
+const straightenButton = document.querySelector<HTMLButtonElement>('#straighten')!;
+let rotateTimer = 0;
+
+function showRotation(): void {
+  const bearing = Math.round(map.getBearing());
+  rotateSlider.value = bearing;
+  rotateSlider.wiredRender?.(true);
+  rotateValue.textContent = `${bearing}°`;
+  straightenButton.disabled = bearing === 0;
+}
+
+function rotateTo(bearing: number): void {
+  map.jumpTo({ bearing });
+  rotateValue.textContent = `${Math.round(bearing)}°`;
+  straightenButton.disabled = Math.round(bearing) === 0;
+  clearTimeout(rotateTimer);
+  if (!sketchingMode()) return;
+  loading.hidden = false;
+  rotateTimer = window.setTimeout(sketchWhenReady, 350);
+}
+
+rotateSlider.addEventListener('change', () => rotateTo(Number(rotateSlider.value)));
+straightenButton.addEventListener('click', () => {
+  rotateTo(0);
+  showRotation();
+});
+requestAnimationFrame(showRotation);
+
+roughFrame(document.querySelector<HTMLElement>('.coffee')!);
 
 const panel = document.querySelector<HTMLElement>('#panel')!;
 roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);

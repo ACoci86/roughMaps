@@ -1,3 +1,4 @@
+import rough from 'roughjs';
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
 
@@ -65,4 +66,45 @@ export function selectSwatch(container: HTMLElement, id: string): void {
       }
     }
   }
+}
+
+export function roughFrame(target: HTMLElement): void {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('rough-frame');
+  svg.setAttribute('aria-hidden', 'true');
+  target.prepend(svg);
+  const draw = () => {
+    const pad = 7;
+    const w = target.offsetWidth + pad * 2;
+    const h = target.offsetHeight + pad * 2;
+    if (w <= pad * 2) return;
+    svg.setAttribute('width', String(w + 6));
+    svg.setAttribute('height', String(h + 6));
+    svg.setAttribute('viewBox', `0 0 ${w + 6} ${h + 6}`);
+    const rc = rough.svg(svg);
+    const shadow = rc.rectangle(6, 6, w - 3, h - 3, {
+      stroke: 'none',
+      fill: '#1a1a1a',
+      fillStyle: 'zigzag',
+      hachureGap: 3,
+      fillWeight: 1,
+      roughness: 1.4,
+      seed: 9,
+    });
+    shadow.classList.add('shadow');
+    const frame = rc.rectangle(2, 2, w - 4, h - 4, {
+      stroke: '#1a1a1a',
+      strokeWidth: 1.6,
+      roughness: 1.3,
+      seed: 4,
+      fill: '#ffdd00',
+      fillStyle: 'solid',
+    });
+    frame.classList.add('frame-line');
+    const inner = rc.rectangle(4, 3.5, w - 7, h - 6, { stroke: '#1a1a1a', strokeWidth: 0.8, roughness: 1.6, seed: 5 });
+    inner.classList.add('frame-line');
+    svg.replaceChildren(shadow, frame, inner);
+  };
+  draw();
+  new ResizeObserver(draw).observe(target);
 }

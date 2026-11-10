@@ -4,6 +4,7 @@ export type Preset = {
   zoom: number;
   style: string;
   roughness: number;
+  bearing?: number;
 };
 
 export const PRESETS: Preset[] = [
@@ -12,7 +13,7 @@ export const PRESETS: Preset[] = [
   { place: 'Shibuya', center: [139.7016, 35.6595], zoom: 15.6, style: 'neon', roughness: 2 },
   { place: 'Amsterdam', center: [4.8897, 52.3731], zoom: 15.2, style: 'risograph', roughness: 2.75 },
   { place: 'Paris', center: [2.3442, 48.8556], zoom: 15, style: 'newsprint', roughness: 2.25 },
-  { place: 'Manhattan', center: [-73.9855, 40.758], zoom: 15, style: 'blueprint', roughness: 1.5 },
+  { place: 'Manhattan', center: [-73.9855, 40.758], zoom: 15, style: 'blueprint', roughness: 1.5, bearing: 29 },
   { place: 'Lisbon', center: [-9.1393, 38.7107], zoom: 15.4, style: 'mediterranean', roughness: 2.75 },
   { place: 'Santorini', center: [25.3756, 36.4618], zoom: 15.6, style: 'mediterranean', roughness: 2.25 },
   { place: 'Stockholm', center: [18.0711, 59.3251], zoom: 15, style: 'nordic', roughness: 2 },

@@ -109,8 +109,10 @@ export type Config = {
   title: string;
   pins: Pin[];
   routes: Route[];
+  highlights: { lngLat: [number, number]; color: string }[];
   center: [number, number];
   zoom: number;
+  bearing: number;
   style: string;
   settings: SketchSettings;
   size: string;
@@ -144,6 +146,17 @@ function parseRoutes(value: unknown): Route[] {
   });
 }
 
+function parseHighlights(value: unknown): { lngLat: [number, number]; color: string }[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((h) => {
+    const [lng, lat] = Array.isArray(h?.lngLat) ? h.lngLat : [];
+    if (!isNumber(lng) || !isNumber(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 85) return [];
+    return [{ lngLat: [lng, lat] as [number, number], color: validColor(h.color, HIGHLIGHT_COLOR) }];
+  });
+}
+
+export const HIGHLIGHT_COLOR = '#f2b134';
+
 function parsePins(value: unknown): Pin[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((pin): Pin[] => {
@@ -175,8 +188,10 @@ export function parseConfig(text: string): Config {
     title: typeof data.title === 'string' ? data.title.slice(0, 80) : typeof data.place === 'string' ? data.place : '',
     pins: parsePins(data.pins),
     routes: parseRoutes(data.routes),
+    highlights: parseHighlights(data.highlights),
     center: [lng, lat],
     zoom: data.zoom,
+    bearing: isNumber(data.bearing) ? Math.max(-180, Math.min(180, data.bearing)) : 0,
     style: String(data.style ?? ''),
     settings: {
       roughness: clamp(s.roughness, 0, 5, DEFAULT_SETTINGS.roughness),
