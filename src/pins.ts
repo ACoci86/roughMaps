@@ -3,8 +3,10 @@ import type { Options } from 'roughjs/bin/core';
 import { fontFamily } from './labels';
 import type { Point } from './sketch';
 
-export type Pin = { lngLat: [number, number]; note: string };
-export type PlacedPin = { point: Point; note: string };
+export type Pin = { lngLat: [number, number]; note: string; color: string };
+export type PlacedPin = { point: Point; note: string; color: string };
+
+export const PIN_COLOR = '#e4572e';
 
 type Box = [number, number, number, number];
 type Colors = { paper: string; ink: string };
@@ -70,7 +72,7 @@ export function drawPin(
     `A${HEAD} ${HEAD} 0 1 1 ${x + HEAD} ${top} C${x + HEAD} ${top + HEAD * 0.9} ${x + 3} ${y - 8} ${x} ${y} Z`;
   const seed = 101 + index * 3;
   rc.ellipse(x, y, 10, 3, { ...wobble, seed, stroke: colors.ink, strokeWidth: 1 });
-  rc.path(shape, { ...wobble, seed: seed + 1, stroke: colors.ink, strokeWidth: 1.5, fill: colors.ink, fillStyle: 'solid' });
+  rc.path(shape, { ...wobble, seed: seed + 1, stroke: colors.ink, strokeWidth: 1.5, fill: pin.color || colors.ink, fillStyle: 'solid' });
   rc.circle(x, top, HEAD * 0.8, { ...wobble, seed: seed + 2, stroke: colors.ink, strokeWidth: 1, fill: colors.paper, fillStyle: 'solid' });
 
   if (!pin.note) return;

@@ -1,6 +1,6 @@
 import { drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import type { StyleSpec } from './styles';
-import type { Pin } from './pins';
+import { PIN_COLOR, type Pin } from './pins';
 import { svgCanvas } from './svg';
 
 export type OutputSize = {
@@ -104,7 +104,8 @@ function parsePins(value: unknown): Pin[] {
   return value.flatMap((pin): Pin[] => {
     const [lng, lat] = Array.isArray(pin?.lngLat) ? pin.lngLat : [];
     if (!isNumber(lng) || !isNumber(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 85) return [];
-    return [{ lngLat: [lng, lat], note: typeof pin.note === 'string' ? pin.note.slice(0, 40) : '' }];
+    const color = typeof pin.color === 'string' && /^#[0-9a-f]{6}$/i.test(pin.color) ? pin.color : PIN_COLOR;
+    return [{ lngLat: [lng, lat], note: typeof pin.note === 'string' ? pin.note.slice(0, 40) : '', color }];
   });
 }
 

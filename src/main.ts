@@ -7,7 +7,7 @@ import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSett
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
-import type { Pin } from './pins';
+import { PIN_COLOR, type Pin } from './pins';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -51,6 +51,8 @@ const downloadSvgButton = document.querySelector<HTMLButtonElement>('#download-s
 const titleInput = document.querySelector<HTMLInputElement>('#title')!;
 const pinForm = document.querySelector<HTMLFormElement>('#pin-form')!;
 const pinNote = document.querySelector<HTMLInputElement>('#pin-note')!;
+const pinColor = document.querySelector<HTMLInputElement>('#pin-color')!;
+pinColor.value = PIN_COLOR;
 const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
@@ -69,7 +71,7 @@ titleInput.value = placeName;
 function placedPins() {
   return pins.map((pin) => {
     const { x, y } = map.project(pin.lngLat);
-    return { point: [x, y] as [number, number], note: pin.note };
+    return { point: [x, y] as [number, number], note: pin.note, color: pin.color };
   });
 }
 
@@ -195,6 +197,17 @@ function renderPinList(): void {
       const note = document.createElement('span');
       note.textContent = pin.note || '(no note)';
       note.title = note.textContent;
+      const color = document.createElement('input');
+      color.type = 'color';
+      color.value = pin.color;
+      color.title = 'Pin colour';
+      color.setAttribute('aria-label', `Colour of ${note.textContent}`);
+      color.addEventListener('input', () => {
+        pin.color = color.value;
+        if (!scene) return;
+        scene.pins = placedPins();
+        redrawSoon();
+      });
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.textContent = 'Remove';
@@ -203,7 +216,7 @@ function renderPinList(): void {
         refreshPins();
       });
       const item = document.createElement('li');
-      item.append(note, remove);
+      item.append(color, note, remove);
       return item;
     }),
   );
@@ -224,7 +237,7 @@ sketchCanvas.addEventListener('click', (event) => {
   if (placingNote === null || !scene) return;
   const scale = scene.width / sketchCanvas.clientWidth;
   const { lng, lat } = map.unproject([event.offsetX * scale, event.offsetY * scale]);
-  pins.push({ lngLat: [lng, lat], note: placingNote });
+  pins.push({ lngLat: [lng, lat], note: placingNote, color: pinColor.value });
   pinNote.value = '';
   stopPlacing(PIN_HINT);
   refreshPins();
