@@ -180,6 +180,7 @@ export function parseConfig(text: string): Config {
       compass: s.compass !== false,
       border: s.border === true,
       labelScale: clamp(s.labelScale, 0.5, 2, DEFAULT_SETTINGS.labelScale),
+      inked: s.inked !== false,
       titleFont: TITLE_FONTS.includes(String(s.titleFont)) ? String(s.titleFont) : DEFAULT_SETTINGS.titleFont,
       titleLayout: TITLE_LAYOUTS.find((l) => l.id === s.titleLayout)?.id ?? DEFAULT_SETTINGS.titleLayout,
     },

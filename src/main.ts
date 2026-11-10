@@ -90,7 +90,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked';
 
 const preset = pickPreset();
 const map = createPicker(pickerBox);

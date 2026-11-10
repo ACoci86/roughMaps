@@ -252,7 +252,33 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
   return placed;
 }
 
-export function drawLabel(ctx: CanvasRenderingContext2D, label: PlacedLabel, ink: string, halo: string): void {
+function wiggle(n: number): number {
+  const x = Math.sin(n * 91.7 + 17.3) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
+function letters(ctx: CanvasRenderingContext2D, glyphs: Glyph[]): Glyph[] {
+  return glyphs.flatMap((g) => {
+    const chars = [...g.char];
+    if (chars.length < 2 || JOINED.test(g.char)) return [g];
+    const widths = chars.map((c) => ctx.measureText(c).width);
+    const total = widths.reduce((a, b) => a + b, 0);
+    let cursor = -total / 2;
+    return chars.map((char, i) => {
+      const middle = cursor + widths[i] / 2;
+      cursor += widths[i];
+      return { char, x: g.x + Math.cos(g.angle) * middle, y: g.y + Math.sin(g.angle) * middle, angle: g.angle, width: widths[i] };
+    });
+  });
+}
+
+export function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  label: PlacedLabel,
+  ink: string,
+  halo: string,
+  jitter = 0,
+): void {
   ctx.save();
   ctx.font = font(label.size, label.bold, label.family);
   ctx.textAlign = 'center';
@@ -261,11 +287,15 @@ export function drawLabel(ctx: CanvasRenderingContext2D, label: PlacedLabel, ink
   ctx.lineWidth = Math.max(2.5, label.size * 0.22);
   ctx.strokeStyle = halo;
   ctx.fillStyle = ink;
+  const glyphs = jitter > 0 ? letters(ctx, label.glyphs) : label.glyphs;
   for (const pass of ['halo', 'ink'] as const) {
-    for (const { char, x, y, angle } of label.glyphs) {
+    glyphs.forEach(({ char, x, y, angle }, i) => {
+      const seed = Math.round(x * 7 + y * 13) + i * 31;
       ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
+      ctx.translate(x, y + wiggle(seed) * label.size * 0.08 * jitter);
+      ctx.rotate(angle + wiggle(seed + 1) * 0.12 * jitter);
+      const scale = 1 + wiggle(seed + 2) * 0.08 * jitter;
+      ctx.scale(scale, scale);
       if (pass === 'ink') ctx.fillText(char, 0, 0);
       else if (char !== ' ') ctx.strokeText(char, 0, 0);
       else {
@@ -275,7 +305,7 @@ export function drawLabel(ctx: CanvasRenderingContext2D, label: PlacedLabel, ink
         ctx.fillStyle = ink;
       }
       ctx.restore();
-    }
+    });
   }
   ctx.restore();
 }

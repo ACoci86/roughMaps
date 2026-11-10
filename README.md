@@ -42,3 +42,7 @@ npm run dev
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL. Tiles by [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://www.openmaptiles.org).
 
 The editor theme styles use the colours of Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Rosé Pine, Everforest, Monokai, One Dark, Kanagawa and Solarized.
+
+## License
+
+roughMaps is released under the [MIT License](LICENSE).

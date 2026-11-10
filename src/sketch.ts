@@ -11,6 +11,7 @@ import { drawPosterTitle, drawBorder, loadTitleFont, posterLayout, type TitleLay
 import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
 import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
+import { fillOffset, inkLines, onlyFill, onlyLines } from './ink';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
@@ -230,6 +231,7 @@ export type SketchSettings = {
   compass: boolean;
   border: boolean;
   labelScale: number;
+  inked: boolean;
   titleFont: string;
   titleLayout: TitleLayout;
 };
@@ -246,6 +248,7 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   compass: true,
   border: false,
   labelScale: 1,
+  inked: true,
   titleFont: 'Gaegu',
   titleLayout: 'bottom',
 };
@@ -345,16 +348,27 @@ export async function drawSketch(
             fillStyle: 'solid',
           }),
         );
-        paint(base, { stroke: hasOutline ? style.ink : 'none', strokeWidth: outlineWidth, fill: p.color });
-        if (forced === 'solid' || settings.fillWeight <= 0) return;
-        if (!forced && (!p.pattern || !p.patternColor)) return;
-        const fill = patternFill(p, forced, settings.fillWeight);
-        const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
-        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureAngle}|${fill.hachureGap}|${dotSize}|${roughness}`;
-        const overlay = shaped(patternKey, i, () =>
-          generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
-        );
-        paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
+        const outline = () => {
+          if (!hasOutline) return;
+          if (settings.inked) inkLines(ctx, onlyLines(base), style.ink, Math.max(1.1, outlineWidth * 1.9), i + 7);
+          else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
+        };
+        const [dx, dy] = settings.inked ? fillOffset(i + layer.length * 101, roughness) : [0, 0];
+        ctx.save();
+        ctx.translate(dx, dy);
+        paint(onlyFill(base), { stroke: 'none', fill: p.color });
+        const patterned = forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
+        if (patterned) {
+          const fill = patternFill(p, forced, settings.fillWeight);
+          const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
+          const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureAngle}|${fill.hachureGap}|${dotSize}|${roughness}`;
+          const overlay = shaped(patternKey, i, () =>
+            generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
+          );
+          paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
+        }
+        ctx.restore();
+        outline();
       });
     });
   };
@@ -506,7 +520,9 @@ export async function drawSketch(
 
     const waterInk = style.water.patternColor ? mix(style.water.patternColor, text, 0.35) : text;
     for (const label of labels) {
-      steps.push(() => drawLabel(ctx, label, label.role === 'water' ? waterInk : text, style.paper));
+      steps.push(() =>
+        drawLabel(ctx, label, label.role === 'water' ? waterInk : text, style.paper, settings.inked ? Math.min(1.8, 0.7 + roughness * 0.4) : 0),
+      );
     }
   }
 
