@@ -259,19 +259,21 @@ export async function drawSketch(
   scene: Scene,
   style: StyleSpec,
   settings: SketchSettings = DEFAULT_SETTINGS,
+  output?: { width: number; height: number },
 ): Promise<void> {
-  const job = ++currentJob;
+  const job = output ? null : ++currentJob;
+  const cancelled = () => job !== null && job !== currentJob;
   const { roughness } = settings;
   const { width, height } = scene;
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.round(width * ratio);
-  canvas.height = Math.round(height * ratio);
+  const ratio = output ? Math.min(output.width / width, output.height / height) : window.devicePixelRatio || 1;
+  canvas.width = output ? output.width : Math.round(width * ratio);
+  canvas.height = output ? output.height : Math.round(height * ratio);
 
   const rc = rough.canvas(canvas);
   const ctx = canvas.getContext('2d')!;
-  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.fillStyle = style.paper;
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   if (!shapeCache.has(scene)) shapeCache.set(scene, new Map());
   const cache = shapeCache.get(scene)!;
@@ -417,7 +419,7 @@ export async function drawSketch(
   if (settings.labels || settings.doodles) {
     if (settings.labels) {
       await Promise.all([document.fonts.load(`400 16px ${LABEL_FONT}`), document.fonts.load(`700 16px ${LABEL_FONT}`)]);
-      if (job !== currentJob) return;
+      if (cancelled()) return;
     }
     const placer = new Placer(width, height);
     const labels = settings.labels ? layoutLabels(ctx, scene, placer) : [];
@@ -457,7 +459,7 @@ export async function drawSketch(
     while (i < steps.length && performance.now() < until) steps[i++]();
     if (i < steps.length) {
       await nextFrame();
-      if (job !== currentJob) return;
+      if (cancelled()) return;
     }
   }
 }

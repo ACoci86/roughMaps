@@ -5,6 +5,18 @@ import 'wired-elements/lib/wired-checkbox.js';
 import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
+import {
+  SIZES,
+  DPI_OPTIONS,
+  DEFAULT_SIZE,
+  DEFAULT_DPI,
+  pixelSize,
+  renderPng,
+  download,
+  slug,
+  parseConfig,
+  type Config,
+} from './export';
 
 const pickerBox = document.querySelector<HTMLDivElement>('#picker')!;
 const sketchCanvas = document.querySelector<HTMLCanvasElement>('#map')!;
@@ -19,11 +31,21 @@ const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
 const searchInput = document.querySelector<HTMLInputElement>('#search')!;
 const searchStatus = document.querySelector<HTMLParagraphElement>('#search-status')!;
 const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
+const stage = document.querySelector<HTMLDivElement>('#stage')!;
+const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
+const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
+const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
+const downloadButton = document.querySelector<HTMLButtonElement>('#download')!;
+const saveConfigButton = document.querySelector<HTMLButtonElement>('#save-config')!;
+const loadConfigButton = document.querySelector<HTMLButtonElement>('#load-config')!;
+const configFile = document.querySelector<HTMLInputElement>('#config-file')!;
+const exportStatus = document.querySelector<HTMLParagraphElement>('#export-status')!;
 
 const map = createPicker(pickerBox);
 let scene: Scene | null = null;
 const settings: SketchSettings = { ...DEFAULT_SETTINGS };
 let redrawTimer = 0;
+let placeName = 'Dublin';
 
 sketchButton.disabled = true;
 map.once('load', () => (sketchButton.disabled = false));
@@ -56,11 +78,13 @@ function showSketch(on: boolean): void {
 
 showNote();
 
-sketchButton.addEventListener('click', () => {
+function sketch(): void {
   scene = prepareScene(map, readFeatures(map));
   redraw();
   showSketch(true);
-});
+}
+
+sketchButton.addEventListener('click', sketch);
 
 styleSelect.addEventListener('change', () => {
   showNote();
@@ -97,6 +121,7 @@ const SEARCH_MAX_ZOOM = 17;
 
 function goTo(place: Place): void {
   showSketch(false);
+  placeName = place.name;
   const fit = map.cameraForBounds(place.bounds, { padding: 20 })?.zoom ?? SEARCH_MIN_ZOOM;
   const zoom = Math.min(SEARCH_MAX_ZOOM, Math.max(SEARCH_MIN_ZOOM, fit));
   map.flyTo({ center: place.center, zoom, duration: 1500 });
@@ -139,5 +164,120 @@ searchForm.addEventListener('submit', async (event) => {
     goTo(places[0]);
   } catch {
     searchStatus.textContent = 'Search failed. Try again in a moment.';
+  }
+});
+
+for (const size of SIZES) sizeSelect.add(new Option(size.label, size.id));
+for (const dpi of DPI_OPTIONS) dpiSelect.add(new Option(`${dpi} DPI`, String(dpi)));
+sizeSelect.value = DEFAULT_SIZE;
+dpiSelect.value = String(DEFAULT_DPI);
+
+function currentSize() {
+  return SIZES.find((s) => s.id === sizeSelect.value) ?? SIZES[0];
+}
+
+function outputPixels() {
+  return pixelSize(currentSize(), Number(dpiSelect.value));
+}
+
+function fitPreview(): void {
+  const { width, height } = outputPixels();
+  const scale = Math.min(stage.clientWidth / width, stage.clientHeight / height);
+  for (const el of [pickerBox, sketchCanvas]) {
+    el.style.width = `${Math.floor(width * scale)}px`;
+    el.style.height = `${Math.floor(height * scale)}px`;
+  }
+  map.resize();
+}
+
+function showOutput(): void {
+  const { width, height } = outputPixels();
+  dpiSelect.hidden = currentSize().unit !== 'mm';
+  pixelsNote.textContent = `${width} × ${height} px`;
+}
+
+function reshape(): void {
+  const wasSketch = !sketchCanvas.hidden;
+  scene = null;
+  showSketch(false);
+  showOutput();
+  fitPreview();
+  if (wasSketch) map.once('idle', sketch);
+}
+
+sizeSelect.addEventListener('change', reshape);
+dpiSelect.addEventListener('change', showOutput);
+window.addEventListener('resize', fitPreview);
+showOutput();
+fitPreview();
+
+downloadButton.addEventListener('click', async () => {
+  if (!scene || sketchCanvas.hidden) {
+    if (!map.isStyleLoaded()) return;
+    scene = prepareScene(map, readFeatures(map));
+  }
+  const output = outputPixels();
+  downloadButton.disabled = true;
+  exportStatus.textContent = 'Drawing...';
+  const started = performance.now();
+  try {
+    const blob = await renderPng(scene, currentStyle(), settings, output);
+    download(blob, `${slug(placeName)}-${currentStyle().id}-${output.width}x${output.height}.png`);
+    const seconds = ((performance.now() - started) / 1000).toFixed(1);
+    exportStatus.textContent = `Done in ${seconds} s (${(blob.size / 1e6).toFixed(1)} MB)`;
+  } catch (error) {
+    exportStatus.textContent = `Export failed: ${(error as Error).message}`;
+  } finally {
+    downloadButton.disabled = false;
+  }
+});
+
+saveConfigButton.addEventListener('click', () => {
+  const { lng, lat } = map.getCenter();
+  const config: Config = {
+    app: 'roughMaps',
+    version: 1,
+    place: placeName,
+    center: [lng, lat],
+    zoom: map.getZoom(),
+    style: currentStyle().id,
+    settings: { ...settings },
+    size: sizeSelect.value,
+    dpi: Number(dpiSelect.value),
+  };
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  download(blob, `${slug(placeName)}-${config.style}.json`);
+  exportStatus.textContent = 'Config saved';
+});
+
+loadConfigButton.addEventListener('click', () => configFile.click());
+
+configFile.addEventListener('change', async () => {
+  const file = configFile.files?.[0];
+  configFile.value = '';
+  if (!file) return;
+  try {
+    const config = parseConfig(await file.text());
+    Object.assign(settings, DEFAULT_SETTINGS, config.settings);
+    styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
+    fillStyleSelect.value = settings.fillStyle;
+    sliders.forEach((slider) => {
+      const key = slider.dataset.setting as 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight';
+      slider.value = settings[key];
+      document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
+    });
+    toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as 'labels' | 'doodles']));
+    if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
+    if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
+    placeName = config.place || 'map';
+    showNote();
+    showSketch(false);
+    showOutput();
+    fitPreview();
+    map.jumpTo({ center: config.center, zoom: config.zoom });
+    map.once('idle', sketch);
+    exportStatus.textContent = `Loaded ${placeName}`;
+  } catch (error) {
+    exportStatus.textContent = (error as Error).message;
   }
 });

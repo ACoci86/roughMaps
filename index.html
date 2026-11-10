@@ -52,6 +52,17 @@
           </div>
           <button id="sketch-button" type="button">Sketch it</button>
           <button id="back-button" type="button" hidden>Back to map</button>
+          <h2 class="section">Export</h2>
+          <select id="size"></select>
+          <select id="dpi"></select>
+          <p id="pixels" class="note"></p>
+          <button id="download" type="button">Download PNG</button>
+          <div class="row">
+            <button id="save-config" type="button">Save config</button>
+            <button id="load-config" type="button">Load config</button>
+          </div>
+          <input id="config-file" type="file" accept="application/json,.json" hidden />
+          <p id="export-status" class="note"></p>
         </div>
         <div id="stage" class="stage">
           <div id="picker"></div>

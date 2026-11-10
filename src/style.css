@@ -134,6 +134,22 @@ a {
   padding: 0;
 }
 
+.section {
+  margin: 12px 0 0;
+  font-size: 22px;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.row button {
+  white-space: nowrap;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+}
+
 .toggles {
   display: flex;
   gap: 16px;
