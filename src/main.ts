@@ -2,15 +2,20 @@ import { createPicker } from './picker';
 import { readFeatures } from './features';
 import { prepareScene, drawSketch, type Scene } from './sketch';
 import { STYLES } from './styles';
+import { searchPlaces, type Place } from './search';
 
 const pickerBox = document.querySelector<HTMLDivElement>('#picker')!;
-const sketchSvg = document.querySelector<SVGSVGElement>('#map')!;
+const sketchCanvas = document.querySelector<HTMLCanvasElement>('#map')!;
 const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
 const roughnessInput = document.querySelector<HTMLInputElement>('#roughness')!;
 const roughnessValue = document.querySelector<HTMLSpanElement>('#roughness-value')!;
 const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
 const backButton = document.querySelector<HTMLButtonElement>('#back-button')!;
+const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
+const searchInput = document.querySelector<HTMLInputElement>('#search')!;
+const searchStatus = document.querySelector<HTMLParagraphElement>('#search-status')!;
+const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
 
 const map = createPicker(pickerBox);
 let scene: Scene | null = null;
@@ -25,7 +30,7 @@ function currentStyle() {
 }
 
 function redraw(): void {
-  if (scene) drawSketch(sketchSvg, scene, currentStyle(), Number(roughnessInput.value));
+  if (scene) drawSketch(sketchCanvas, scene, currentStyle(), Number(roughnessInput.value));
 }
 
 function showNote(): void {
@@ -34,7 +39,7 @@ function showNote(): void {
 
 function showSketch(on: boolean): void {
   pickerBox.hidden = on;
-  sketchSvg.toggleAttribute('hidden', !on);
+  sketchCanvas.hidden = !on;
   sketchButton.hidden = on;
   backButton.hidden = !on;
 }
@@ -56,3 +61,53 @@ roughnessInput.addEventListener('input', () => (roughnessValue.textContent = rou
 roughnessInput.addEventListener('change', redraw);
 
 backButton.addEventListener('click', () => showSketch(false));
+
+const SEARCH_MIN_ZOOM = 15;
+const SEARCH_MAX_ZOOM = 17;
+
+function goTo(place: Place): void {
+  showSketch(false);
+  const fit = map.cameraForBounds(place.bounds, { padding: 20 })?.zoom ?? SEARCH_MIN_ZOOM;
+  const zoom = Math.min(SEARCH_MAX_ZOOM, Math.max(SEARCH_MIN_ZOOM, fit));
+  map.flyTo({ center: place.center, zoom, duration: 1500 });
+}
+
+function showResults(places: Place[]): void {
+  searchResults.replaceChildren(
+    ...places.slice(1).map((place) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = place.label;
+      button.title = place.label;
+      button.addEventListener('click', () => {
+        searchResults.replaceChildren();
+        searchStatus.textContent = place.name;
+        goTo(place);
+      });
+      const item = document.createElement('li');
+      item.append(button);
+      return item;
+    }),
+  );
+}
+
+searchForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const query = searchInput.value;
+  if (!query.trim()) return;
+  searchStatus.textContent = 'Searching...';
+  searchResults.replaceChildren();
+  try {
+    const places = await searchPlaces(query);
+    if (searchInput.value !== query) return;
+    if (!places.length) {
+      searchStatus.textContent = 'No places found.';
+      return;
+    }
+    searchStatus.textContent = places.length > 1 ? `${places[0].name}. Not it? Try one of these:` : places[0].name;
+    showResults(places);
+    goTo(places[0]);
+  } catch {
+    searchStatus.textContent = 'Search failed. Try again in a moment.';
+  }
+});

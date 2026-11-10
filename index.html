@@ -18,6 +18,12 @@
 
       <section class="workspace">
         <div id="controls" class="controls">
+          <form id="search-form" class="search">
+            <input id="search" type="search" placeholder="Search a place" autocomplete="off" />
+            <button type="submit">Go</button>
+          </form>
+          <p id="search-status" class="note"></p>
+          <ul id="search-results" class="results"></ul>
           <label for="style">Style</label>
           <select id="style"></select>
           <p id="style-note" class="note"></p>
@@ -28,7 +34,7 @@
         </div>
         <div id="stage" class="stage">
           <div id="picker"></div>
-          <svg id="map" xmlns="http://www.w3.org/2000/svg" hidden></svg>
+          <canvas id="map" hidden></canvas>
         </div>
       </section>
 

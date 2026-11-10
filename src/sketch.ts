@@ -1,7 +1,7 @@
 import rough from 'roughjs';
 import { union, type Geom } from 'polyclip-ts';
-import type { Options } from 'roughjs/bin/core';
-import type { Map, GeoJSONFeature } from 'maplibre-gl';
+import type { Drawable, Options } from 'roughjs/bin/core';
+import type { Map as MapLibreMap, GeoJSONFeature } from 'maplibre-gl';
 import type { Geometry, Polygon, Position } from 'geojson';
 import type { MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
@@ -49,7 +49,7 @@ function area(points: Point[]): number {
   return Math.abs(sum) / 2;
 }
 
-function toShape(map: Map, geometry: Geometry, minArea = 0): Shape {
+function toShape(map: MapLibreMap, geometry: Geometry, minArea = 0): Shape {
   const project = (coords: Position[]): Point[] =>
     coords.map((p) => {
       const { x, y } = map.project([p[0], p[1]]);
@@ -103,7 +103,7 @@ function roadKind(cls: string): string {
   return ROAD_KINDS.includes(base) ? base : 'service';
 }
 
-export function prepareScene(map: Map, features: MapFeatures): Scene {
+export function prepareScene(map: MapLibreMap, features: MapFeatures): Scene {
   const { clientWidth: width, clientHeight: height } = map.getContainer();
   const shapes = (geometries: Geometry[], minArea = 0) =>
     geometries.map((g) => toShape(map, g, minArea)).filter((s) => s.length > 0);
@@ -153,109 +153,138 @@ function patternFill(paint: AreaPaint): Options {
   }
 }
 
-export function drawSketch(svg: SVGSVGElement, scene: Scene, style: StyleSpec, roughness = 1): void {
+type Step = () => void;
+
+const generator = rough.generator();
+const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
+let currentJob = 0;
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+export async function drawSketch(
+  canvas: HTMLCanvasElement,
+  scene: Scene,
+  style: StyleSpec,
+  roughness = 1,
+): Promise<void> {
+  const job = ++currentJob;
   const { width, height } = scene;
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-  svg.replaceChildren();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
 
-  const paper = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  paper.setAttribute('width', String(width));
-  paper.setAttribute('height', String(height));
-  paper.setAttribute('fill', style.paper);
-  svg.append(paper);
+  const rc = rough.canvas(canvas);
+  const ctx = canvas.getContext('2d')!;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.fillStyle = style.paper;
+  ctx.fillRect(0, 0, width, height);
 
-  const rc = rough.svg(svg, { options: { roughness, bowing: roughness } });
-  const outline = style.outline > 0 ? style.ink : 'none';
+  if (!shapeCache.has(scene)) shapeCache.set(scene, new Map());
+  const cache = shapeCache.get(scene)!;
+  const shaped = (key: string, i: number, make: () => Drawable): Drawable => {
+    let list = cache.get(key);
+    if (!list) cache.set(key, (list = []));
+    return (list[i] ??= make());
+  };
+  const paint = (drawable: Drawable, options: Options) =>
+    rc.draw({ ...drawable, options: { ...drawable.options, ...options } });
 
-  const drawAreas = (list: Shape[], paint: (i: number) => AreaPaint) => {
+  const wobble = { roughness, bowing: roughness };
+  const hasOutline = style.outline > 0;
+  const steps: Step[] = [];
+
+  const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint) => {
+    const baseKey = `${layer}|base|${hasOutline}|${roughness}`;
     list.forEach((shape, i) => {
-      const d = toPath(shape);
-      const seed = i + 1;
-      const p = paint(i);
-      svg.append(
-        rc.path(d, {
-          seed,
-          stroke: outline,
-          strokeWidth: style.outline,
-          roughness: 0.8 * roughness,
-          disableMultiStroke: true,
-          fill: p.color,
-          fillStyle: 'solid',
-        }),
-      );
-      if (p.pattern && p.patternColor) {
-        svg.append(rc.path(d, { seed, stroke: 'none', fill: p.patternColor, ...patternFill(p) }));
-      }
+      steps.push(() => {
+        const p = look(i);
+        const base = shaped(baseKey, i, () =>
+          generator.path(toPath(shape), {
+            ...wobble,
+            roughness: 0.8 * roughness,
+            seed: i + 1,
+            stroke: hasOutline ? '#000' : 'none',
+            disableMultiStroke: true,
+            fill: '#000',
+            fillStyle: 'solid',
+          }),
+        );
+        paint(base, { stroke: hasOutline ? style.ink : 'none', strokeWidth: style.outline, fill: p.color });
+        if (!p.pattern || !p.patternColor) return;
+        const fill = patternFill(p);
+        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureGap}|${fill.fillWeight}|${roughness}`;
+        const overlay = shaped(patternKey, i, () =>
+          generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
+        );
+        paint(overlay, { fill: p.patternColor });
+      });
     });
   };
 
-  const building = (i: number): AreaPaint => ({
-    ...style.buildingPattern,
-    color: style.buildings[i % style.buildings.length],
-  });
-
-  drawAreas(scene.sand, () => style.sand);
-  drawAreas(scene.green, () => style.park);
-  drawAreas(scene.forest, () => style.wood);
-  drawAreas(scene.water, () => style.water);
-  drawAreas(scene.buildings, building);
-  drawAreas(scene.bridges, () => ({ color: style.paper }));
-
-  const lineStyle: Options = { roughness, disableMultiStroke: true, preserveVertices: true };
-
-  scene.railways.forEach((shape, i) => {
-    svg.append(
-      rc.path(toPath(shape), {
-        ...lineStyle,
+  const lineKey = (layer: string) => `${layer}|line|${roughness}`;
+  const line = (layer: string, shape: Shape, i: number) =>
+    shaped(lineKey(layer), i, () =>
+      generator.path(toPath(shape), {
+        ...wobble,
         seed: i + 1,
-        stroke: style.rail,
-        strokeWidth: 1.5,
-        strokeLineDash: [8, 4],
+        stroke: '#000',
+        disableMultiStroke: true,
+        preserveVertices: true,
       }),
     );
+
+  areas('sand', scene.sand, () => style.sand);
+  areas('green', scene.green, () => style.park);
+  areas('forest', scene.forest, () => style.wood);
+  areas('water', scene.water, () => style.water);
+  areas('buildings', scene.buildings, (i) => ({
+    ...style.buildingPattern,
+    color: style.buildings[i % style.buildings.length],
+  }));
+  areas('bridges', scene.bridges, () => ({ color: style.paper }));
+
+  scene.railways.forEach((shape, i) => {
+    steps.push(() => paint(line('rail', shape, i), { stroke: style.rail, strokeWidth: 1.5, strokeLineDash: [8, 4] }));
   });
 
-  const { road: paint } = style;
+  const road = style.road;
   const scale = 2 ** (scene.zoom - 16);
   const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale);
   const roads = scene.roads
-    .map((road, i) => ({ ...road, seed: i + 1, width: roadWidth(road.kind) }))
+    .map((r, i) => ({ ...r, i, width: roadWidth(r.kind) }))
     .sort((a, b) => a.width - b.width);
 
-  for (const road of roads) {
-    if (road.kind === 'path') {
-      svg.append(
-        rc.path(toPath(road.shape), {
-          ...lineStyle,
-          seed: road.seed,
-          stroke: paint.path,
-          strokeWidth: road.width,
-          strokeLineDash: [4, 3],
-        }),
+  for (const r of roads) {
+    if (r.kind === 'path') {
+      steps.push(() =>
+        paint(line('road', r.shape, r.i), { stroke: road.path, strokeWidth: r.width, strokeLineDash: [4, 3] }),
       );
-    } else if (paint.edgeRatio > 0) {
-      svg.append(
-        rc.path(toPath(road.shape), {
-          ...lineStyle,
-          seed: road.seed,
-          stroke: paint.edge,
-          strokeWidth: road.width * (1 + 2 * paint.edgeRatio),
-        }),
+    } else if (road.edgeRatio > 0) {
+      steps.push(() =>
+        paint(line('road', r.shape, r.i), { stroke: road.edge, strokeWidth: r.width * (1 + 2 * road.edgeRatio) }),
       );
     }
   }
-
-  for (const road of roads) {
-    if (road.kind === 'path') continue;
-    svg.append(
-      rc.path(toPath(road.shape), {
-        ...lineStyle,
-        seed: road.seed,
-        stroke: paint.colors?.[road.kind] ?? paint.fill,
-        strokeWidth: road.width,
-      }),
+  for (const r of roads) {
+    if (r.kind === 'path') continue;
+    steps.push(() =>
+      paint(line('road', r.shape, r.i), { stroke: road.colors?.[r.kind] ?? road.fill, strokeWidth: r.width }),
     );
   }
 
-  svg.append(rc.rectangle(2, 2, width - 4, height - 4, { stroke: style.ink, strokeWidth: 2, roughness, seed: 1 }));
+  steps.push(() =>
+    rc.rectangle(2, 2, width - 4, height - 4, { ...wobble, stroke: style.ink, strokeWidth: 2, seed: 1 }),
+  );
+
+  let i = 0;
+  while (i < steps.length) {
+    const until = performance.now() + 12;
+    while (i < steps.length && performance.now() < until) steps[i++]();
+    if (i < steps.length) {
+      await nextFrame();
+      if (job !== currentJob) return;
+    }
+  }
 }
