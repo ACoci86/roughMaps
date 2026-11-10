@@ -7,6 +7,7 @@
   --highlight: rgba(255, 192, 203, 0.45);
   --underline: pink;
   --panel-width: 340px;
+  --soft: cubic-bezier(0.45, 0.05, 0.25, 1);
 }
 
 * {
@@ -201,14 +202,46 @@ h3:first-child {
 .loading {
   position: absolute;
   inset: 0;
+  z-index: 2;
   margin: auto;
   width: max-content;
   height: max-content;
-  padding: 6px 18px;
-  font-size: 26px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 14px 2px 8px;
+  font-size: 21px;
   background: var(--paper);
   border: 2px dashed var(--ink);
   pointer-events: none;
+}
+
+.sketching-art {
+  position: relative;
+  width: 78px;
+  aspect-ratio: 1390 / 980;
+}
+
+.sketching-art .ink {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sketching-art .ink img {
+  display: block;
+  width: 100%;
+  height: auto;
+  will-change: transform;
+}
+
+.sketching-art .hand {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  will-change: transform;
 }
 
 .panel-wrap {
@@ -322,8 +355,13 @@ h3:first-child {
   color: var(--muted);
 }
 
+.summary {
+  transition: opacity 0.4s ease;
+}
+
 .step.open .summary {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .step-head .arrow {
@@ -334,7 +372,7 @@ h3:first-child {
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform 0.2s ease;
+  transition: transform 0.6s var(--soft);
 }
 
 .step.open .step-head .arrow {
@@ -342,11 +380,43 @@ h3:first-child {
 }
 
 .step-body {
-  padding-top: 6px;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.6s var(--soft),
+    opacity 0.35s ease,
+    visibility 0s linear 0.6s;
 }
 
-.step:not(.open) .step-body {
-  display: none;
+.step.open .step-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 0.6s var(--soft),
+    opacity 0.45s ease 0.15s,
+    visibility 0s;
+}
+
+.step-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  margin: 0 -4px;
+  transition: padding 0.6s var(--soft);
+}
+
+.step.open .step-inner {
+  padding: 6px 4px 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-body,
+  .step.open .step-body {
+    transition: none;
+  }
 }
 
 .card label {

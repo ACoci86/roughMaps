@@ -9,6 +9,16 @@ const ARROW =
 export function setupSteps(onOpen: () => void): void {
   const steps = [...document.querySelectorAll<HTMLElement>('.step')];
   for (const step of steps) {
+    const body = step.querySelector<HTMLElement>('.step-body')!;
+    const inner = document.createElement('div');
+    inner.className = 'step-inner';
+    inner.append(...body.childNodes);
+    body.append(inner);
+    body.addEventListener('transitionend', (event) => {
+      if (event.target !== body || event.propertyName !== 'grid-template-rows') return;
+      onOpen();
+      if (step.classList.contains('open')) step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
     const head = step.querySelector<HTMLButtonElement>('.step-head')!;
     head.insertAdjacentHTML('beforeend', ARROW);
     head.addEventListener('click', () => {
@@ -18,7 +28,6 @@ export function setupSteps(onOpen: () => void): void {
         other.classList.toggle('open', open);
         other.querySelector('.step-head')!.setAttribute('aria-expanded', String(open));
       }
-      if (opening) requestAnimationFrame(() => step.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
       onOpen();
     });
   }

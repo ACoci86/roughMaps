@@ -8,6 +8,7 @@ import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
 import { pickPreset } from './presets';
+import { sketchingAnimation } from './sketching';
 import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, type TitleLayout } from './poster';
@@ -40,7 +41,7 @@ const sliders = document.querySelectorAll<HTMLElement & { value: number; wiredRe
 const toggles = document.querySelectorAll<HTMLElement & { checked: boolean }>('wired-checkbox[data-setting]');
 const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
 const moveButton = document.querySelector<HTMLButtonElement>('#move-button')!;
-const loading = document.querySelector<HTMLParagraphElement>('#loading')!;
+const loading = document.querySelector<HTMLDivElement>('#loading')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
 const searchInput = document.querySelector<HTMLInputElement>('#search')!;
 const searchStatus = document.querySelector<HTMLParagraphElement>('#search-status')!;
@@ -994,6 +995,7 @@ straightenButton.addEventListener('click', () => {
 requestAnimationFrame(showRotation);
 
 roughFrame(document.querySelector<HTMLElement>('.coffee')!);
+sketchingAnimation(loading);
 
 const panel = document.querySelector<HTMLElement>('#panel')!;
 roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
