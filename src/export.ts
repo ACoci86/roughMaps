@@ -117,6 +117,7 @@ export type Config = {
   settings: SketchSettings;
   size: string;
   dpi: number;
+  country?: string;
 };
 
 const FILL_STYLES = ['default', 'hachure', 'solid', 'cross-hatch', 'dashed', 'zigzag', 'zigzag-line', 'dots'];
@@ -211,5 +212,6 @@ export function parseConfig(text: string): Config {
     },
     size: String(data.size ?? ''),
     dpi: Number(data.dpi),
+    ...(typeof data.country === 'string' ? { country: data.country.slice(0, 80) } : {}),
   };
 }

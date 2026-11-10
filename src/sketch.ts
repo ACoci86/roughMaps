@@ -13,12 +13,13 @@ import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
 import { fillOffset, inkLines, onlyFill, onlyLines } from './ink';
 import { hatchAngle, mainAngle, ringArea, simplifyShape, splitPieces } from './shapes';
+import type { Town } from './countries';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean };
 type Shape = Line[];
 type Road = { shape: Shape; kind: string };
-export type Label = { name: string; kind: string; points: Point[] };
+export type Label = { name: string; kind: string; points: Point[]; spots?: Point[] };
 export type Poi = { name: string; icon: string; rank: number; point: Point };
 
 export type Scene = {
@@ -44,9 +45,26 @@ export type Scene = {
   places: Label[];
   waterNames: Label[];
   pois: Poi[];
+  land: Shape[];
+  focus: number;
+  lakes: Shape[];
+  rivers: { shape: Shape; rank: number }[];
+  towns: Town[];
+  islets: Point[];
 };
 
 const MIN_GREEN_AREA = 60;
+const FOCUS_COLORS = ['#f2b134', '#e4572e', '#5fae6e', '#4a7fd4', '#c75fb0'];
+
+function rgb(hex: string): number[] {
+  return /^#[0-9a-f]{6}$/i.test(hex) ? [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) : [128, 128, 128];
+}
+
+function focusColor(style: StyleSpec): string {
+  const avoid = [style.ink, style.text ?? style.ink, style.paper, style.water.color, style.water.patternColor ?? style.water.color].map(rgb);
+  const score = (hex: string) => Math.min(...avoid.map((c) => Math.hypot(...rgb(hex).map((v, i) => v - c[i]))));
+  return FOCUS_COLORS.reduce((best, c) => (score(c) > score(best) + 20 ? c : best));
+}
 const ROAD_KINDS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service', 'path'];
 const PATH_KINDS = ['path', 'track', 'ferry'];
 const ROAD_WIDTHS: Record<string, number> = {
@@ -124,28 +142,28 @@ function roadKind(cls: string): string {
   return ROAD_KINDS.includes(base) ? base : 'service';
 }
 
-function insideRing([x, y]: Point, ring: Point[]): boolean {
+function insideShape([x, y]: Point, shape: Shape): boolean {
   let hit = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  for (const { points: ring } of shape) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+    }
   }
   return hit;
+}
+
+export function highlightShapes(scene: Scene): Shape[] {
+  return scene.land.length ? scene.land : scene.buildings;
 }
 
 export function buildingAt(scene: Scene, point: Point): number {
   let best = -1;
   let bestArea = Infinity;
-  scene.buildings.forEach((shape, i) => {
-    const [outer, ...holes] = shape;
-    if (!outer || !insideRing(point, outer.points)) return;
-    if (holes.some((h) => insideRing(point, h.points))) return;
-    let sum = 0;
-    for (let a = 0, b = outer.points.length - 1; a < outer.points.length; b = a++) {
-      sum += outer.points[b][0] * outer.points[a][1] - outer.points[a][0] * outer.points[b][1];
-    }
-    const size = Math.abs(sum);
+  highlightShapes(scene).forEach((shape, i) => {
+    if (!shape.length || !insideShape(point, shape)) return;
+    const size = shape.reduce((sum, l) => sum + ringArea(l.points), 0);
     if (size < bestArea) {
       bestArea = size;
       best = i;
@@ -195,6 +213,12 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
       .filter((r) => onScreen(r.shape)),
     railways: shapes(geometries(features.railways)),
     ...prepareNames(map, features, width, height),
+    land: [],
+    focus: -1,
+    lakes: [],
+    rivers: [],
+    towns: [],
+    islets: [],
   };
 }
 
@@ -518,6 +542,99 @@ export async function drawSketch(
   areas('forest', scene.forest, () => style.wood);
   areas('water', scene.water, () => style.water, scene.waterParts);
 
+  const targets = highlightShapes(scene);
+  const highlight = (index: number, color: string, k: number) => {
+    const shape = targets[index];
+    steps.push(() => {
+      const body = shaped(`highlight|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, () =>
+        generator.path(toPath(shape), {
+          ...wobble,
+          roughness: 0.8 * roughness,
+          seed: index + 1,
+          stroke: '#000',
+          disableMultiStroke: true,
+          fill: '#000',
+          fillStyle: 'solid',
+        }),
+      );
+      const [dx, dy] = inked ? fillOffset(index + 977, roughness) : [0, 0];
+      ctx.save();
+      ctx.translate(dx, dy);
+      paint(onlyFill(body), { stroke: 'none', fill: color });
+      const hatch = shaped(`highlight-hatch|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, () =>
+        generator.path(toPath(shape), {
+          ...wobble,
+          seed: index + 5,
+          stroke: 'none',
+          fill: '#000',
+          fillStyle: 'hachure',
+          hachureGap: 3.2,
+          hachureAngle: inked ? hatchAngle(mainAngle(shape) + 30) : -41,
+        }),
+      );
+      paint(hatch, { fill: mix(color, style.ink, 0.35), fillWeight: 0.9 });
+      ctx.restore();
+      const pen = scene.land.length ? Math.max(1.8, outlineWidth * 2.2) : Math.max(2.2, outlineWidth * 2.6);
+      if (inked) inkLines(ctx, onlyLines(body), style.ink, pen, index + k + 7);
+      else paint(onlyLines(body), { stroke: style.ink, strokeWidth: pen * 0.8 });
+    });
+  };
+  const highlightAll = () => {
+    if (scene.focus >= 0) highlight(scene.focus, focusColor(style), 0);
+    scene.highlights.forEach(({ point, color }, k) => {
+      const index = buildingAt(scene, point);
+      if (index >= 0) highlight(index, color, k + 1);
+    });
+  };
+  const countryMode = scene.land.length > 0;
+  if (countryMode) {
+    scene.land.forEach((shape, i) => {
+      steps.push(() => {
+        const base = shaped(`land|${roughness}`, i, () =>
+          generator.path(toPath(shape), {
+            ...wobble,
+            roughness: 0.8 * roughness,
+            seed: i + 1,
+            stroke: '#000',
+            disableMultiStroke: true,
+            fill: '#000',
+            fillStyle: 'solid',
+          }),
+        );
+        paint(onlyFill(base), { stroke: 'none', fill: style.paper });
+        if (!hasOutline) return;
+        const pen = Math.max(1, outlineWidth * 1.5);
+        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, i + 7);
+        else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
+      });
+    });
+    highlightAll();
+    const ring = focusColor(style);
+    scene.islets.forEach(([x, y], i) => {
+      steps.push(() => {
+        rc.circle(x, y, 15, { ...decor, seed: i + 301, stroke: style.ink, strokeWidth: 1.2 });
+        rc.circle(x, y, 5, { ...decor, seed: i + 401, stroke: style.ink, strokeWidth: 0.8, fill: ring, fillStyle: 'solid' });
+      });
+    });
+    areas('lakes', scene.lakes, () => style.water);
+    const riverInk = style.water.patternColor ?? mix(style.water.color, style.ink, 0.45);
+    scene.rivers.forEach(({ shape, rank }, i) => {
+      const width = Math.max(0.7, 2.4 - rank * 0.22) * Math.max(0.4, settings.innerStrokeWidth);
+      steps.push(() => paint(line('river', shape, i), { stroke: riverInk, strokeWidth: width }));
+    });
+    scene.towns.forEach(({ point: [x, y], capital }, i) => {
+      steps.push(() => {
+        const dot = { ...decor, seed: i + 41, stroke: text, strokeWidth: 1.3 };
+        if (capital) {
+          rc.circle(x, y, 13, { ...dot, fill: style.paper, fillStyle: 'solid' });
+          rc.circle(x, y, 5, { ...dot, fill: text, fillStyle: 'solid' });
+        } else {
+          rc.circle(x, y, 7, { ...dot, fill: text, fillStyle: 'solid' });
+        }
+      });
+    });
+  }
+
   if (!doodleCache.has(scene)) doodleCache.set(scene, new Map());
   const doodles = doodleCache.get(scene)!;
   const doodled = (key: string, i: number, make: () => Doodle[]): Doodle[] => {
@@ -561,44 +678,7 @@ export async function drawSketch(
     ...style.buildingPattern,
     color: style.buildings[i % style.buildings.length],
   }));
-  scene.highlights.forEach(({ point, color }, k) => {
-    const index = buildingAt(scene, point);
-    if (index < 0) return;
-    const shape = scene.buildings[index];
-    steps.push(() => {
-      const body = shaped(`highlight|${roughness}`, index, () =>
-        generator.path(toPath(shape), {
-          ...wobble,
-          roughness: 0.8 * roughness,
-          seed: index + 1,
-          stroke: '#000',
-          disableMultiStroke: true,
-          fill: '#000',
-          fillStyle: 'solid',
-        }),
-      );
-      const [dx, dy] = inked ? fillOffset(index + 977, roughness) : [0, 0];
-      ctx.save();
-      ctx.translate(dx, dy);
-      paint(onlyFill(body), { stroke: 'none', fill: color });
-      const hatch = shaped(`highlight-hatch|${roughness}`, index, () =>
-        generator.path(toPath(shape), {
-          ...wobble,
-          seed: index + 5,
-          stroke: 'none',
-          fill: '#000',
-          fillStyle: 'hachure',
-          hachureGap: 3.2,
-          hachureAngle: inked ? hatchAngle(mainAngle(shape) + 30) : -41,
-        }),
-      );
-      paint(hatch, { fill: mix(color, style.ink, 0.35), fillWeight: 0.9 });
-      ctx.restore();
-      const pen = Math.max(2.2, outlineWidth * 2.6);
-      if (inked) inkLines(ctx, onlyLines(body), style.ink, pen, index + k + 7);
-      else paint(onlyLines(body), { stroke: style.ink, strokeWidth: pen * 0.8 });
-    });
-  });
+  if (!scene.land.length) highlightAll();
 
   areas('bridges', scene.bridges, () => ({ color: style.paper }));
 
@@ -656,6 +736,7 @@ export async function drawSketch(
   placer.add([[credit[0] - 175, credit[1] - 16, credit[0], credit[1]]]);
   if (settings.compass) placer.add(furnitureBoxes(width, height, area, scene.bearing));
   placer.add(pinBoxes(ctx, pins, scene.center, area.x1));
+  placer.add(scene.towns.map(({ point: [x, y] }) => [x - 7, y - 7, x + 7, y + 7] as [number, number, number, number]));
 
   scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, decor)));
 

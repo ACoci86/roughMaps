@@ -3,11 +3,13 @@ export type Place = {
   label: string;
   center: [number, number];
   bounds: [[number, number], [number, number]];
+  country?: string;
 };
 
 type NominatimResult = {
   name: string;
   display_name: string;
+  addresstype?: string;
   lat: string;
   lon: string;
   boundingbox: [string, string, string, string];
@@ -48,6 +50,7 @@ export async function searchPlaces(query: string): Promise<Place[]> {
         [west, south],
         [east, north],
       ] as Place['bounds'],
+      ...(r.addresstype === 'country' ? { country: r.name || r.display_name } : {}),
     };
   });
   cache.set(key, places);
@@ -62,6 +65,8 @@ type PhotonFeature = {
     city?: string;
     state?: string;
     country?: string;
+    type?: string;
+    osm_value?: string;
     extent?: [number, number, number, number];
   };
 };
@@ -88,7 +93,7 @@ export async function suggestPlaces(query: string, signal: AbortSignal): Promise
   const places = features.flatMap((f): Place[] => {
     const p = f.properties;
     const name = p.name ?? p.street;
-    if (!name) return [];
+    if (!name || p.type === 'country' || p.osm_value === 'country') return [];
     const parts = [name, p.city, p.state, p.country].filter((v, i, all): v is string => !!v && all.indexOf(v) === i);
     const label = parts.join(', ');
     if (seen.has(label)) return [];
@@ -102,7 +107,7 @@ export async function suggestPlaces(query: string, signal: AbortSignal): Promise
   return top;
 }
 
-type City = [string, string, string, string, number, number, number];
+export type City = [string, string, string, string, number, number, number];
 
 let cityList: Promise<City[]> | null = null;
 

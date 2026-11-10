@@ -72,6 +72,10 @@ export type PlacedLabel = {
 };
 
 const PLACE_SIZES: Record<string, number> = {
+  'nation-focus': 38,
+  nation: 24,
+  capital: 20,
+  'city-dot': 16,
   city: 30,
   town: 26,
   village: 22,
@@ -206,8 +210,13 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
     const size = Math.round(base * scale * 10) / 10;
     const family = fontFamily(label.name, scene.center);
     ctx.font = font(size, bold, family);
-    const glyphs = straight(ctx, label.name, label.points[0]);
-    if (placer.tryAdd(glyphBoxes(glyphs, size))) placed.push({ glyphs, size, bold, role, family });
+    for (const spot of [label.points[0], ...(label.spots ?? [])]) {
+      const glyphs = straight(ctx, label.name, spot);
+      if (placer.tryAdd(glyphBoxes(glyphs, size))) {
+        placed.push({ glyphs, size, bold, role, family });
+        return;
+      }
+    }
   };
 
   const placeLines = (labels: Label[], size: (l: Label) => number, role: PlacedLabel['role']) => {

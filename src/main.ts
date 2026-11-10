@@ -1,4 +1,5 @@
-import { createPicker } from './picker';
+import { LngLat } from 'maplibre-gl';
+import { createPicker, MIN_ZOOM, MAX_ZOOM, COUNTRY_MIN_ZOOM, COUNTRY_MAX_ZOOM } from './picker';
 import { readFeatures } from './features';
 import 'wired-elements/lib/wired-slider.js';
 import 'wired-elements/lib/wired-checkbox.js';
@@ -6,12 +7,13 @@ import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
+import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { roughScrollbar } from './scrollbar';
 import { pickPreset } from './presets';
 import { sketchingAnimation } from './sketching';
 import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
-import { TITLE_FONTS, TITLE_LAYOUTS, type TitleLayout } from './poster';
+import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
 import { pinAt } from './pins';
 import {
@@ -103,6 +105,9 @@ let redrawTimer = 0;
 let placeName = preset.place;
 let pins: Pin[] = [];
 let placingNote: string | null = null;
+let countryMode = false;
+let focusCountry: string | null = null;
+let focusCapital: Country['capital'] = null;
 titleInput.value = placeName;
 
 function placedPins() {
@@ -113,7 +118,9 @@ function placedPins() {
 }
 
 function makeScene(): Scene {
-  const made = prepareScene(map, readFeatures(map), titleInput.value);
+  const made = countryMode
+    ? prepareCountryScene(map, focusCountry, titleInput.value)
+    : prepareScene(map, readFeatures(map), titleInput.value);
   made.pins = placedPins();
   made.routes = placedRoutes();
   made.highlights = placedHighlights();
@@ -174,6 +181,8 @@ async function sketch(): Promise<void> {
   const run = ++sketchRun;
   loading.hidden = false;
   showSketch(true);
+  if (countryMode) await loadDetails(map);
+  if (run !== sketchRun) return;
   scene = makeScene();
   await redraw();
   if (run === sketchRun) loading.hidden = true;
@@ -257,6 +266,7 @@ const highlightButton = document.querySelector<HTMLButtonElement>('#highlight-bu
 const highlightStatus = document.querySelector<HTMLParagraphElement>('#highlight-status')!;
 const highlightList = document.querySelector<HTMLUListElement>('#highlight-list')!;
 const HIGHLIGHT_HINT = highlightStatus.textContent ?? '';
+const highlightHint = () => HIGHLIGHT_HINT.replaceAll('building', highlightWord());
 highlightColor.value = HIGHLIGHT_COLOR;
 let highlights: Highlight[] = [];
 let highlighting = false;
@@ -268,9 +278,13 @@ function placedHighlights() {
   });
 }
 
+function highlightWord(): string {
+  return countryMode ? 'country' : 'building';
+}
+
 function stopHighlighting(message: string): void {
   highlighting = false;
-  highlightButton.textContent = 'Highlight a building';
+  highlightButton.textContent = `Highlight a ${highlightWord()}`;
   highlightStatus.textContent = message;
   updateCursor();
 }
@@ -287,19 +301,19 @@ function renderHighlightList(): void {
   highlightList.replaceChildren(
     ...highlights.map((h, i) => {
       const name = document.createElement('span');
-      name.textContent = `Building ${i + 1}`;
+      name.textContent = `Highlight ${i + 1}`;
       const color = document.createElement('input');
       color.type = 'color';
       color.value = h.color;
-      color.title = 'Building colour';
-      color.setAttribute('aria-label', `Colour of building ${i + 1}`);
+      color.title = 'Highlight colour';
+      color.setAttribute('aria-label', `Colour of highlight ${i + 1}`);
       color.addEventListener('input', () => {
         h.color = color.value;
         if (!scene) return;
         scene.highlights = placedHighlights();
         redrawSoon();
       });
-      const remove = removeButton(`Remove building ${i + 1}`, () => {
+      const remove = removeButton(`Remove highlight ${i + 1}`, () => {
         highlights.splice(i, 1);
         refreshHighlights();
       });
@@ -312,18 +326,18 @@ function renderHighlightList(): void {
 
 highlightButton.addEventListener('click', () => {
   if (highlighting) {
-    stopHighlighting(HIGHLIGHT_HINT);
+    stopHighlighting(highlightHint());
     return;
   }
   if (!scene || !sketchingMode()) {
-    highlightStatus.textContent = 'Sketch the map first, then pick a building.';
+    highlightStatus.textContent = `Sketch the map first, then pick a ${highlightWord()}.`;
     return;
   }
   stopPlacing(PIN_HINT);
   finishRoute();
   highlighting = true;
   highlightButton.textContent = 'Cancel';
-  highlightStatus.textContent = 'Now click a building on the map. Esc cancels.';
+  highlightStatus.textContent = `Now click a ${highlightWord()} on the map. Esc cancels.`;
   updateCursor();
 });
 
@@ -397,7 +411,7 @@ routeButton.addEventListener('click', () => {
     return;
   }
   stopPlacing(PIN_HINT);
-  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
+  if (highlighting) stopHighlighting(highlightHint());
   draft = { points: [], color: routeColor.value };
   routeStatus.textContent = 'Click the map to add points. Press Finish route when done, Esc cancels.';
   routeUi();
@@ -550,7 +564,7 @@ function renderPinList(): void {
 pinForm.addEventListener('submit', (event) => {
   event.preventDefault();
   finishRoute();
-  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
+  if (highlighting) stopHighlighting(highlightHint());
   if (!scene || !sketchingMode()) {
     pinStatus.textContent = 'Sketch the map first, then add pins to it.';
     return;
@@ -572,11 +586,11 @@ sketchCanvas.addEventListener('click', (event) => {
   if (highlighting) {
     const point = clickPoint(event);
     if (buildingAt(scene, point) < 0) {
-      highlightStatus.textContent = 'No building there. Try clicking right inside one.';
+      highlightStatus.textContent = `No ${highlightWord()} there. Try clicking right inside one.`;
       return;
     }
     highlights.push({ lngLat: lngLatAt(point), color: highlightColor.value });
-    stopHighlighting(HIGHLIGHT_HINT);
+    stopHighlighting(highlightHint());
     refreshHighlights();
     return;
   }
@@ -591,7 +605,7 @@ sketchCanvas.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (placingNote !== null) stopPlacing(PIN_HINT);
-  if (highlighting) stopHighlighting(HIGHLIGHT_HINT);
+  if (highlighting) stopHighlighting(highlightHint());
   cancelRoute();
 });
 
@@ -614,22 +628,105 @@ function flyTo(center: [number, number], zoom: number): void {
   map.flyTo({ center, zoom, duration: 1500 });
 }
 
+function setMode(country: boolean): void {
+  if (country === countryMode) return;
+  countryMode = country;
+  scene = null;
+  if (!country) {
+    focusCountry = null;
+    focusCapital = null;
+  }
+  if (country) {
+    map.setMinZoom(COUNTRY_MIN_ZOOM);
+    map.setMaxZoom(COUNTRY_MAX_ZOOM);
+  } else {
+    map.setMaxZoom(MAX_ZOOM);
+    map.setMinZoom(MIN_ZOOM);
+  }
+  const projection = () => map.setProjection({ type: country ? 'globe' : 'mercator' });
+  if (map.isStyleLoaded()) projection();
+  else map.once('load', projection);
+  if (!highlighting) {
+    highlightButton.textContent = `Highlight a ${highlightWord()}`;
+    highlightStatus.textContent = highlightHint();
+  }
+  closeUpButton.textContent = country ? 'Capital close up' : 'Close up';
+}
+
 function frameArea(place: Place): void {
+  if (countryMode) {
+    const { clientWidth: width, clientHeight: height } = map.getContainer();
+    const title = settings.poster && titleInput.value.trim()
+      ? { title: titleInput.value.trim(), layout: settings.titleLayout, font: settings.titleFont, border: settings.border }
+      : null;
+    const { map: area } = posterLayout(width, height, settings.border, title);
+    const room = 24;
+    const padding = {
+      top: area.y0 + room,
+      bottom: height - area.y1 + room,
+      left: area.x0 + room,
+      right: width - area.x1 + room,
+    };
+    const camera = map.cameraForBounds(place.bounds, { padding });
+    const zoom = Math.min(COUNTRY_MAX_ZOOM, Math.max(COUNTRY_MIN_ZOOM, camera?.zoom ?? 5));
+    const center = camera?.center ? (LngLat.convert(camera.center).toArray() as [number, number]) : place.center;
+    flyTo(center, zoom);
+    return;
+  }
   const fit = map.cameraForBounds(place.bounds, { padding: 20 })?.zoom ?? CLOSE_UP_ZOOM;
   flyTo(place.center, Math.min(SEARCH_MAX_ZOOM, Math.max(AREA_MIN_ZOOM, fit)));
 }
 
-function goTo(place: Place): void {
+function setPlace(place: Place): void {
   placeName = place.name;
   titleInput.value = place.name;
   showSummaries();
   lastPlace = place;
   framing.hidden = false;
+}
+
+async function enterCountry(country: Country): Promise<void> {
+  loading.hidden = false;
+  showSketch(true);
+  await loadCountryData();
+  const place = countryPlace(country);
+  setPlace(place);
+  setMode(true);
+  focusCountry = country.names[0];
+  focusCapital = country.capital;
+  frameArea(place);
+}
+
+async function goTo(place: Place): Promise<void> {
+  if (place.country !== undefined) {
+    const country = await findCountry(place.country);
+    if (country) {
+      await enterCountry(country);
+      return;
+    }
+  }
+  setMode(false);
+  setPlace(place);
   frameArea(place);
 }
 
 fitAreaButton.addEventListener('click', () => lastPlace && frameArea(lastPlace));
-closeUpButton.addEventListener('click', () => lastPlace && flyTo(lastPlace.center, CLOSE_UP_ZOOM));
+closeUpButton.addEventListener('click', () => {
+  if (!lastPlace) return;
+  if (!countryMode) {
+    flyTo(lastPlace.center, CLOSE_UP_ZOOM);
+    return;
+  }
+  const capital = focusCapital;
+  setMode(false);
+  if (!capital) {
+    flyTo(lastPlace.center, CLOSE_UP_ZOOM);
+    return;
+  }
+  const [name, lng, lat] = capital;
+  setPlace({ name, label: name, center: [lng, lat], bounds: [[lng - 0.05, lat - 0.05], [lng + 0.05, lat + 0.05]] });
+  flyTo([lng, lat], CLOSE_UP_ZOOM);
+});
 
 function showResults(places: Place[]): void {
   searchResults.replaceChildren(
@@ -705,10 +802,11 @@ searchInput.addEventListener('input', () => {
     return;
   }
   let local: Place[] = [];
-  matchCities(query).then((cities) => {
+  Promise.all([matchCountries(query), matchCities(query)]).then(([countries, cities]) => {
     if (searchInput.value !== query) return;
-    local = cities;
-    suggestions = cities;
+    const nearby = [...countries, ...cities].slice(0, MAX_SUGGESTIONS);
+    local = nearby;
+    suggestions = nearby;
     activeSuggestion = -1;
     showSuggestions();
   });
@@ -732,7 +830,14 @@ searchInput.addEventListener('input', () => {
   }, SUGGEST_DELAY);
 });
 
-searchInput.addEventListener('focus', () => void loadCities(), { once: true });
+searchInput.addEventListener(
+  'focus',
+  () => {
+    void loadCities();
+    void loadCountries();
+  },
+  { once: true },
+);
 
 searchInput.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -761,6 +866,13 @@ searchForm.addEventListener('submit', async (event) => {
   if (!query.trim()) return;
   searchStatus.textContent = 'Searching...';
   searchResults.replaceChildren();
+  const country = await findCountry(query);
+  if (country) {
+    if (searchInput.value !== query) return;
+    searchStatus.textContent = country.names[0];
+    await enterCountry(country);
+    return;
+  }
   try {
     const places = await searchPlaces(query);
     if (searchInput.value !== query) return;
@@ -859,6 +971,7 @@ async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
       exportStatus.textContent = 'The map is still loading. Try again in a moment.';
       return;
     }
+    if (countryMode) await loadDetails(map);
     scene = makeScene();
   }
   const output = outputPixels();
@@ -913,6 +1026,7 @@ saveConfigButton.addEventListener('click', () => {
     settings: { ...settings },
     size: sizeSelect.value,
     dpi: Number(dpiSelect.value),
+    ...(countryMode ? { country: focusCountry ?? '' } : {}),
   };
   const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
   download(blob, `${slug(placeName)}-${config.style}.json`);
@@ -955,6 +1069,17 @@ configFile.addEventListener('change', async () => {
     showSummaries();
     showOutput();
     fitPreview();
+    if (config.country !== undefined) {
+      await loadCountryData();
+      const country = config.country ? await findCountry(config.country) : null;
+      setMode(true);
+      focusCountry = country?.names[0] ?? null;
+      focusCapital = country?.capital ?? null;
+      lastPlace = country ? countryPlace(country) : null;
+    } else {
+      setMode(false);
+    }
+    framing.hidden = lastPlace === null;
     map.jumpTo({ center: config.center, zoom: config.zoom, bearing: config.bearing });
     showRotation();
     sketchWhenReady();

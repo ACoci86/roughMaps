@@ -17,10 +17,12 @@ Search for a place and roughMaps redraws its streets, buildings, parks and water
 - Trees in parks and icons for cafés, restaurants, museums and more
 - PNG export at A4, A3, square, phone and 4K sizes, up to 300 DPI
 - Save and load your setup as a small config file
+- Whole countries too: search one and get its outline, neighbours, capital, big cities, lakes and rivers
 
 ## How it works
 
 - **Map data:** OpenStreetMap, served as vector tiles by OpenFreeMap
+- **Countries:** outlines, lakes and rivers from Natural Earth, built with `node scripts/countries.mjs <folder>`. Detailed outlines live in `public/detail/` and only load when you zoom in
 - **Map picker:** MapLibre GL
 - **Drawing:** Rough.js on a canvas
 - **Search:** Nominatim, with suggestions while typing from Photon
@@ -39,7 +41,7 @@ npm run dev
 
 ## Credits
 
-Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL. Tiles by [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://www.openmaptiles.org).
+Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL. Tiles by [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://www.openmaptiles.org). Country outlines, cities, lakes and rivers from [Natural Earth](https://www.naturalearthdata.com) (public domain).
 
 The editor theme styles use the colours of Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Rosé Pine, Everforest, Monokai, One Dark, Kanagawa and Solarized.
 

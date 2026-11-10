@@ -7,8 +7,10 @@ maplibregl.setWorkerUrl(workerUrl);
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const START_CENTER: [number, number] = [-6.2603, 53.3498];
 const START_ZOOM = 15;
-const MIN_ZOOM = 13;
-const MAX_ZOOM = 18;
+export const MIN_ZOOM = 13;
+export const MAX_ZOOM = 18;
+export const COUNTRY_MIN_ZOOM = 2;
+export const COUNTRY_MAX_ZOOM = 10;
 
 export function createPicker(container: HTMLElement): maplibregl.Map {
   const map = new maplibregl.Map({
