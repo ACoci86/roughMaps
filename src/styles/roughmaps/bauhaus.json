@@ -1,0 +1,44 @@
+{
+  "id": "bauhaus",
+  "name": "Bauhaus",
+  "note": "Primary colours and black lines",
+  "order": 10,
+  "paper": "#f2ede3",
+  "ink": "#1a1a1a",
+  "outline": 0.9,
+  "buildings": [
+    "#d62828",
+    "#f4c430",
+    "#1d4e9e",
+    "#1a1a1a",
+    "#f2ede3",
+    "#f2ede3"
+  ],
+  "water": {
+    "color": "#1d4e9e"
+  },
+  "park": {
+    "color": "#f2ede3",
+    "pattern": "hatch",
+    "patternColor": "#1a1a1a",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#e1dcd3",
+    "pattern": "cross",
+    "patternColor": "#1a1a1a",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#efe4ca"
+  },
+  "road": {
+    "fill": "#f2ede3",
+    "edge": "#1a1a1a",
+    "edgeRatio": 0.2,
+    "path": "#1a1a1a"
+  },
+  "rail": "#1a1a1a"
+}

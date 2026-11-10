@@ -1,0 +1,51 @@
+{
+  "id": "solarized-dark",
+  "name": "Solarized dark",
+  "note": "Colours from the Solarized dark theme",
+  "order": 54,
+  "paper": "#002b36",
+  "ink": "#516c71",
+  "outline": 0.5,
+  "buildings": [
+    "#153c45",
+    "#20454e",
+    "#204061"
+  ],
+  "water": {
+    "color": "#11567c",
+    "pattern": "hatch",
+    "patternColor": "#268bd2",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#284c26",
+    "pattern": "hatch",
+    "patternColor": "#859900",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#38591f",
+    "pattern": "cross",
+    "patternColor": "#859900",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#1b392e"
+  },
+  "road": {
+    "fill": "#4a666c",
+    "edge": "#00181e",
+    "edgeRatio": 0.15,
+    "path": "#586e75",
+    "colors": {
+      "motorway": "#dc322f",
+      "trunk": "#cb4b16",
+      "primary": "#cb4b16",
+      "secondary": "#b58900"
+    }
+  },
+  "rail": "#586e75"
+}

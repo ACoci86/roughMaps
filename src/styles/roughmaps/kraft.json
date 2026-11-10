@@ -1,0 +1,44 @@
+{
+  "id": "kraft",
+  "name": "Kraft paper",
+  "note": "White pencil on brown paper",
+  "order": 7,
+  "paper": "#c8a77e",
+  "ink": "#2b2018",
+  "outline": 0.7,
+  "buildings": [
+    "#dcc6a2",
+    "#d2ba92"
+  ],
+  "water": {
+    "color": "#c8a77e",
+    "pattern": "hatch",
+    "patternColor": "#f6eedf",
+    "gap": 5,
+    "weight": 1
+  },
+  "park": {
+    "color": "#c8a77e",
+    "pattern": "hatch",
+    "patternColor": "#566b3a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#bb9c76",
+    "pattern": "cross",
+    "patternColor": "#566b3a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#d4b788"
+  },
+  "road": {
+    "fill": "#e9dcc4",
+    "edge": "#2b2018",
+    "edgeRatio": 0.15,
+    "path": "#4a3a2a"
+  },
+  "rail": "#2b2018"
+}

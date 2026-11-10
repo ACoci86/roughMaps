@@ -1,0 +1,46 @@
+{
+  "id": "risograph",
+  "name": "Risograph",
+  "note": "Two inks, slightly off register",
+  "order": 12,
+  "paper": "#f7f3ea",
+  "ink": "#00838a",
+  "outline": 0.6,
+  "buildings": [
+    "#ff48b0",
+    "#ff8fcf",
+    "#00838a",
+    "#f7f3ea"
+  ],
+  "water": {
+    "color": "#f7f3ea",
+    "pattern": "lines",
+    "patternColor": "#00838a",
+    "gap": 4,
+    "weight": 1.2
+  },
+  "park": {
+    "color": "#f7f3ea",
+    "pattern": "dots",
+    "patternColor": "#ff48b0",
+    "gap": 6,
+    "weight": 1.6
+  },
+  "wood": {
+    "color": "#e3eae2",
+    "pattern": "cross",
+    "patternColor": "#ff48b0",
+    "gap": 6,
+    "weight": 1.6
+  },
+  "sand": {
+    "color": "#f2e8ce"
+  },
+  "road": {
+    "fill": "#f7f3ea",
+    "edge": "#00838a",
+    "edgeRatio": 0.15,
+    "path": "#ff48b0"
+  },
+  "rail": "#00838a"
+}

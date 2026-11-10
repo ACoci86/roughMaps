@@ -19,3 +19,5 @@ Early days, nothing to run yet.
 ## Credits
 
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL.
+
+The editor theme styles use the colours of Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Rosé Pine, Everforest, Monokai, One Dark, Kanagawa and Solarized.

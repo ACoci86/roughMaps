@@ -1,0 +1,46 @@
+{
+  "id": "watercolor",
+  "name": "Watercolor",
+  "note": "Soft washes with a fine pen",
+  "order": 21,
+  "paper": "#fbf8f1",
+  "ink": "#5f554b",
+  "outline": 0.5,
+  "buildings": [
+    "#eaa98f",
+    "#efc47a",
+    "#b3d1a1",
+    "#a9c0e3"
+  ],
+  "water": {
+    "color": "#a9cde6",
+    "pattern": "hatch",
+    "patternColor": "#7fb1d6",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#c8e2b8",
+    "pattern": "hatch",
+    "patternColor": "#9cc68a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#c0d7af",
+    "pattern": "cross",
+    "patternColor": "#9cc68a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#f5ebd3"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#a89c8e",
+    "edgeRatio": 0.15,
+    "path": "#a89c8e"
+  },
+  "rail": "#5f554b"
+}

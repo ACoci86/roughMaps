@@ -1,0 +1,47 @@
+{
+  "id": "pop-pastel",
+  "name": "Sorbet",
+  "note": "Pastel candy colours",
+  "order": 22,
+  "paper": "#fff8f0",
+  "ink": "#5a4a63",
+  "outline": 0.5,
+  "buildings": [
+    "#ffb8cb",
+    "#b3e2ff",
+    "#c8efb3",
+    "#ffe39a",
+    "#d6c4ff"
+  ],
+  "water": {
+    "color": "#bde3f2",
+    "pattern": "hatch",
+    "patternColor": "#8cc8e2",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#d4f0c4",
+    "pattern": "hatch",
+    "patternColor": "#a6d98f",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#cae3bc",
+    "pattern": "cross",
+    "patternColor": "#a6d98f",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f7ebd2"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#b6a8bd",
+    "edgeRatio": 0.15,
+    "path": "#b6a8bd"
+  },
+  "rail": "#5a4a63"
+}

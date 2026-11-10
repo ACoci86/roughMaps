@@ -1,0 +1,43 @@
+{
+  "id": "figure-ground",
+  "name": "Figure ground",
+  "note": "Buildings in black, streets in white",
+  "order": 17,
+  "paper": "#f4efe4",
+  "ink": "#1c1c1c",
+  "outline": 0.4,
+  "buildings": [
+    "#1c1c1c"
+  ],
+  "water": {
+    "color": "#cfd8d6",
+    "pattern": "lines",
+    "patternColor": "#8fa3a0",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "park": {
+    "color": "#f4efe4",
+    "pattern": "dots",
+    "patternColor": "#7a7a70",
+    "gap": 7,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#e3ded4",
+    "pattern": "cross",
+    "patternColor": "#7a7a70",
+    "gap": 7,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#f0e6ca"
+  },
+  "road": {
+    "fill": "#f4efe4",
+    "edge": "#f4efe4",
+    "edgeRatio": 0,
+    "path": "#9a968c"
+  },
+  "rail": "#1c1c1c"
+}

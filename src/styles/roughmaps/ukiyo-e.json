@@ -1,0 +1,46 @@
+{
+  "id": "ukiyo-e",
+  "name": "Ukiyo-e",
+  "note": "Japanese woodblock print",
+  "order": 11,
+  "paper": "#efe3c8",
+  "ink": "#2b2a33",
+  "outline": 0.7,
+  "buildings": [
+    "#c8553d",
+    "#d9b77e",
+    "#6d7b5a",
+    "#3b3a42"
+  ],
+  "water": {
+    "color": "#2f4a7a",
+    "pattern": "waves",
+    "patternColor": "#a9bcd6",
+    "gap": 7,
+    "weight": 1
+  },
+  "park": {
+    "color": "#cfd3a4",
+    "pattern": "hatch",
+    "patternColor": "#6d7b5a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#c2c59b",
+    "pattern": "cross",
+    "patternColor": "#6d7b5a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#eddeb8"
+  },
+  "road": {
+    "fill": "#efe3c8",
+    "edge": "#2b2a33",
+    "edgeRatio": 0.18,
+    "path": "#2b2a33"
+  },
+  "rail": "#2b2a33"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "soft-greys",
+  "name": "Soft greys",
+  "note": "Calm and modern",
+  "order": 3,
+  "paper": "#ffffff",
+  "ink": "#333333",
+  "outline": 0.6,
+  "buildings": [
+    "#d1d1d1",
+    "#c9c9c9"
+  ],
+  "water": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#9fbcd0",
+    "gap": 5,
+    "weight": 1
+  },
+  "park": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#a9c2a2",
+    "gap": 5,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#efefef",
+    "pattern": "cross",
+    "patternColor": "#a9c2a2",
+    "gap": 5,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#f4f4f0"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#333333",
+    "edgeRatio": 0.15,
+    "path": "#858585"
+  },
+  "rail": "#333333"
+}

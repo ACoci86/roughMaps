@@ -1,0 +1,45 @@
+{
+  "id": "sakura",
+  "name": "Sakura",
+  "note": "Cherry blossom pinks",
+  "order": 30,
+  "paper": "#fff5f7",
+  "ink": "#7a4a5a",
+  "outline": 0.5,
+  "buildings": [
+    "#f6c1cf",
+    "#f0a7bb",
+    "#fbd9e2"
+  ],
+  "water": {
+    "color": "#c9e2ee",
+    "pattern": "hatch",
+    "patternColor": "#8fbcd4",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#d8ecc8",
+    "pattern": "dots",
+    "patternColor": "#e58aa6",
+    "gap": 6,
+    "weight": 1.4
+  },
+  "wood": {
+    "color": "#d0dfbf",
+    "pattern": "cross",
+    "patternColor": "#e58aa6",
+    "gap": 6,
+    "weight": 1.4
+  },
+  "sand": {
+    "color": "#f7e9d7"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#c78a9c",
+    "edgeRatio": 0.15,
+    "path": "#c78a9c"
+  },
+  "rail": "#7a4a5a"
+}

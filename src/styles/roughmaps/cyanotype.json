@@ -1,0 +1,45 @@
+{
+  "id": "cyanotype",
+  "name": "Cyanotype",
+  "note": "Prussian blue sun print",
+  "order": 14,
+  "paper": "#e9eef2",
+  "ink": "#123f6b",
+  "outline": 0.6,
+  "buildings": [
+    "#2b5a85",
+    "#1b4b72",
+    "#40709a"
+  ],
+  "water": {
+    "color": "#123f6b",
+    "pattern": "waves",
+    "patternColor": "#9fbcd6",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#cfdbe6",
+    "pattern": "hatch",
+    "patternColor": "#123f6b",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#c0cfdc",
+    "pattern": "cross",
+    "patternColor": "#123f6b",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#e9e5d4"
+  },
+  "road": {
+    "fill": "#e9eef2",
+    "edge": "#123f6b",
+    "edgeRatio": 0.15,
+    "path": "#123f6b"
+  },
+  "rail": "#123f6b"
+}

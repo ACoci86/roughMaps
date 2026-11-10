@@ -1,0 +1,51 @@
+{
+  "id": "gruvbox-light",
+  "name": "Gruvbox light",
+  "note": "Colours from the Gruvbox light theme",
+  "order": 41,
+  "paper": "#fbf1c7",
+  "ink": "#888270",
+  "outline": 0.5,
+  "buildings": [
+    "#dcd3b0",
+    "#c9c1a1",
+    "#dda879"
+  ],
+  "water": {
+    "color": "#a6c0ab",
+    "pattern": "hatch",
+    "patternColor": "#076678",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#d7ce93",
+    "pattern": "hatch",
+    "patternColor": "#79740e",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#cac281",
+    "pattern": "cross",
+    "patternColor": "#79740e",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f0dfac"
+  },
+  "road": {
+    "fill": "#fefbee",
+    "edge": "#9c947e",
+    "edgeRatio": 0.15,
+    "path": "#928374",
+    "colors": {
+      "motorway": "#c76c5d",
+      "trunk": "#d59665",
+      "primary": "#d99f6f",
+      "secondary": "#d8b46e"
+    }
+  },
+  "rail": "#928374"
+}

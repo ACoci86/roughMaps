@@ -1,0 +1,45 @@
+{
+  "id": "desert",
+  "name": "Desert",
+  "note": "Sand, clay and dry riverbeds",
+  "order": 28,
+  "paper": "#e8c99a",
+  "ink": "#4a3220",
+  "outline": 0.7,
+  "buildings": [
+    "#c9955c",
+    "#a96f3c",
+    "#8a5a2b"
+  ],
+  "water": {
+    "color": "#6f8fa3",
+    "pattern": "waves",
+    "patternColor": "#d8e4ea",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#cdbf86",
+    "pattern": "dots",
+    "patternColor": "#7d7340",
+    "gap": 6,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#c3b47e",
+    "pattern": "cross",
+    "patternColor": "#7d7340",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#e8cd9a"
+  },
+  "road": {
+    "fill": "#f3e2c2",
+    "edge": "#4a3220",
+    "edgeRatio": 0.15,
+    "path": "#4a3220"
+  },
+  "rail": "#4a3220"
+}

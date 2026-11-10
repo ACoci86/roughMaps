@@ -1,0 +1,45 @@
+{
+  "id": "circuit",
+  "name": "Circuit board",
+  "note": "Copper traces on green",
+  "order": 38,
+  "paper": "#0d3b2a",
+  "ink": "#6fd39a",
+  "outline": 0.6,
+  "buildings": [
+    "#145238",
+    "#1a5c40",
+    "#0f4632"
+  ],
+  "water": {
+    "color": "#08291d",
+    "pattern": "lines",
+    "patternColor": "#2f8a5a",
+    "gap": 5,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#124a33",
+    "pattern": "dots",
+    "patternColor": "#6fd39a",
+    "gap": 6,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#19553b",
+    "pattern": "cross",
+    "patternColor": "#6fd39a",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#5a7152"
+  },
+  "road": {
+    "fill": "#d99a3c",
+    "edge": "#08291d",
+    "edgeRatio": 0.15,
+    "path": "#a8783a"
+  },
+  "rail": "#e8c46a"
+}

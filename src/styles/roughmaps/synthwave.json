@@ -1,0 +1,52 @@
+{
+  "id": "synthwave",
+  "name": "Synthwave",
+  "note": "Purple sunset and chrome",
+  "order": 37,
+  "paper": "#1a0b2e",
+  "ink": "#7a4aa8",
+  "outline": 0.5,
+  "buildings": [
+    "#2e1453",
+    "#3a1a66",
+    "#4a2177"
+  ],
+  "water": {
+    "color": "#0f2a4a",
+    "pattern": "lines",
+    "patternColor": "#36f9f6",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#1e2a3a",
+    "pattern": "hatch",
+    "patternColor": "#72f1b8",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#252d43",
+    "pattern": "cross",
+    "patternColor": "#72f1b8",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#625154"
+  },
+  "road": {
+    "fill": "#4a2a6a",
+    "edge": "#1a0b2e",
+    "edgeRatio": 0.15,
+    "path": "#8a5ab8",
+    "colors": {
+      "motorway": "#ff7edb",
+      "trunk": "#ff7edb",
+      "primary": "#fede5d",
+      "secondary": "#ff8b39",
+      "tertiary": "#c792ea"
+    }
+  },
+  "rail": "#7a4aa8"
+}

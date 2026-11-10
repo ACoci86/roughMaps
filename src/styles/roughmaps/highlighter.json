@@ -1,0 +1,48 @@
+{
+  "id": "highlighter",
+  "name": "Highlighter",
+  "note": "Marker pens on white paper",
+  "order": 6,
+  "paper": "#ffffff",
+  "ink": "#222222",
+  "outline": 0.7,
+  "buildings": [
+    "#ffffff",
+    "#f4f4f4"
+  ],
+  "water": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#3fc3ff",
+    "gap": 4,
+    "weight": 2.2
+  },
+  "park": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#7be35a",
+    "gap": 4,
+    "weight": 2.2
+  },
+  "wood": {
+    "color": "#ededed",
+    "pattern": "cross",
+    "patternColor": "#7be35a",
+    "gap": 4,
+    "weight": 2.2
+  },
+  "sand": {
+    "color": "#f7f0dc"
+  },
+  "road": {
+    "fill": "#fff35c",
+    "edge": "#222222",
+    "edgeRatio": 0.12,
+    "path": "#ff7ac8",
+    "colors": {
+      "primary": "#ffb347",
+      "secondary": "#fff35c"
+    }
+  },
+  "rail": "#222222"
+}

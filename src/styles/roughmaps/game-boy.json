@@ -1,0 +1,45 @@
+{
+  "id": "game-boy",
+  "name": "Game Boy",
+  "note": "Four shades of green",
+  "order": 39,
+  "paper": "#9bbc0f",
+  "ink": "#0f380f",
+  "outline": 0.8,
+  "buildings": [
+    "#8bac0f",
+    "#306230",
+    "#0f380f"
+  ],
+  "water": {
+    "color": "#306230",
+    "pattern": "dots",
+    "patternColor": "#8bac0f",
+    "gap": 5,
+    "weight": 1.4
+  },
+  "park": {
+    "color": "#8bac0f",
+    "pattern": "cross",
+    "patternColor": "#306230",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#81a30f",
+    "pattern": "cross",
+    "patternColor": "#306230",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#b6c440"
+  },
+  "road": {
+    "fill": "#9bbc0f",
+    "edge": "#0f380f",
+    "edgeRatio": 0.2,
+    "path": "#0f380f"
+  },
+  "rail": "#0f380f"
+}

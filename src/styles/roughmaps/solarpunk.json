@@ -1,0 +1,46 @@
+{
+  "id": "solarpunk",
+  "name": "Solarpunk",
+  "note": "Green roofs and sunny streets",
+  "order": 32,
+  "paper": "#fbf7e9",
+  "ink": "#3d5a40",
+  "outline": 0.6,
+  "buildings": [
+    "#f2b134",
+    "#7fb069",
+    "#e8d6a6",
+    "#9cc38a"
+  ],
+  "water": {
+    "color": "#2fb3a8",
+    "pattern": "waves",
+    "patternColor": "#c8f0ea",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#bfe0a8",
+    "pattern": "hatch",
+    "patternColor": "#4f8f3a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#b5d5a0",
+    "pattern": "cross",
+    "patternColor": "#4f8f3a",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#f5ebce"
+  },
+  "road": {
+    "fill": "#fffdf3",
+    "edge": "#3d5a40",
+    "edgeRatio": 0.15,
+    "path": "#3d5a40"
+  },
+  "rail": "#3d5a40"
+}

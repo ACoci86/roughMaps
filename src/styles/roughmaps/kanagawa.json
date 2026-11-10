@@ -1,0 +1,51 @@
+{
+  "id": "kanagawa",
+  "name": "Kanagawa",
+  "note": "Colours from the Kanagawa theme",
+  "order": 52,
+  "paper": "#1f1f28",
+  "ink": "#878478",
+  "outline": 0.5,
+  "buildings": [
+    "#39393c",
+    "#494748",
+    "#423c53"
+  ],
+  "water": {
+    "color": "#4a5777",
+    "pattern": "hatch",
+    "patternColor": "#7e9cd8",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#434e3c",
+    "pattern": "hatch",
+    "patternColor": "#98bb6c",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#526145",
+    "pattern": "cross",
+    "patternColor": "#98bb6c",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#3d3836"
+  },
+  "road": {
+    "fill": "#7e7b71",
+    "edge": "#111116",
+    "edgeRatio": 0.15,
+    "path": "#727169",
+    "colors": {
+      "motorway": "#c34043",
+      "trunk": "#ffa066",
+      "primary": "#ffa066",
+      "secondary": "#e6c384"
+    }
+  },
+  "rail": "#727169"
+}

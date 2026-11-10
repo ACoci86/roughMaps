@@ -1,0 +1,51 @@
+{
+  "id": "catppuccin-mocha",
+  "name": "Catppuccin Mocha",
+  "note": "Colours from the Catppuccin Mocha theme",
+  "order": 44,
+  "paper": "#1e1e2e",
+  "ink": "#7e839b",
+  "outline": 0.5,
+  "buildings": [
+    "#36384a",
+    "#44465a",
+    "#52476a"
+  ],
+  "water": {
+    "color": "#4e628a",
+    "pattern": "hatch",
+    "patternColor": "#89b4fa",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#475950",
+    "pattern": "hatch",
+    "patternColor": "#a6e3a1",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#57715e",
+    "pattern": "cross",
+    "patternColor": "#a6e3a1",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#3f3b41"
+  },
+  "road": {
+    "fill": "#767a91",
+    "edge": "#101019",
+    "edgeRatio": 0.15,
+    "path": "#6c7086",
+    "colors": {
+      "motorway": "#f38ba8",
+      "trunk": "#fab387",
+      "primary": "#fab387",
+      "secondary": "#f9e2af"
+    }
+  },
+  "rail": "#6c7086"
+}

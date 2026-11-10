@@ -1,0 +1,46 @@
+{
+  "id": "mediterranean",
+  "name": "Mediterranean",
+  "note": "Terracotta roofs by a blue sea",
+  "order": 27,
+  "paper": "#f6efe3",
+  "ink": "#4a3426",
+  "outline": 0.7,
+  "buildings": [
+    "#d9785b",
+    "#e9a774",
+    "#c95c48",
+    "#f1c18a"
+  ],
+  "water": {
+    "color": "#3f8fb0",
+    "pattern": "waves",
+    "patternColor": "#bfe3f0",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#c9d8a3",
+    "pattern": "hatch",
+    "patternColor": "#7d9a52",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#bfcb99",
+    "pattern": "cross",
+    "patternColor": "#7d9a52",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f1e6ca"
+  },
+  "road": {
+    "fill": "#fbf6ec",
+    "edge": "#4a3426",
+    "edgeRatio": 0.15,
+    "path": "#4a3426"
+  },
+  "rail": "#4a3426"
+}

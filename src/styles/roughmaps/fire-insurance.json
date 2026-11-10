@@ -1,0 +1,46 @@
+{
+  "id": "fire-insurance",
+  "name": "Fire insurance",
+  "note": "Old city survey sheets: brick, wood and stone",
+  "order": 16,
+  "paper": "#f3ead2",
+  "ink": "#4a3b2a",
+  "outline": 0.8,
+  "buildings": [
+    "#e9a7a0",
+    "#f2d27a",
+    "#9cc3d5",
+    "#c9c4b5"
+  ],
+  "water": {
+    "color": "#a9cfdc",
+    "pattern": "lines",
+    "patternColor": "#5f8ea0",
+    "gap": 5,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#d9e4b8",
+    "pattern": "hatch",
+    "patternColor": "#7e9a5a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#ced6ad",
+    "pattern": "cross",
+    "patternColor": "#7e9a5a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#f0e2bf"
+  },
+  "road": {
+    "fill": "#f3ead2",
+    "edge": "#4a3b2a",
+    "edgeRatio": 0.12,
+    "path": "#4a3b2a"
+  },
+  "rail": "#4a3b2a"
+}

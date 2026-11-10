@@ -1,0 +1,44 @@
+{
+  "id": "vintage-paper",
+  "name": "Vintage paper",
+  "note": "An old explorer's map",
+  "order": 2,
+  "paper": "#f5ecd7",
+  "ink": "#5b4636",
+  "outline": 0.8,
+  "buildings": [
+    "#d3bf9a",
+    "#cdb68b"
+  ],
+  "water": {
+    "color": "#f5ecd7",
+    "pattern": "waves",
+    "patternColor": "#6f9f9a",
+    "gap": 6,
+    "weight": 1
+  },
+  "park": {
+    "color": "#f5ecd7",
+    "pattern": "hatch",
+    "patternColor": "#8fa874",
+    "gap": 5,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#e9dfca",
+    "pattern": "cross",
+    "patternColor": "#8fa874",
+    "gap": 5,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#f1e4c2"
+  },
+  "road": {
+    "fill": "#f5ecd7",
+    "edge": "#5b4636",
+    "edgeRatio": 0.15,
+    "path": "#998876"
+  },
+  "rail": "#5b4636"
+}

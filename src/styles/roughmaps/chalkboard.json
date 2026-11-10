@@ -1,0 +1,44 @@
+{
+  "id": "chalkboard",
+  "name": "Chalkboard",
+  "note": "White chalk on a green board",
+  "order": 4,
+  "paper": "#2f3b33",
+  "ink": "#e9ece6",
+  "outline": 0.8,
+  "buildings": [
+    "#4f5e54",
+    "#5a6a5f"
+  ],
+  "water": {
+    "color": "#2a352e",
+    "pattern": "waves",
+    "patternColor": "#c9d6cf",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#2f3b33",
+    "pattern": "hatch",
+    "patternColor": "#b9d3a8",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#3e4941",
+    "pattern": "cross",
+    "patternColor": "#b9d3a8",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#707157"
+  },
+  "road": {
+    "fill": "#2f3b33",
+    "edge": "#e9ece6",
+    "edgeRatio": 0.18,
+    "path": "#a9b3ac"
+  },
+  "rail": "#e9ece6"
+}

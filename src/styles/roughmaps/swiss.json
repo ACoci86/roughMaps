@@ -1,0 +1,49 @@
+{
+  "id": "swiss",
+  "name": "Swiss",
+  "note": "Clean grid with a red accent",
+  "order": 24,
+  "paper": "#f5f5f0",
+  "ink": "#222222",
+  "outline": 0.5,
+  "buildings": [
+    "#d9d9d4",
+    "#cfcfca"
+  ],
+  "water": {
+    "color": "#b9d9eb",
+    "pattern": "lines",
+    "patternColor": "#7fb3d1",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "park": {
+    "color": "#dfe9d6",
+    "pattern": "hatch",
+    "patternColor": "#9db58c",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#d0d9c8",
+    "pattern": "cross",
+    "patternColor": "#9db58c",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#f1e9d2"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#555555",
+    "edgeRatio": 0.12,
+    "path": "#888888",
+    "colors": {
+      "motorway": "#e30613",
+      "trunk": "#e30613",
+      "primary": "#e30613"
+    }
+  },
+  "rail": "#222222"
+}

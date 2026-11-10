@@ -1,0 +1,50 @@
+{
+  "id": "red-star",
+  "name": "Red star",
+  "note": "Old Eastern Bloc topographic sheet",
+  "order": 26,
+  "paper": "#f0e6cf",
+  "ink": "#3b2a1e",
+  "outline": 0.7,
+  "buildings": [
+    "#d27a3a",
+    "#2b2b2b",
+    "#c46a2e"
+  ],
+  "water": {
+    "color": "#7fb3c9",
+    "pattern": "lines",
+    "patternColor": "#3f7f9c",
+    "gap": 5,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#c3d49a",
+    "pattern": "dots",
+    "patternColor": "#5f7a3a",
+    "gap": 6,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#b8c690",
+    "pattern": "cross",
+    "patternColor": "#5f7a3a",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#eee0bd"
+  },
+  "road": {
+    "fill": "#f6d36b",
+    "edge": "#3b2a1e",
+    "edgeRatio": 0.15,
+    "path": "#7a6248",
+    "colors": {
+      "motorway": "#c8372d",
+      "trunk": "#c8372d",
+      "primary": "#e07a2f"
+    }
+  },
+  "rail": "#3b2a1e"
+}

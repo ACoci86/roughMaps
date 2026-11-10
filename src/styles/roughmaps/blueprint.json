@@ -1,0 +1,44 @@
+{
+  "id": "blueprint",
+  "name": "Blueprint",
+  "note": "White lines on architect blue",
+  "order": 13,
+  "paper": "#1f4e8c",
+  "ink": "#e8f1ff",
+  "outline": 0.6,
+  "buildings": [
+    "#3a72b8",
+    "#4580c4"
+  ],
+  "water": {
+    "color": "#18406f",
+    "pattern": "lines",
+    "patternColor": "#8fb3e0",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#1f4e8c",
+    "pattern": "hatch",
+    "patternColor": "#a9c8ee",
+    "gap": 7,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#2f5b95",
+    "pattern": "cross",
+    "patternColor": "#a9c8ee",
+    "gap": 7,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#667d91"
+  },
+  "road": {
+    "fill": "#1f4e8c",
+    "edge": "#e8f1ff",
+    "edgeRatio": 0.15,
+    "path": "#a9c8ee"
+  },
+  "rail": "#e8f1ff"
+}

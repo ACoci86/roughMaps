@@ -1,0 +1,45 @@
+{
+  "id": "art-deco",
+  "name": "Art deco",
+  "note": "Gold lines on midnight navy",
+  "order": 18,
+  "paper": "#0e1a2b",
+  "ink": "#c9a54a",
+  "outline": 0.6,
+  "buildings": [
+    "#1b2c47",
+    "#22375a",
+    "#2a4268"
+  ],
+  "water": {
+    "color": "#0a1320",
+    "pattern": "lines",
+    "patternColor": "#8a7236",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#13263a",
+    "pattern": "hatch",
+    "patternColor": "#8fae7a",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#22303b",
+    "pattern": "cross",
+    "patternColor": "#8fae7a",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#5b5b52"
+  },
+  "road": {
+    "fill": "#c9a54a",
+    "edge": "#0a1320",
+    "edgeRatio": 0.18,
+    "path": "#7f6a35"
+  },
+  "rail": "#c9a54a"
+}

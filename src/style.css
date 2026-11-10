@@ -80,8 +80,30 @@ a {
   font-size: 18px;
 }
 
-.hint {
-  opacity: 0.5;
+.controls button,
+.controls select {
+  font-size: 18px;
+  padding: 4px 12px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.controls select {
+  max-width: 100%;
+}
+
+.note {
+  margin: 0;
+  font-size: 15px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.controls button:hover,
+.controls select:hover {
+  background: var(--highlight);
 }
 
 .stage {

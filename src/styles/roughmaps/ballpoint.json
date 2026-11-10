@@ -1,0 +1,44 @@
+{
+  "id": "ballpoint",
+  "name": "Ballpoint",
+  "note": "Blue pen doodles in a notebook",
+  "order": 5,
+  "paper": "#fdfdf8",
+  "ink": "#24439c",
+  "outline": 0.8,
+  "buildings": [
+    "#fdfdf8",
+    "#eef1fa"
+  ],
+  "water": {
+    "color": "#fdfdf8",
+    "pattern": "lines",
+    "patternColor": "#24439c",
+    "gap": 5,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#fdfdf8",
+    "pattern": "hatch",
+    "patternColor": "#24439c",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#eceef1",
+    "pattern": "cross",
+    "patternColor": "#24439c",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#fdfdf8"
+  },
+  "road": {
+    "fill": "#fdfdf8",
+    "edge": "#24439c",
+    "edgeRatio": 0.15,
+    "path": "#7b8dc1"
+  },
+  "rail": "#24439c"
+}

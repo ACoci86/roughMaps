@@ -1,0 +1,52 @@
+{
+  "id": "neon",
+  "name": "Neon",
+  "note": "Pink and cyan tubes",
+  "order": 36,
+  "paper": "#0a0614",
+  "ink": "#5c4a8a",
+  "outline": 0.5,
+  "buildings": [
+    "#1d1238",
+    "#26184a",
+    "#1a1a3a"
+  ],
+  "water": {
+    "color": "#0d1a3a",
+    "pattern": "lines",
+    "patternColor": "#19f0ff",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#0f2a24",
+    "pattern": "hatch",
+    "patternColor": "#39ff9c",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#152d2c",
+    "pattern": "cross",
+    "patternColor": "#39ff9c",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#584e43"
+  },
+  "road": {
+    "fill": "#3a2a5a",
+    "edge": "#0a0614",
+    "edgeRatio": 0.15,
+    "path": "#7a5aa8",
+    "colors": {
+      "motorway": "#ff2bd6",
+      "trunk": "#ff2bd6",
+      "primary": "#19f0ff",
+      "secondary": "#19f0ff",
+      "tertiary": "#b38cff"
+    }
+  },
+  "rail": "#5c4a8a"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "stained-glass",
+  "name": "Stained glass",
+  "note": "Jewel colours between lead lines",
+  "order": 19,
+  "paper": "#121212",
+  "ink": "#121212",
+  "outline": 1.6,
+  "buildings": [
+    "#b3122e",
+    "#1f5fa8",
+    "#1e7a46",
+    "#e0a526",
+    "#6b2fa0"
+  ],
+  "water": {
+    "color": "#2a76c4",
+    "pattern": "waves",
+    "patternColor": "#9ccaf5",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#3d9a5c",
+    "pattern": "hatch",
+    "patternColor": "#9fe0a8",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#3a8f56",
+    "pattern": "cross",
+    "patternColor": "#9fe0a8",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#5d5642"
+  },
+  "road": {
+    "fill": "#2b2b2b",
+    "edge": "#121212",
+    "edgeRatio": 0.25,
+    "path": "#555555"
+  },
+  "rail": "#121212"
+}

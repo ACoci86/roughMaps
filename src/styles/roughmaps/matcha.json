@@ -1,0 +1,45 @@
+{
+  "id": "matcha",
+  "name": "Matcha",
+  "note": "Green tea and stone",
+  "order": 31,
+  "paper": "#f3f1e6",
+  "ink": "#3f4a2e",
+  "outline": 0.6,
+  "buildings": [
+    "#b7c79a",
+    "#9fb37f",
+    "#d3d8c0"
+  ],
+  "water": {
+    "color": "#a9c9c4",
+    "pattern": "waves",
+    "patternColor": "#5f8f88",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#cfdcae",
+    "pattern": "hatch",
+    "patternColor": "#6f8a46",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#c3d0a4",
+    "pattern": "cross",
+    "patternColor": "#6f8a46",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f0e7cc"
+  },
+  "road": {
+    "fill": "#fbfaf3",
+    "edge": "#5f6a4a",
+    "edgeRatio": 0.15,
+    "path": "#5f6a4a"
+  },
+  "rail": "#3f4a2e"
+}

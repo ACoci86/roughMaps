@@ -1,0 +1,45 @@
+{
+  "id": "starry-night",
+  "name": "Starry night",
+  "note": "Swirling blues and yellow strokes",
+  "order": 20,
+  "paper": "#1b2a59",
+  "ink": "#e8d36b",
+  "outline": 0.6,
+  "buildings": [
+    "#2c4280",
+    "#36508f",
+    "#24396f"
+  ],
+  "water": {
+    "color": "#142047",
+    "pattern": "waves",
+    "patternColor": "#e8d36b",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#2f5d50",
+    "pattern": "hatch",
+    "patternColor": "#c8d36b",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#3e6652",
+    "pattern": "cross",
+    "patternColor": "#c8d36b",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#636670"
+  },
+  "road": {
+    "fill": "#e8d36b",
+    "edge": "#142047",
+    "edgeRatio": 0.15,
+    "path": "#c9b65a"
+  },
+  "rail": "#e8d36b"
+}

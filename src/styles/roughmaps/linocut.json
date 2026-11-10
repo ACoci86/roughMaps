@@ -1,0 +1,43 @@
+{
+  "id": "linocut",
+  "name": "Linocut",
+  "note": "Carved black ink on cream",
+  "order": 15,
+  "paper": "#f1ead8",
+  "ink": "#161616",
+  "outline": 1,
+  "buildings": [
+    "#161616"
+  ],
+  "water": {
+    "color": "#f1ead8",
+    "pattern": "lines",
+    "patternColor": "#161616",
+    "gap": 4,
+    "weight": 1.4
+  },
+  "park": {
+    "color": "#f1ead8",
+    "pattern": "cross",
+    "patternColor": "#161616",
+    "gap": 7,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#dfd9c8",
+    "pattern": "cross",
+    "patternColor": "#161616",
+    "gap": 7,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#eee2c3"
+  },
+  "road": {
+    "fill": "#f1ead8",
+    "edge": "#161616",
+    "edgeRatio": 0.3,
+    "path": "#161616"
+  },
+  "rail": "#161616"
+}

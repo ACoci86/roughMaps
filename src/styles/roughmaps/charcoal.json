@@ -1,0 +1,44 @@
+{
+  "id": "charcoal",
+  "name": "Charcoal",
+  "note": "Smudgy charcoal on grey paper",
+  "order": 8,
+  "paper": "#e9e6df",
+  "ink": "#2a2a2a",
+  "outline": 0.9,
+  "buildings": [
+    "#bdb8ae",
+    "#b0aba1"
+  ],
+  "water": {
+    "color": "#d9d7d2",
+    "pattern": "cross",
+    "patternColor": "#55524d",
+    "gap": 6,
+    "weight": 1
+  },
+  "park": {
+    "color": "#e9e6df",
+    "pattern": "hatch",
+    "patternColor": "#6e6b65",
+    "gap": 5,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#dad7d1",
+    "pattern": "cross",
+    "patternColor": "#6e6b65",
+    "gap": 5,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#e9e0c7"
+  },
+  "road": {
+    "fill": "#f3f1ec",
+    "edge": "#2a2a2a",
+    "edgeRatio": 0.2,
+    "path": "#5a5752"
+  },
+  "rail": "#2a2a2a"
+}

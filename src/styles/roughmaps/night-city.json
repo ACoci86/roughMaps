@@ -1,0 +1,52 @@
+{
+  "id": "night-city",
+  "name": "Night city",
+  "note": "Amber street lights in the dark",
+  "order": 35,
+  "paper": "#0b0f1a",
+  "ink": "#5a6680",
+  "outline": 0.5,
+  "buildings": [
+    "#1d2538",
+    "#252f47",
+    "#2c3753"
+  ],
+  "water": {
+    "color": "#05070d",
+    "pattern": "lines",
+    "patternColor": "#2f4a73",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#132219",
+    "pattern": "hatch",
+    "patternColor": "#3f6b4a",
+    "gap": 7,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#192721",
+    "pattern": "cross",
+    "patternColor": "#3f6b4a",
+    "gap": 7,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#595447"
+  },
+  "road": {
+    "fill": "#5a4a2a",
+    "edge": "#0b0f1a",
+    "edgeRatio": 0.15,
+    "path": "#6a5a3a",
+    "colors": {
+      "motorway": "#ffb347",
+      "trunk": "#ffb347",
+      "primary": "#f5b942",
+      "secondary": "#d9a441",
+      "tertiary": "#a88a4a"
+    }
+  },
+  "rail": "#5a6680"
+}

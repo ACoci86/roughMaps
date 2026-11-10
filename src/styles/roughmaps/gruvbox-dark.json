@@ -1,0 +1,51 @@
+{
+  "id": "gruvbox-dark",
+  "name": "Gruvbox dark",
+  "note": "Colours from the Gruvbox dark theme",
+  "order": 40,
+  "paper": "#282828",
+  "ink": "#938a74",
+  "outline": 0.5,
+  "buildings": [
+    "#43413b",
+    "#534f46",
+    "#5b444a"
+  ],
+  "water": {
+    "color": "#51605a",
+    "pattern": "hatch",
+    "patternColor": "#83a598",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#535427",
+    "pattern": "hatch",
+    "patternColor": "#b8bb26",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#646627",
+    "pattern": "cross",
+    "patternColor": "#b8bb26",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#483e29"
+  },
+  "road": {
+    "fill": "#8a826d",
+    "edge": "#161616",
+    "edgeRatio": 0.15,
+    "path": "#928374",
+    "colors": {
+      "motorway": "#fb4934",
+      "trunk": "#fe8019",
+      "primary": "#fe8019",
+      "secondary": "#fabd2f"
+    }
+  },
+  "rail": "#928374"
+}

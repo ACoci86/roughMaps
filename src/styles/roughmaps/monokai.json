@@ -1,0 +1,51 @@
+{
+  "id": "monokai",
+  "name": "Monokai",
+  "note": "Colours from the Monokai theme",
+  "order": 50,
+  "paper": "#272822",
+  "ink": "#9a9a94",
+  "outline": 0.5,
+  "buildings": [
+    "#44453f",
+    "#555650",
+    "#504364"
+  ],
+  "water": {
+    "color": "#43787e",
+    "pattern": "hatch",
+    "patternColor": "#66d9ef",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#4d6026",
+    "pattern": "hatch",
+    "patternColor": "#a6e22e",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#5c7627",
+    "pattern": "cross",
+    "patternColor": "#a6e22e",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#44432e"
+  },
+  "road": {
+    "fill": "#90908a",
+    "edge": "#151613",
+    "edgeRatio": 0.15,
+    "path": "#75715e",
+    "colors": {
+      "motorway": "#f92672",
+      "trunk": "#fd971f",
+      "primary": "#fd971f",
+      "secondary": "#e6db74"
+    }
+  },
+  "rail": "#75715e"
+}

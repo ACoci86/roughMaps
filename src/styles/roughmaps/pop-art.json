@@ -1,0 +1,47 @@
+{
+  "id": "pop-art",
+  "name": "Pop art",
+  "note": "Comic book dots and bold ink",
+  "order": 9,
+  "paper": "#fffbe6",
+  "ink": "#111111",
+  "outline": 1.1,
+  "buildings": [
+    "#ff3b30",
+    "#ffcc00",
+    "#00a2ff",
+    "#ff66c4",
+    "#fffbe6"
+  ],
+  "water": {
+    "color": "#cdeeff",
+    "pattern": "dots",
+    "patternColor": "#00a2ff",
+    "gap": 6,
+    "weight": 2
+  },
+  "park": {
+    "color": "#e3f7d0",
+    "pattern": "dots",
+    "patternColor": "#3cb043",
+    "gap": 6,
+    "weight": 2
+  },
+  "wood": {
+    "color": "#d2e5c1",
+    "pattern": "cross",
+    "patternColor": "#3cb043",
+    "gap": 6,
+    "weight": 2
+  },
+  "sand": {
+    "color": "#f7edcc"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#111111",
+    "edgeRatio": 0.25,
+    "path": "#111111"
+  },
+  "rail": "#111111"
+}

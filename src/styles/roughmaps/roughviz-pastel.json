@@ -1,0 +1,43 @@
+{
+  "id": "roughviz-pastel",
+  "name": "roughViz pastel",
+  "note": "In the colours of roughViz",
+  "order": 0,
+  "paper": "#ffffff",
+  "ink": "#000000",
+  "outline": 0.8,
+  "buildings": [
+    "#ffd1dc"
+  ],
+  "water": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#87ceeb",
+    "gap": 5,
+    "weight": 1.2
+  },
+  "park": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#7cc46a",
+    "gap": 5,
+    "weight": 1.2
+  },
+  "wood": {
+    "color": "#ebebeb",
+    "pattern": "cross",
+    "patternColor": "#7cc46a",
+    "gap": 5,
+    "weight": 1.2
+  },
+  "sand": {
+    "color": "#fff6dc"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#000000",
+    "edgeRatio": 0.15,
+    "path": "#666666"
+  },
+  "rail": "#000000"
+}

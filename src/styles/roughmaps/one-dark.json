@@ -1,0 +1,51 @@
+{
+  "id": "one-dark",
+  "name": "One Dark",
+  "note": "Colours from the One Dark theme",
+  "order": 51,
+  "paper": "#282c34",
+  "ink": "#707680",
+  "outline": 0.5,
+  "buildings": [
+    "#3a3f47",
+    "#454953",
+    "#574367"
+  ],
+  "water": {
+    "color": "#426788",
+    "pattern": "hatch",
+    "patternColor": "#61afef",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#4a5949",
+    "pattern": "hatch",
+    "patternColor": "#98c379",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#576b51",
+    "pattern": "cross",
+    "patternColor": "#98c379",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#44423f"
+  },
+  "road": {
+    "fill": "#6a6f7a",
+    "edge": "#16181d",
+    "edgeRatio": 0.15,
+    "path": "#5c6370",
+    "colors": {
+      "motorway": "#e06c75",
+      "trunk": "#d19a66",
+      "primary": "#d19a66",
+      "secondary": "#e5c07b"
+    }
+  },
+  "rail": "#5c6370"
+}

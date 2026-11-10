@@ -1,0 +1,51 @@
+{
+  "id": "tokyo-night",
+  "name": "Tokyo Night",
+  "note": "Colours from the Tokyo Night theme",
+  "order": 46,
+  "paper": "#1a1b26",
+  "ink": "#757b98",
+  "outline": 0.5,
+  "buildings": [
+    "#313443",
+    "#3f4254",
+    "#4a4165"
+  ],
+  "water": {
+    "color": "#455884",
+    "pattern": "hatch",
+    "patternColor": "#7aa2f7",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#42513a",
+    "pattern": "hatch",
+    "patternColor": "#9ece6a",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#516643",
+    "pattern": "cross",
+    "patternColor": "#9ece6a",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#383130"
+  },
+  "road": {
+    "fill": "#6d728e",
+    "edge": "#0e0f15",
+    "edgeRatio": 0.15,
+    "path": "#565f89",
+    "colors": {
+      "motorway": "#f7768e",
+      "trunk": "#ff9e64",
+      "primary": "#ff9e64",
+      "secondary": "#e0af68"
+    }
+  },
+  "rail": "#565f89"
+}

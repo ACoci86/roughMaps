@@ -1,0 +1,51 @@
+{
+  "id": "everforest",
+  "name": "Everforest",
+  "note": "Colours from the Everforest theme",
+  "order": 49,
+  "paper": "#2d353b",
+  "ink": "#888578",
+  "outline": 0.5,
+  "buildings": [
+    "#44494b",
+    "#525553",
+    "#605360"
+  ],
+  "water": {
+    "color": "#527171",
+    "pattern": "hatch",
+    "patternColor": "#7fbbb3",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#525f50",
+    "pattern": "hatch",
+    "patternColor": "#a7c080",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#606f58",
+    "pattern": "cross",
+    "patternColor": "#a7c080",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#474945"
+  },
+  "road": {
+    "fill": "#807e72",
+    "edge": "#191d20",
+    "edgeRatio": 0.15,
+    "path": "#859289",
+    "colors": {
+      "motorway": "#e67e80",
+      "trunk": "#e69875",
+      "primary": "#e69875",
+      "secondary": "#dbbc7f"
+    }
+  },
+  "rail": "#859289"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "nordic",
+  "name": "Nordic",
+  "note": "Cold light and quiet blues",
+  "order": 29,
+  "paper": "#eef1f4",
+  "ink": "#3a4a5a",
+  "outline": 0.5,
+  "buildings": [
+    "#cfd8e0",
+    "#b9c6d2"
+  ],
+  "water": {
+    "color": "#9fbcd3",
+    "pattern": "lines",
+    "patternColor": "#5f86a6",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "park": {
+    "color": "#cfdccf",
+    "pattern": "hatch",
+    "patternColor": "#7f9a85",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#c3d0c6",
+    "pattern": "cross",
+    "patternColor": "#7f9a85",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#ece7d5"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#6a7a8a",
+    "edgeRatio": 0.15,
+    "path": "#6a7a8a"
+  },
+  "rail": "#3a4a5a"
+}

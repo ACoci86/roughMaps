@@ -1,0 +1,51 @@
+{
+  "id": "survey",
+  "name": "Survey",
+  "note": "A classic national survey sheet",
+  "order": 23,
+  "paper": "#fbfaf5",
+  "ink": "#3b3b3b",
+  "outline": 0.6,
+  "buildings": [
+    "#c9c2b8",
+    "#bdb5aa"
+  ],
+  "water": {
+    "color": "#a6d8ef",
+    "pattern": "lines",
+    "patternColor": "#5aa6cf",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "park": {
+    "color": "#d6e8bd",
+    "pattern": "dots",
+    "patternColor": "#6f9b45",
+    "gap": 6,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#cadab3",
+    "pattern": "cross",
+    "patternColor": "#6f9b45",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#f5edd6"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#5a5a5a",
+    "edgeRatio": 0.12,
+    "path": "#8a7f72",
+    "colors": {
+      "motorway": "#4a90d9",
+      "trunk": "#5fa463",
+      "primary": "#e8657e",
+      "secondary": "#f5a742",
+      "tertiary": "#fff07a"
+    }
+  },
+  "rail": "#3b3b3b"
+}

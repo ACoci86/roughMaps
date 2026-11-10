@@ -1,0 +1,43 @@
+{
+  "id": "pencil-only",
+  "name": "Pencil only",
+  "note": "Black ink on white paper",
+  "order": 1,
+  "paper": "#ffffff",
+  "ink": "#222222",
+  "outline": 0.8,
+  "buildings": [
+    "#ffffff"
+  ],
+  "water": {
+    "color": "#ffffff",
+    "pattern": "waves",
+    "patternColor": "#888888",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#ffffff",
+    "pattern": "hatch",
+    "patternColor": "#999999",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#ededed",
+    "pattern": "cross",
+    "patternColor": "#999999",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#ffffff"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#222222",
+    "edgeRatio": 0.15,
+    "path": "#7a7a7a"
+  },
+  "rail": "#222222"
+}

@@ -1,0 +1,51 @@
+{
+  "id": "rose-pine-dawn",
+  "name": "Rosé Pine Dawn",
+  "note": "Colours from the Rosé Pine Dawn theme",
+  "order": 48,
+  "paper": "#faf4ed",
+  "ink": "#9893a7",
+  "outline": 0.5,
+  "buildings": [
+    "#e0dada",
+    "#d0cacf",
+    "#ecc6c1"
+  ],
+  "water": {
+    "color": "#b0c3c8",
+    "pattern": "hatch",
+    "patternColor": "#286983",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#ccd9d7",
+    "pattern": "hatch",
+    "patternColor": "#56949f",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#bcd0cf",
+    "pattern": "cross",
+    "patternColor": "#56949f",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f8e7d1"
+  },
+  "road": {
+    "fill": "#fefcfa",
+    "edge": "#a8a3b3",
+    "edgeRatio": 0.15,
+    "path": "#9893a5",
+    "colors": {
+      "motorway": "#d4a4ae",
+      "trunk": "#e8bbb6",
+      "primary": "#eac1bb",
+      "secondary": "#f2c890"
+    }
+  },
+  "rail": "#9893a5"
+}
