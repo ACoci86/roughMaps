@@ -7,6 +7,7 @@ import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSett
 import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { roughScrollbar } from './scrollbar';
+import { pickPreset } from './presets';
 import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, type TitleLayout } from './poster';
@@ -91,11 +92,13 @@ const PIN_HINT = pinStatus.textContent ?? '';
 
 type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border';
 
+const preset = pickPreset();
 const map = createPicker(pickerBox);
+map.jumpTo({ center: preset.center, zoom: preset.zoom });
 let scene: Scene | null = null;
-const settings: SketchSettings = { ...DEFAULT_SETTINGS };
+const settings: SketchSettings = { ...DEFAULT_SETTINGS, roughness: preset.roughness };
 let redrawTimer = 0;
-let placeName = 'Dublin';
+let placeName = preset.place;
 let pins: Pin[] = [];
 let placingNote: string | null = null;
 titleInput.value = placeName;
@@ -118,6 +121,7 @@ sketchButton.disabled = true;
 map.once('load', () => (sketchButton.disabled = false));
 
 for (const style of STYLES) styleSelect.add(new Option(style.name, style.id));
+if (STYLES.some((s) => s.id === preset.style)) styleSelect.value = preset.style;
 const styleGrid = document.querySelector<HTMLElement>('#style-grid')!;
 buildSwatches(styleGrid, STYLES, (id) => {
   styleSelect.value = id;
@@ -210,6 +214,8 @@ fillStyleSelect.addEventListener('change', () => {
 sliders.forEach((slider) => {
   const key = slider.dataset.setting as SliderKey;
   const label = document.querySelector<HTMLSpanElement>(`[data-value="${key}"]`)!;
+  slider.value = settings[key];
+  label.textContent = String(settings[key]);
   slider.addEventListener('change', () => {
     settings[key] = Number(slider.value);
     label.textContent = String(settings[key]);

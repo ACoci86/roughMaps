@@ -1,10 +1,15 @@
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
 
+const ARROW =
+  '<svg class="arrow" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">' +
+  '<path d="M4.2 7.4 C6.6 9.6 8.4 11.6 10.1 13.6 C12 11.4 13.8 9.5 15.9 7.2"/></svg>';
+
 export function setupSteps(onOpen: () => void): void {
   const steps = [...document.querySelectorAll<HTMLElement>('.step')];
   for (const step of steps) {
     const head = step.querySelector<HTMLButtonElement>('.step-head')!;
+    head.insertAdjacentHTML('beforeend', ARROW);
     head.addEventListener('click', () => {
       const opening = !step.classList.contains('open');
       for (const other of steps) {

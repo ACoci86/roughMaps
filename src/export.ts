@@ -68,11 +68,8 @@ export async function renderPdf(
 ): Promise<Blob> {
   const canvas = document.createElement('canvas');
   await drawSketch(canvas, scene, style, settings, output);
-  const jpeg = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not create the image'))), 'image/jpeg', 0.92),
-  );
   const toPoints = size.unit === 'mm' ? 72 / 25.4 : 0.75;
-  return imagePdf(jpeg, output, { width: size.width * toPoints, height: size.height * toPoints }, title);
+  return imagePdf(canvas, { width: size.width * toPoints, height: size.height * toPoints }, title);
 }
 
 export function download(blob: Blob, filename: string): void {

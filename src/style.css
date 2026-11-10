@@ -314,6 +314,21 @@ h3:first-child {
   display: none;
 }
 
+.step-head .arrow {
+  flex: none;
+  margin-left: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.step.open .step-head .arrow {
+  transform: rotate(180deg);
+}
+
 .step-body {
   padding-top: 6px;
 }
