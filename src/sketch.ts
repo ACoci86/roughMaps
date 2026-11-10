@@ -136,9 +136,34 @@ function toPath(shape: Shape): string {
     .join('');
 }
 
-function patternFill(paint: AreaPaint): Options {
+export type SketchSettings = {
+  roughness: number;
+  fillStyle: string;
+  strokeWidth: number;
+  innerStrokeWidth: number;
+  fillWeight: number;
+};
+
+export const DEFAULT_SETTINGS: SketchSettings = {
+  roughness: 1,
+  fillStyle: 'default',
+  strokeWidth: 1,
+  innerStrokeWidth: 1,
+  fillWeight: 1,
+};
+
+function mix(a: string, b: string, t: number): string {
+  const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const [x, y] = [channels(a), channels(b)];
+  return '#' + x.map((c, i) => Math.round(c + (y[i] - c) * t).toString(16).padStart(2, '0')).join('');
+}
+
+function patternFill(paint: AreaPaint, forced: string | null, weightScale: number): Options {
   const gap = paint.gap ?? 5;
-  const weight = paint.weight ?? 0.8;
+  const weight = (paint.weight ?? 0.8) * weightScale;
+  if (forced) {
+    return { fillStyle: forced, hachureGap: gap, fillWeight: weight, zigzagOffset: gap / 2, dashGap: gap / 2, dashOffset: gap / 2 };
+  }
   switch (paint.pattern) {
     case 'cross':
       return { fillStyle: 'cross-hatch', hachureGap: gap, fillWeight: weight };
@@ -167,9 +192,10 @@ export async function drawSketch(
   canvas: HTMLCanvasElement,
   scene: Scene,
   style: StyleSpec,
-  roughness = 1,
+  settings: SketchSettings = DEFAULT_SETTINGS,
 ): Promise<void> {
   const job = ++currentJob;
+  const { roughness } = settings;
   const { width, height } = scene;
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.round(width * ratio);
@@ -192,7 +218,9 @@ export async function drawSketch(
     rc.draw({ ...drawable, options: { ...drawable.options, ...options } });
 
   const wobble = { roughness, bowing: roughness };
-  const hasOutline = style.outline > 0;
+  const outlineWidth = style.outline * settings.strokeWidth;
+  const hasOutline = outlineWidth > 0;
+  const forced = settings.fillStyle === 'default' ? null : settings.fillStyle;
   const steps: Step[] = [];
 
   const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint) => {
@@ -211,14 +239,16 @@ export async function drawSketch(
             fillStyle: 'solid',
           }),
         );
-        paint(base, { stroke: hasOutline ? style.ink : 'none', strokeWidth: style.outline, fill: p.color });
-        if (!p.pattern || !p.patternColor) return;
-        const fill = patternFill(p);
-        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureGap}|${fill.fillWeight}|${roughness}`;
+        paint(base, { stroke: hasOutline ? style.ink : 'none', strokeWidth: outlineWidth, fill: p.color });
+        if (forced === 'solid' || settings.fillWeight <= 0) return;
+        if (!forced && (!p.pattern || !p.patternColor)) return;
+        const fill = patternFill(p, forced, settings.fillWeight);
+        const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
+        const patternKey = `${layer}|${fill.fillStyle}|${fill.hachureGap}|${dotSize}|${roughness}`;
         const overlay = shaped(patternKey, i, () =>
           generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
         );
-        paint(overlay, { fill: p.patternColor });
+        paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
       });
     });
   };
@@ -245,14 +275,20 @@ export async function drawSketch(
   }));
   areas('bridges', scene.bridges, () => ({ color: style.paper }));
 
-  scene.railways.forEach((shape, i) => {
-    steps.push(() => paint(line('rail', shape, i), { stroke: style.rail, strokeWidth: 1.5, strokeLineDash: [8, 4] }));
-  });
+  const inner = settings.innerStrokeWidth;
+  if (inner > 0) {
+    scene.railways.forEach((shape, i) => {
+      steps.push(() =>
+        paint(line('rail', shape, i), { stroke: style.rail, strokeWidth: 1.5 * inner, strokeLineDash: [8, 4] }),
+      );
+    });
+  }
 
   const road = style.road;
   const scale = 2 ** (scene.zoom - 16);
-  const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale);
+  const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale) * inner;
   const roads = scene.roads
+    .filter(() => inner > 0)
     .map((r, i) => ({ ...r, i, width: roadWidth(r.kind) }))
     .sort((a, b) => a.width - b.width);
 

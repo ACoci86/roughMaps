@@ -128,9 +128,15 @@ a {
   white-space: nowrap;
 }
 
-.controls input[type='range'] {
+.controls wired-slider {
   width: 80%;
-  accent-color: var(--ink);
+  margin: 0;
+  padding: 0;
+}
+
+.controls label {
+  margin: 0;
+  font-size: 16px;
 }
 
 .note {

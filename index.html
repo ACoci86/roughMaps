@@ -27,8 +27,25 @@
           <label for="style">Style</label>
           <select id="style"></select>
           <p id="style-note" class="note"></p>
-          <label for="roughness">Roughness: <span id="roughness-value">1</span></label>
-          <input id="roughness" type="range" min="0" max="3" step="0.1" value="1" />
+          <label for="fill-style">Fill style</label>
+          <select id="fill-style">
+            <option value="default">Style default</option>
+            <option value="hachure">Hachure</option>
+            <option value="solid">Solid</option>
+            <option value="cross-hatch">Cross-hatch</option>
+            <option value="dashed">Dashed</option>
+            <option value="zigzag">Zigzag</option>
+            <option value="zigzag-line">Zigzag line</option>
+            <option value="dots">Dots</option>
+          </select>
+          <label>Roughness: <span data-value="roughness">1</span></label>
+          <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
+          <label>strokeWidth: <span data-value="strokeWidth">1</span></label>
+          <wired-slider data-setting="strokeWidth" min="0" max="5" step="0.25" value="1"></wired-slider>
+          <label>innerStrokeWidth: <span data-value="innerStrokeWidth">1</span></label>
+          <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
+          <label>fillWeight: <span data-value="fillWeight">1</span></label>
+          <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
           <button id="sketch-button" type="button">Sketch it</button>
           <button id="back-button" type="button" hidden>Back to map</button>
         </div>

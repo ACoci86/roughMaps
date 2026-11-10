@@ -1,6 +1,7 @@
 import { createPicker } from './picker';
 import { readFeatures } from './features';
-import { prepareScene, drawSketch, type Scene } from './sketch';
+import 'wired-elements/lib/wired-slider.js';
+import { prepareScene, drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, type Place } from './search';
 
@@ -8,8 +9,8 @@ const pickerBox = document.querySelector<HTMLDivElement>('#picker')!;
 const sketchCanvas = document.querySelector<HTMLCanvasElement>('#map')!;
 const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
-const roughnessInput = document.querySelector<HTMLInputElement>('#roughness')!;
-const roughnessValue = document.querySelector<HTMLSpanElement>('#roughness-value')!;
+const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
+const sliders = document.querySelectorAll<HTMLElement & { value: number }>('wired-slider[data-setting]');
 const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
 const backButton = document.querySelector<HTMLButtonElement>('#back-button')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
@@ -19,6 +20,8 @@ const searchResults = document.querySelector<HTMLUListElement>('#search-results'
 
 const map = createPicker(pickerBox);
 let scene: Scene | null = null;
+const settings: SketchSettings = { ...DEFAULT_SETTINGS };
+let redrawTimer = 0;
 
 sketchButton.disabled = true;
 map.once('load', () => (sketchButton.disabled = false));
@@ -30,7 +33,12 @@ function currentStyle() {
 }
 
 function redraw(): void {
-  if (scene) drawSketch(sketchCanvas, scene, currentStyle(), Number(roughnessInput.value));
+  if (scene) drawSketch(sketchCanvas, scene, currentStyle(), settings);
+}
+
+function redrawSoon(): void {
+  clearTimeout(redrawTimer);
+  redrawTimer = window.setTimeout(redraw, 250);
 }
 
 function showNote(): void {
@@ -57,8 +65,20 @@ styleSelect.addEventListener('change', () => {
   redraw();
 });
 
-roughnessInput.addEventListener('input', () => (roughnessValue.textContent = roughnessInput.value));
-roughnessInput.addEventListener('change', redraw);
+fillStyleSelect.addEventListener('change', () => {
+  settings.fillStyle = fillStyleSelect.value;
+  redraw();
+});
+
+sliders.forEach((slider) => {
+  const key = slider.dataset.setting as keyof Omit<SketchSettings, 'fillStyle'>;
+  const label = document.querySelector<HTMLSpanElement>(`[data-value="${key}"]`)!;
+  slider.addEventListener('change', () => {
+    settings[key] = Number(slider.value);
+    label.textContent = String(settings[key]);
+    redrawSoon();
+  });
+});
 
 backButton.addEventListener('click', () => showSketch(false));
 
