@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>roughMaps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header class="intro">
+        <h1>rough<span>Maps</span></h1>
+        <p>Turn any place into a hand-drawn map, right in your browser.</p>
+      </header>
+
+      <section class="workspace">
+        <div id="controls" class="controls">
+          <p class="hint">Controls coming soon.</p>
+        </div>
+        <div id="stage" class="stage">
+          <svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </section>
+
+      <footer>
+        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+        · <a href="https://github.com/ACoci86/roughMaps" target="_blank" rel="noopener">GitHub</a>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
