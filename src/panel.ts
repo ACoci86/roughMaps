@@ -117,3 +117,49 @@ export function roughFrame(target: HTMLElement): void {
   draw();
   new ResizeObserver(draw).observe(target);
 }
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+export function openStep(name: string): void {
+  const step = document.querySelector<HTMLElement>(`.step[data-step="${name}"]`);
+  if (!step) return;
+  if (!step.classList.contains('open')) step.querySelector<HTMLButtonElement>('.step-head')!.click();
+  else step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+export function roughBox(target: HTMLElement, seed: number, strokeWidth = 1.6): void {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.classList.add('rough-box');
+  svg.setAttribute('aria-hidden', 'true');
+  target.prepend(svg);
+  const draw = () => {
+    const w = target.offsetWidth;
+    const h = target.offsetHeight;
+    if (!w || !h) return;
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    const rc = rough.svg(svg);
+    const box = rc.rectangle(2, 2, w - 4, h - 4, { stroke: '#1a1a1a', strokeWidth, roughness: 1.1, bowing: 0.8, seed });
+    svg.replaceChildren(box);
+  };
+  draw();
+  new ResizeObserver(draw).observe(target);
+}
+
+export function roughRule(target: HTMLElement, seed: number): void {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  target.replaceChildren(svg);
+  const draw = () => {
+    const w = target.offsetWidth;
+    if (!w) return;
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', '8');
+    svg.setAttribute('viewBox', `0 0 ${w} 8`);
+    const rc = rough.svg(svg);
+    svg.replaceChildren(rc.line(2, 4, w - 2, 4, { stroke: '#1a1a1a', strokeWidth: 1.6, roughness: 1.2, bowing: 0.6, seed }));
+  };
+  draw();
+  new ResizeObserver(draw).observe(target);
+}

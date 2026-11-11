@@ -9,9 +9,10 @@ import { STYLES, tinted } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { roughScrollbar } from './scrollbar';
-import { pickPreset } from './presets';
+import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
-import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame } from './panel';
+import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame, openStep, roughBox, roughRule } from './panel';
+import { styleSwatch } from './swatch';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
@@ -53,6 +54,7 @@ const searchStatus = document.querySelector<HTMLParagraphElement>('#search-statu
 const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
 const suggestionList = document.querySelector<HTMLUListElement>('#suggestions')!;
 const frame = document.querySelector<HTMLDivElement>('#frame')!;
+const mat = document.querySelector<HTMLDivElement>('#mat')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
 const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
@@ -204,6 +206,7 @@ async function redraw(): Promise<void> {
   const style = currentStyle();
   const drawFrame = () => drawSketch(frameCanvas, drawn, style, settings, undefined, 'frame');
   paper.style.background = style.paper;
+  frame.style.setProperty('--mat', style.paper);
   if (drawn === shownScene) {
     await Promise.all([drawSketch(liveSheet, drawn, style, settings, undefined, 'map'), drawFrame()]);
     return;
@@ -1028,14 +1031,20 @@ const narrow = window.matchMedia('(max-width: 900px)');
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
+  const pad = narrow.matches ? 12 : 26;
+  frame.style.setProperty('--mat-pad', `${pad}px`);
   frame.style.height = narrow.matches
-    ? `${Math.min((frame.clientWidth * height) / width, window.innerHeight * 0.75)}px`
+    ? `${Math.min(((frame.clientWidth - pad * 2) * height) / width + pad * 2, window.innerHeight * 0.75)}px`
     : '';
-  const scale = Math.min(frame.clientWidth / width, frame.clientHeight / height);
+  const scale = Math.min((frame.clientWidth - pad * 2) / width, (frame.clientHeight - pad * 2) / height);
+  const w = Math.floor(width * scale);
+  const h = Math.floor(height * scale);
   for (const el of [pickerBox, paper]) {
-    el.style.width = `${Math.floor(width * scale)}px`;
-    el.style.height = `${Math.floor(height * scale)}px`;
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
   }
+  mat.style.width = `${w + pad * 2}px`;
+  mat.style.height = `${h + pad * 2}px`;
   frame.style.setProperty('--paper-height', paper.style.height);
   map.resize();
   return before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
@@ -1145,55 +1154,58 @@ saveConfigButton.addEventListener('click', () => {
 
 loadConfigButton.addEventListener('click', () => configFile.click());
 
+async function applyConfig(config: Config): Promise<void> {
+  Object.assign(settings, config.settings);
+  styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
+  if (config.tint) tintInput.value = config.tint;
+  fillStyleSelect.value = settings.fillStyle;
+  titleFont.value = settings.titleFont;
+  titleLayout.value = settings.titleLayout;
+  sliders.forEach((slider) => {
+    const key = slider.dataset.setting as SliderKey;
+    slider.value = settings[key];
+    document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
+  });
+  toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
+  if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
+  if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
+  placeName = config.place || 'map';
+  titleInput.value = config.title;
+  pins = config.pins;
+  renderPinList();
+  draft = null;
+  routes = config.routes;
+  highlights = config.highlights;
+  renderHighlightList();
+  routeUi();
+  renderRouteList();
+  stopPlacing(PIN_HINT);
+  showNote();
+  showSummaries();
+  showOutput();
+  fitPreview();
+  if (config.country !== undefined) {
+    await loadCountryData();
+    const country = config.country ? await findCountry(config.country) : null;
+    setMode(true);
+    focusCountry = country?.names[0] ?? null;
+    focusCapital = country?.capital ?? null;
+    lastPlace = country ? countryPlace(country) : null;
+  } else {
+    setMode(false);
+  }
+  framing.hidden = lastPlace === null;
+  map.jumpTo({ center: config.center, zoom: config.zoom, bearing: config.bearing });
+  showRotation();
+  sketchWhenReady();
+}
+
 configFile.addEventListener('change', async () => {
   const file = configFile.files?.[0];
   configFile.value = '';
   if (!file) return;
   try {
-    const config = parseConfig(await file.text());
-    Object.assign(settings, config.settings);
-    styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
-    if (config.tint) tintInput.value = config.tint;
-    fillStyleSelect.value = settings.fillStyle;
-    titleFont.value = settings.titleFont;
-    titleLayout.value = settings.titleLayout;
-    sliders.forEach((slider) => {
-      const key = slider.dataset.setting as SliderKey;
-      slider.value = settings[key];
-      document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
-    });
-    toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
-    if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
-    if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
-    placeName = config.place || 'map';
-    titleInput.value = config.title;
-    pins = config.pins;
-    renderPinList();
-    draft = null;
-    routes = config.routes;
-    highlights = config.highlights;
-    renderHighlightList();
-    routeUi();
-    renderRouteList();
-    stopPlacing(PIN_HINT);
-    showNote();
-    showSummaries();
-    showOutput();
-    fitPreview();
-    if (config.country !== undefined) {
-      await loadCountryData();
-      const country = config.country ? await findCountry(config.country) : null;
-      setMode(true);
-      focusCountry = country?.names[0] ?? null;
-      focusCapital = country?.capital ?? null;
-      lastPlace = country ? countryPlace(country) : null;
-    } else {
-      setMode(false);
-    }
-    framing.hidden = lastPlace === null;
-    map.jumpTo({ center: config.center, zoom: config.zoom, bearing: config.bearing });
-    showRotation();
-    sketchWhenReady();
+    await applyConfig(parseConfig(await file.text()));
     exportStatus.textContent = `Loaded ${placeName}`;
   } catch (error) {
     exportStatus.textContent = (error as Error).message;
@@ -1231,7 +1243,117 @@ const panel = document.querySelector<HTMLElement>('#panel')!;
 roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
 roughScrollbar(styleGrid, document.querySelector<HTMLElement>('#swatch-scrollbar')!);
 new ResizeObserver(redrawControls).observe(panel);
-setupSteps(() => requestAnimationFrame(redrawControls));
+setupSteps(() => {
+  requestAnimationFrame(redrawControls);
+  showNav();
+});
+
+const navLinks = [...document.querySelectorAll<HTMLButtonElement>('.nav-link')];
+const galleryDialog = document.querySelector<HTMLDialogElement>('#gallery-dialog')!;
+const aboutDialog = document.querySelector<HTMLDialogElement>('#about-dialog')!;
+const galleryList = document.querySelector<HTMLUListElement>('#gallery-list')!;
+
+function showNav(): void {
+  const current = galleryDialog.open
+    ? 'gallery'
+    : aboutDialog.open
+      ? 'about'
+      : document.querySelector('.step[data-step="look"]')?.classList.contains('open')
+        ? 'styles'
+        : 'explore';
+  for (const link of navLinks) {
+    const on = link.dataset.nav === current;
+    link.classList.toggle('active', on);
+    if (on) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+}
+
+function showPanel(): void {
+  if (narrow.matches) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+for (const link of navLinks) {
+  link.addEventListener('click', () => {
+    const name = link.dataset.nav;
+    if (name === 'explore') {
+      openStep('place');
+      showPanel();
+    } else if (name === 'styles') {
+      openStep('look');
+      showPanel();
+    } else if (name === 'gallery') {
+      if (!galleryList.childElementCount) buildGallery();
+      galleryDialog.showModal();
+    } else if (name === 'about') {
+      aboutDialog.showModal();
+    }
+    showNav();
+  });
+}
+
+for (const dialog of [galleryDialog, aboutDialog]) {
+  roughBox(dialog.querySelector<HTMLElement>('.dialog-card')!, 31);
+  dialog.querySelector('.dialog-close')!.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener('close', showNav);
+}
+
+function presetStyle(preset: Preset) {
+  const style = STYLES.find((s) => s.id === preset.style) ?? STYLES[0];
+  return style.tint ? tinted(style, preset.tint ?? style.tint) : style;
+}
+
+function buildGallery(): void {
+  galleryList.replaceChildren(
+    ...PRESETS.map((preset) => {
+      const style = presetStyle(preset);
+      const button = document.createElement('button');
+      button.type = 'button';
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = styleSwatch(style);
+      const name = document.createElement('b');
+      name.textContent = preset.place;
+      const look = document.createElement('small');
+      look.textContent = style.name;
+      button.append(chip, name, look);
+      button.addEventListener('click', () => openPreset(preset));
+      const item = document.createElement('li');
+      item.append(button);
+      return item;
+    }),
+  );
+}
+
+async function openPreset(preset: Preset): Promise<void> {
+  galleryDialog.close();
+  await applyConfig({
+    app: 'roughMaps',
+    version: 1,
+    place: preset.place,
+    title: preset.place,
+    pins: [],
+    routes: [],
+    highlights: [],
+    center: preset.center,
+    zoom: preset.zoom,
+    bearing: preset.bearing ?? 0,
+    style: preset.style,
+    ...(preset.tint ? { tint: preset.tint } : {}),
+    settings: { ...DEFAULT_SETTINGS, roughness: preset.roughness, ...preset.settings },
+    size: sizeSelect.value,
+    dpi: Number(dpiSelect.value),
+  });
+  exportStatus.textContent = `Opened ${preset.place}`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+roughBox(mat, 17, 1.8);
+roughBox(document.querySelector<HTMLElement>('.intro')!, 23);
+document.querySelectorAll<HTMLElement>('.rule').forEach((rule, i) => roughRule(rule, 41 + i));
 document.querySelector('#more-options')!.addEventListener('toggle', () => requestAnimationFrame(redrawControls));
 titleInput.addEventListener('input', showSummaries);
 showSummaries();
