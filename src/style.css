@@ -1134,11 +1134,11 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 }
 
 .footer a {
-  color: var(--muted);
+  color: var(--accent);
 }
 
 .footer a:hover {
-  color: var(--accent);
+  text-decoration: underline;
 }
 
 .dialog {
