@@ -684,7 +684,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 }
 
 .step.open .num {
-  background: var(--ink);
+  background: var(--accent);
   box-shadow: none;
   color: #fff;
 }
