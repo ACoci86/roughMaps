@@ -4,7 +4,7 @@ import { readFeatures } from './features';
 import 'wired-elements/lib/wired-slider.js';
 import 'wired-elements/lib/wired-checkbox.js';
 import 'wired-elements/lib/wired-card.js';
-import { prepareScene, drawSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
+import { prepareScene, drawSketch, cancelSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
@@ -33,7 +33,9 @@ import {
 } from './export';
 
 const pickerBox = document.querySelector<HTMLDivElement>('#picker')!;
-const sketchCanvas = document.querySelector<HTMLCanvasElement>('#map')!;
+const paper = document.querySelector<HTMLDivElement>('#paper')!;
+const sheets = [...document.querySelectorAll<HTMLCanvasElement>('#paper .sheet')];
+const frameCanvas = document.querySelector<HTMLCanvasElement>('#map-frame')!;
 const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
 const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
@@ -41,9 +43,8 @@ const sliders = document.querySelectorAll<HTMLElement & { value: number; wiredRe
   'wired-slider[data-setting]',
 );
 const toggles = document.querySelectorAll<HTMLElement & { checked: boolean }>('wired-checkbox[data-setting]');
-const sketchButton = document.querySelector<HTMLButtonElement>('#sketch-button')!;
-const moveButton = document.querySelector<HTMLButtonElement>('#move-button')!;
 const loading = document.querySelector<HTMLDivElement>('#loading')!;
+const viewButton = document.querySelector<HTMLButtonElement>('#view-button')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
 const searchInput = document.querySelector<HTMLInputElement>('#search')!;
 const searchStatus = document.querySelector<HTMLParagraphElement>('#search-status')!;
@@ -100,6 +101,39 @@ const preset = pickPreset();
 const map = createPicker(pickerBox);
 map.jumpTo({ center: preset.center, zoom: preset.zoom, bearing: preset.bearing ?? 0 });
 let scene: Scene | null = null;
+let shownScene: Scene | null = null;
+let liveSheet = sheets[0];
+let stale = false;
+let fresh = true;
+let normalMap = false;
+
+type Anchor = { x: number; y: number; here: LngLat; east: LngLat };
+const ANCHOR_SPAN = 100;
+const sceneAnchors = new WeakMap<Scene, Anchor>();
+const sheetAnchors = new WeakMap<HTMLCanvasElement, Anchor>();
+
+function anchorHere(): Anchor {
+  const x = pickerBox.clientWidth / 2;
+  const y = pickerBox.clientHeight / 2;
+  return { x, y, here: map.unproject([x, y]), east: map.unproject([x + ANCHOR_SPAN, y]) };
+}
+
+function follow(): void {
+  for (const sheet of sheets) {
+    const anchor = sheetAnchors.get(sheet);
+    if (!anchor) continue;
+    const p = map.project(anchor.here);
+    const q = map.project(anchor.east);
+    const a = (q.x - p.x) / ANCHOR_SPAN;
+    const b = (q.y - p.y) / ANCHOR_SPAN;
+    const tx = p.x - (a * anchor.x - b * anchor.y);
+    const ty = p.y - (b * anchor.x + a * anchor.y);
+    const still = Math.abs(a - 1) < 1e-4 && Math.abs(b) < 1e-4 && Math.abs(tx) < 0.05 && Math.abs(ty) < 0.05;
+    sheet.style.transform = still ? '' : `matrix(${a}, ${b}, ${-b}, ${a}, ${tx}, ${ty})`;
+  }
+}
+
+map.on('move', follow);
 const settings: SketchSettings = { ...DEFAULT_SETTINGS, roughness: preset.roughness };
 let redrawTimer = 0;
 let placeName = preset.place;
@@ -124,11 +158,9 @@ function makeScene(): Scene {
   made.pins = placedPins();
   made.routes = placedRoutes();
   made.highlights = placedHighlights();
+  sceneAnchors.set(made, anchorHere());
   return made;
 }
-
-sketchButton.disabled = true;
-map.once('load', () => (sketchButton.disabled = false));
 
 for (const style of STYLES) styleSelect.add(new Option(style.name, style.id));
 if (STYLES.some((s) => s.id === preset.style)) styleSelect.value = preset.style;
@@ -142,8 +174,38 @@ function currentStyle() {
   return STYLES.find((s) => s.id === styleSelect.value) ?? STYLES[0];
 }
 
+let fadeTimer = 0;
+
+function showScene(shown: Scene, sheet: HTMLCanvasElement): void {
+  shownScene = shown;
+  const anchor = sceneAnchors.get(shown);
+  if (anchor) sheetAnchors.set(sheet, anchor);
+  follow();
+  if (sheet === liveSheet) return;
+  const old = liveSheet;
+  liveSheet = sheet;
+  sheet.classList.remove('old');
+  sheet.classList.add('live');
+  old.classList.replace('live', 'old');
+  clearTimeout(fadeTimer);
+  fadeTimer = window.setTimeout(() => old.classList.remove('old'), 400);
+}
+
 async function redraw(): Promise<void> {
-  if (scene) await drawSketch(sketchCanvas, scene, currentStyle(), settings);
+  if (!scene || stale) return;
+  const drawn = scene;
+  const style = currentStyle();
+  const drawFrame = () => drawSketch(frameCanvas, drawn, style, settings, undefined, 'frame');
+  paper.style.background = style.paper;
+  if (drawn === shownScene) {
+    await Promise.all([drawSketch(liveSheet, drawn, style, settings, undefined, 'map'), drawFrame()]);
+    return;
+  }
+  const next = sheets.find((sheet) => sheet !== liveSheet)!;
+  const done = await drawSketch(next, drawn, style, settings, undefined, 'map');
+  if (!done || stale || scene !== drawn) return;
+  showScene(drawn, next);
+  await drawFrame();
 }
 
 function redrawSoon(): void {
@@ -162,43 +224,80 @@ function showSummaries(): void {
   setSummary('decorate', [settings.poster && titleInput.value.trim(), pins.length && `${pins.length} pin${pins.length === 1 ? '' : 's'}`, routes.length && `${routes.length} route${routes.length === 1 ? '' : 's'}`].filter(Boolean).join(', '));
 }
 
-function showSketch(on: boolean): void {
-  sketchCanvas.hidden = !on;
-  frame.classList.toggle('sketching', on);
-  sketchButton.hidden = on;
-  moveButton.hidden = !on;
-}
-
-function sketchingMode(): boolean {
-  return !sketchCanvas.hidden;
-}
-
 showNote();
 
 let sketchRun = 0;
 
 async function sketch(): Promise<void> {
   const run = ++sketchRun;
-  loading.hidden = false;
-  showSketch(true);
   if (countryMode) await loadDetails(map);
   if (run !== sketchRun) return;
   scene = makeScene();
+  stale = false;
+  if (fresh || !shownScene) showScene(scene, liveSheet);
+  fresh = false;
   await redraw();
   if (run === sketchRun) loading.hidden = true;
 }
 
-function sketchWhenReady(): void {
-  loading.hidden = false;
-  showSketch(true);
+let settleTimer = 0;
+
+function resketch(): void {
+  clearTimeout(settleTimer);
   map.off('idle', sketch);
   map.once('idle', sketch);
   map.triggerRepaint();
 }
 
-map.once('load', sketchWhenReady);
+function setNormalMap(on: boolean): void {
+  normalMap = on;
+  paper.hidden = on;
+  frame.classList.toggle('sketching', !on);
+  viewButton.textContent = on ? 'Back to the sketch' : 'Normal map';
+}
 
-sketchButton.addEventListener('click', sketchWhenReady);
+function sketchWhenReady(): void {
+  setNormalMap(false);
+  fresh = true;
+  loading.hidden = false;
+  resketch();
+}
+
+map.on('movestart', () => {
+  stale = true;
+  sketchRun++;
+  if (!fresh) loading.hidden = true;
+  for (const sheet of sheets) if (sheet !== liveSheet) cancelSketch(sheet);
+  clearTimeout(settleTimer);
+  map.off('idle', sketch);
+});
+
+map.on('moveend', () => {
+  clearTimeout(settleTimer);
+  if (normalMap) return;
+  settleTimer = window.setTimeout(() => {
+    loading.hidden = false;
+    resketch();
+  }, 150);
+});
+
+viewButton.addEventListener('click', () => {
+  if (normalMap) {
+    if (stale || !scene) sketchWhenReady();
+    else setNormalMap(false);
+    return;
+  }
+  stopPlacing(PIN_HINT);
+  finishRoute();
+  if (highlighting) stopHighlighting(highlightHint());
+  setNormalMap(true);
+  loading.hidden = true;
+  clearTimeout(settleTimer);
+  map.off('idle', sketch);
+  sketchRun++;
+});
+
+map.once('load', sketchWhenReady);
 
 styleSelect.addEventListener('change', () => {
   showNote();
@@ -244,12 +343,6 @@ toggles.forEach((toggle) => {
   });
 });
 
-moveButton.addEventListener('click', () => {
-  stopPlacing(PIN_HINT);
-  finishRoute();
-  showSketch(false);
-});
-
 titleInput.addEventListener('input', () => {
   if (!scene) return;
   scene.title = titleInput.value;
@@ -257,7 +350,10 @@ titleInput.addEventListener('input', () => {
 });
 
 function updateCursor(): void {
-  frame.classList.toggle('placing', placingNote !== null || draft !== null || highlighting);
+  const tool = placingNote !== null || draft !== null || highlighting;
+  frame.classList.toggle('placing', tool);
+  if (tool) map.doubleClickZoom.disable();
+  else map.doubleClickZoom.enable();
 }
 
 type Highlight = { lngLat: [number, number]; color: string };
@@ -329,7 +425,7 @@ highlightButton.addEventListener('click', () => {
     stopHighlighting(highlightHint());
     return;
   }
-  if (!scene || !sketchingMode()) {
+  if (!scene || normalMap) {
     highlightStatus.textContent = `Sketch the map first, then pick a ${highlightWord()}.`;
     return;
   }
@@ -345,11 +441,6 @@ function stopPlacing(message: string): void {
   placingNote = null;
   updateCursor();
   pinStatus.textContent = message;
-}
-
-function clickPoint(event: MouseEvent): [number, number] {
-  const scale = scene ? scene.width / sketchCanvas.clientWidth : 1;
-  return [event.offsetX * scale, event.offsetY * scale];
 }
 
 function lngLatAt(point: [number, number]): [number, number] {
@@ -406,7 +497,7 @@ routeButton.addEventListener('click', () => {
     finishRoute();
     return;
   }
-  if (!scene || !sketchingMode()) {
+  if (!scene || normalMap) {
     routeStatus.textContent = 'Sketch the map first, then draw on it.';
     return;
   }
@@ -453,6 +544,7 @@ function renderRouteList(): void {
 }
 
 let dragging = -1;
+const mapSurface = map.getCanvasContainer();
 
 function moveGhost(event: PointerEvent): void {
   const box = frame.getBoundingClientRect();
@@ -460,28 +552,42 @@ function moveGhost(event: PointerEvent): void {
   pinGhost.style.top = `${event.clientY - box.top}px`;
 }
 
-sketchCanvas.addEventListener('pointerdown', (event) => {
-  if (!scene || placingNote !== null || draft || event.button !== 0) return;
-  const index = pinAt(placedPins(), clickPoint(event));
-  if (index < 0) return;
-  event.preventDefault();
-  dragging = index;
-  sketchCanvas.setPointerCapture(event.pointerId);
-  frame.classList.add('dragging');
-  pinGhost.style.background = pins[index].color;
-  moveGhost(event);
-  pinGhost.hidden = false;
-  scene.pins = placedPins().filter((_, i) => i !== index);
-  redraw();
-});
+function mapPoint(event: PointerEvent): [number, number] {
+  const box = map.getCanvas().getBoundingClientRect();
+  return [event.clientX - box.left, event.clientY - box.top];
+}
 
-sketchCanvas.addEventListener('pointermove', (event) => {
+function usingTool(): boolean {
+  return placingNote !== null || draft !== null || highlighting;
+}
+
+mapSurface.addEventListener(
+  'pointerdown',
+  (event) => {
+    if (!scene || normalMap || usingTool() || event.button !== 0) return;
+    const index = pinAt(placedPins(), mapPoint(event));
+    if (index < 0) return;
+    map.dragPan.disable();
+    dragging = index;
+    mapSurface.setPointerCapture(event.pointerId);
+    mapSurface.style.cursor = '';
+    frame.classList.add('dragging');
+    pinGhost.style.background = pins[index].color;
+    moveGhost(event);
+    pinGhost.hidden = false;
+    scene.pins = placedPins().filter((_, i) => i !== index);
+    redraw();
+  },
+  true,
+);
+
+mapSurface.addEventListener('pointermove', (event) => {
   if (dragging >= 0) {
     moveGhost(event);
     return;
   }
-  if (!scene || placingNote !== null || draft) return;
-  sketchCanvas.style.cursor = pinAt(scene.pins, clickPoint(event)) >= 0 ? 'grab' : '';
+  const overPin = scene && !normalMap && !usingTool() && pinAt(placedPins(), mapPoint(event)) >= 0;
+  mapSurface.style.cursor = overPin ? 'pointer' : '';
 });
 
 function endDrag(event: PointerEvent, keep: boolean): void {
@@ -490,18 +596,13 @@ function endDrag(event: PointerEvent, keep: boolean): void {
   dragging = -1;
   pinGhost.hidden = true;
   frame.classList.remove('dragging');
-  if (keep && pin) {
-    const box = sketchCanvas.getBoundingClientRect();
-    const scale = scene ? scene.width / sketchCanvas.clientWidth : 1;
-    const x = (event.clientX - box.left - sketchCanvas.clientLeft) * scale;
-    const y = (event.clientY - box.top - sketchCanvas.clientTop) * scale;
-    pin.lngLat = lngLatAt([x, y]);
-  }
+  map.dragPan.enable();
+  if (keep && pin) pin.lngLat = lngLatAt(mapPoint(event));
   refreshPins();
 }
 
-sketchCanvas.addEventListener('pointerup', (event) => endDrag(event, true));
-sketchCanvas.addEventListener('pointercancel', (event) => endDrag(event, false));
+mapSurface.addEventListener('pointerup', (event) => endDrag(event, true));
+mapSurface.addEventListener('pointercancel', (event) => endDrag(event, false));
 
 const CROSS =
   '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">' +
@@ -565,7 +666,7 @@ pinForm.addEventListener('submit', (event) => {
   event.preventDefault();
   finishRoute();
   if (highlighting) stopHighlighting(highlightHint());
-  if (!scene || !sketchingMode()) {
+  if (!scene || normalMap) {
     pinStatus.textContent = 'Sketch the map first, then add pins to it.';
     return;
   }
@@ -574,17 +675,21 @@ pinForm.addEventListener('submit', (event) => {
   pinStatus.textContent = 'Now click the map where the pin goes. Esc cancels.';
 });
 
-sketchCanvas.addEventListener('click', (event) => {
-  if (!scene) return;
+map.on('click', (event) => {
+  if (!scene || normalMap) return;
+  const point: [number, number] = [event.point.x, event.point.y];
   if (draft) {
-    draft.points.push(lngLatAt(clickPoint(event)));
+    draft.points.push(lngLatAt(point));
     const count = draft.points.length;
     routeStatus.textContent = `${count} point${count === 1 ? '' : 's'}. Keep clicking, then press Finish route.`;
     refreshRoutes();
     return;
   }
   if (highlighting) {
-    const point = clickPoint(event);
+    if (stale) {
+      highlightStatus.textContent = 'Wait for the sketch to catch up, then click again.';
+      return;
+    }
     if (buildingAt(scene, point) < 0) {
       highlightStatus.textContent = `No ${highlightWord()} there. Try clicking right inside one.`;
       return;
@@ -595,7 +700,7 @@ sketchCanvas.addEventListener('click', (event) => {
     return;
   }
   if (placingNote === null) return;
-  const lngLat = lngLatAt(clickPoint(event));
+  const lngLat = lngLatAt(point);
   pins.push({ lngLat, note: placingNote, color: pinColor.value, icon: pinIcon.value as PinIcon });
   pinNote.value = '';
   stopPlacing(PIN_HINT);
@@ -615,16 +720,15 @@ const CLOSE_UP_ZOOM = 16;
 let lastPlace: Place | null = null;
 
 function flyTo(center: [number, number], zoom: number): void {
+  setNormalMap(false);
+  fresh = true;
   loading.hidden = false;
-  showSketch(true);
-  map.off('moveend', sketchWhenReady);
   const here = map.getCenter();
   const same = Math.abs(here.lng - center[0]) < 1e-6 && Math.abs(here.lat - center[1]) < 1e-6;
   if (same && Math.abs(map.getZoom() - zoom) < 0.01) {
     sketchWhenReady();
     return;
   }
-  map.once('moveend', sketchWhenReady);
   map.flyTo({ center, zoom, duration: 1500 });
 }
 
@@ -687,7 +791,6 @@ function setPlace(place: Place): void {
 
 async function enterCountry(country: Country): Promise<void> {
   loading.hidden = false;
-  showSketch(true);
   await loadCountryData();
   const place = countryPlace(country);
   setPlace(place);
@@ -918,7 +1021,7 @@ function fitPreview(): boolean {
     ? `${Math.min((frame.clientWidth * height) / width, window.innerHeight * 0.75)}px`
     : '';
   const scale = Math.min(frame.clientWidth / width, frame.clientHeight / height);
-  for (const el of [pickerBox, sketchCanvas]) {
+  for (const el of [pickerBox, paper]) {
     el.style.width = `${Math.floor(width * scale)}px`;
     el.style.height = `${Math.floor(height * scale)}px`;
   }
@@ -938,23 +1041,17 @@ function reshape(): void {
   scene = null;
   showOutput();
   fitPreview();
-  if (sketchingMode() && map.isStyleLoaded()) sketchWhenReady();
+  if (!normalMap && map.isStyleLoaded()) sketchWhenReady();
 }
 
-let resizeTimer = 0;
 function redrawControls(): void {
   sliders.forEach((slider) => slider.wiredRender?.(true));
   document.querySelector<HTMLElement & { wiredRender?: (force?: boolean) => void }>('#rotate')?.wiredRender?.(true);
 }
 
 function onWindowResize(): void {
-  const changed = fitPreview();
+  fitPreview();
   redrawControls();
-  if (!changed) return;
-  clearTimeout(resizeTimer);
-  resizeTimer = window.setTimeout(() => {
-    if (sketchingMode() && scene) sketchWhenReady();
-  }, 400);
 }
 
 sizeSelect.addEventListener('change', reshape);
@@ -966,7 +1063,7 @@ requestAnimationFrame(redrawControls);
 document.fonts.ready.then(redrawControls);
 
 async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
-  if (!scene || !sketchingMode()) {
+  if (!scene || stale) {
     if (!map.isStyleLoaded()) {
       exportStatus.textContent = 'The map is still loading. Try again in a moment.';
       return;
@@ -1092,8 +1189,6 @@ configFile.addEventListener('change', async () => {
 const rotateSlider = document.querySelector<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>('#rotate')!;
 const rotateValue = document.querySelector<HTMLSpanElement>('#rotate-value')!;
 const straightenButton = document.querySelector<HTMLButtonElement>('#straighten')!;
-let rotateTimer = 0;
-
 function showRotation(): void {
   const bearing = Math.round(map.getBearing());
   rotateSlider.value = bearing;
@@ -1106,10 +1201,6 @@ function rotateTo(bearing: number): void {
   map.jumpTo({ bearing });
   rotateValue.textContent = `${Math.round(bearing)}°`;
   straightenButton.disabled = Math.round(bearing) === 0;
-  clearTimeout(rotateTimer);
-  if (!sketchingMode()) return;
-  loading.hidden = false;
-  rotateTimer = window.setTimeout(sketchWhenReady, 350);
 }
 
 rotateSlider.addEventListener('change', () => rotateTo(Number(rotateSlider.value)));

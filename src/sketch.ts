@@ -16,7 +16,7 @@ import { hatchAngle, mainAngle, ringArea, simplifyShape, splitPieces } from './s
 import type { Town } from './countries';
 
 export type Point = [number, number];
-type Line = { points: Point[]; closed: boolean };
+type Line = { points: Point[]; closed: boolean; key?: number };
 type Shape = Line[];
 type Road = { shape: Shape; kind: string };
 export type Label = { name: string; kind: string; points: Point[]; spots?: Point[] };
@@ -88,6 +88,13 @@ function area(points: Point[]): number {
   return Math.abs(sum) / 2;
 }
 
+function coordKey(position: Position | undefined): number {
+  if (!position) return 0;
+  const a = Math.imul(Math.round(position[0] * 1e6), 73856093);
+  const b = Math.imul(Math.round(position[1] * 1e6), 19349663);
+  return ((a ^ b) >>> 0) % 1000003;
+}
+
 function toShape(map: MapLibreMap, geometry: Geometry, minArea = 0): Shape {
   const project = (coords: Position[]): Point[] =>
     coords.map((p) => {
@@ -96,15 +103,16 @@ function toShape(map: MapLibreMap, geometry: Geometry, minArea = 0): Shape {
     });
 
   const polygon = (rings: Position[][]): Line[] => {
-    const lines = rings.map((ring) => ({ points: project(ring), closed: true }));
+    const lines: Line[] = rings.map((ring) => ({ points: project(ring), closed: true }));
+    lines[0].key = coordKey(rings[0][0]);
     return area(lines[0].points) < minArea ? [] : lines;
   };
 
   switch (geometry.type) {
     case 'LineString':
-      return [{ points: project(geometry.coordinates), closed: false }];
+      return [{ points: project(geometry.coordinates), closed: false, key: coordKey(geometry.coordinates[0]) }];
     case 'MultiLineString':
-      return geometry.coordinates.map((c) => ({ points: project(c), closed: false }));
+      return geometry.coordinates.map((c) => ({ points: project(c), closed: false, key: coordKey(c[0]) }));
     case 'Polygon':
       return polygon(geometry.coordinates);
     case 'MultiPolygon':
@@ -357,7 +365,13 @@ const MIN_BUILDING_AREA = 45;
 const MIN_HOLE_AREA = 80;
 const MAX_ICONS = 40;
 const ICON_SPACING = 34;
-let currentJob = 0;
+const jobs = new WeakMap<HTMLCanvasElement, number>();
+
+export function cancelSketch(canvas: HTMLCanvasElement): void {
+  jobs.set(canvas, (jobs.get(canvas) ?? 0) + 1);
+}
+
+export type SketchPart = 'all' | 'map' | 'frame';
 
 function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
@@ -369,9 +383,11 @@ export async function drawSketch(
   style: StyleSpec,
   settings: SketchSettings = DEFAULT_SETTINGS,
   output?: { width: number; height: number },
-): Promise<void> {
-  const job = output ? null : ++currentJob;
-  const cancelled = () => job !== null && job !== currentJob;
+  part: SketchPart = 'all',
+): Promise<boolean> {
+  const job = output ? null : (jobs.get(canvas) ?? 0) + 1;
+  if (job !== null) jobs.set(canvas, job);
+  const cancelled = () => job !== null && jobs.get(canvas) !== job;
   const { roughness } = settings;
   const { width, height } = scene;
   const ratio = output ? Math.min(output.width / width, output.height / height) : window.devicePixelRatio || 1;
@@ -380,8 +396,10 @@ export async function drawSketch(
 
   const rc = rough.canvas(canvas);
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = style.paper;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (part !== 'frame') {
+    ctx.fillStyle = style.paper;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   if (!shapeCache.has(scene)) shapeCache.set(scene, new Map());
@@ -401,6 +419,12 @@ export async function drawSketch(
   const hasOutline = outlineWidth > 0;
   const forced = settings.fillStyle === 'default' ? null : settings.fillStyle;
   const steps: Step[] = [];
+  const fixedSteps = new Set<Step>();
+  const fixed = (step: Step) => {
+    if (part === 'map') return;
+    fixedSteps.add(step);
+    steps.push(step);
+  };
 
   const inked = settings.inked;
   const flows = scene.waterNames.filter((l) => l.points.length > 1).map((l) => l.points);
@@ -451,21 +475,22 @@ export async function drawSketch(
     const shapes = prepared(layer, list);
     shapes.forEach(({ shape, angle }, i) => {
       if (!shape.length) return;
+      const id = shape[0]?.key ?? i;
       steps.push(() => {
-        const p = look(i);
+        const p = look(id);
         const base = shaped(baseKey, i, () =>
           generator.path(toPath(shape), {
             ...wobble,
             roughness: 0.8 * roughness,
-            seed: i + 1,
+            seed: id + 1,
             stroke: hasOutline ? '#000' : 'none',
             disableMultiStroke: true,
             fill: '#000',
             fillStyle: 'solid',
           }),
         );
-        const tilt = angle === undefined ? undefined : angle + ((i * 37) % 17) - 8;
-        const [dx, dy] = inked ? fillOffset(i + layer.length * 101, roughness) : [0, 0];
+        const tilt = angle === undefined ? undefined : angle + ((id * 37) % 17) - 8;
+        const [dx, dy] = inked ? fillOffset(id + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
         if (marker) {
@@ -474,7 +499,7 @@ export async function drawSketch(
             generator.path(toPath(shape), {
               ...wobble,
               roughness: Math.min(1.6, 0.6 + 0.4 * roughness),
-              seed: i + 11,
+              seed: id + 11,
               stroke: 'none',
               fill: '#000',
               fillStyle: 'hachure',
@@ -495,14 +520,14 @@ export async function drawSketch(
           const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
           const patternKey = `${layer}|${fill.fillStyle}|${tilt === undefined ? fill.hachureAngle : 'along'}|${fill.hachureGap}|${dotSize}|${roughness}`;
           const overlay = shaped(patternKey, i, () =>
-            generator.path(toPath(shape), { ...wobble, ...fill, seed: i + 1, stroke: 'none', fill: '#000' }),
+            generator.path(toPath(shape), { ...wobble, ...fill, seed: id + 1, stroke: 'none', fill: '#000' }),
           );
           paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
         }
         ctx.restore();
         if (!hasOutline) return;
         const pen = layer === 'buildings' ? Math.max(0.8, outlineWidth * 1.3) : Math.max(1.1, outlineWidth * 1.9);
-        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, i + 7);
+        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, id + 7);
         else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
       });
     });
@@ -530,7 +555,7 @@ export async function drawSketch(
     shaped(lineKey(layer), i, () =>
       generator.path(toPath(shape), {
         ...wobble,
-        seed: i + 1,
+        seed: (shape[0]?.key ?? i) + 1,
         stroke: '#000',
         disableMultiStroke: true,
         preserveVertices: true,
@@ -730,7 +755,7 @@ export async function drawSketch(
   const credit = [area.x1 - 10, area.y1 - 7] as const;
 
   await loadPinFonts(pins, scene.center);
-  if (cancelled()) return;
+  if (cancelled()) return false;
   const placer = new Placer(width, height);
   placer.add(layout.reserved);
   placer.add([[credit[0] - 175, credit[1] - 16, credit[0], credit[1]]]);
@@ -740,10 +765,10 @@ export async function drawSketch(
 
   scene.routes.forEach((route, i) => steps.push(() => drawRoute(rc, route, i, colors, decor)));
 
-  if (settings.labels || settings.doodles) {
+  if (part !== 'frame' && (settings.labels || settings.doodles)) {
     if (settings.labels) {
       await loadLabelFonts(scene);
-      if (cancelled()) return;
+      if (cancelled()) return false;
     }
     const labels = settings.labels ? layoutLabels(ctx, scene, placer, settings.labelScale) : [];
 
@@ -775,25 +800,25 @@ export async function drawSketch(
   }
 
   if (settings.compass) {
-    steps.push(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing));
-    steps.push(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor));
+    fixed(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing));
+    fixed(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor));
   }
 
   pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor)));
 
-  steps.push(() => drawBorder(ctx, rc, width, height, layout, colors, decor));
+  fixed(() => drawBorder(ctx, rc, width, height, layout, colors, decor));
 
   if (title) {
     await loadTitleFont(title, scene.center);
-    if (cancelled()) return;
-    steps.push(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, decor));
+    if (cancelled()) return false;
+    fixed(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, decor));
   }
 
 
-  steps.push(() =>
+  fixed(() =>
     rc.rectangle(2, 2, width - 4, height - 4, { ...decor, stroke: text, strokeWidth: 2, seed: 1 }),
   );
-  steps.push(() => {
+  fixed(() => {
     const note = '© OpenStreetMap contributors';
     ctx.save();
     ctx.font = '13px "Gaegu", sans-serif';
@@ -808,13 +833,15 @@ export async function drawSketch(
     ctx.restore();
   });
 
+  const todo = part === 'frame' ? steps.filter((step) => fixedSteps.has(step)) : steps;
   let i = 0;
-  while (i < steps.length) {
+  while (i < todo.length) {
     const until = performance.now() + 12;
-    while (i < steps.length && performance.now() < until) steps[i++]();
-    if (i < steps.length) {
+    while (i < todo.length && performance.now() < until) todo[i++]();
+    if (i < todo.length) {
       await nextFrame();
-      if (cancelled()) return;
+      if (cancelled()) return false;
     }
   }
+  return true;
 }

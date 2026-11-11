@@ -30,12 +30,15 @@
       <section id="stage" class="stage">
         <div id="frame" class="frame sketching">
           <div id="picker"></div>
-          <canvas id="map"></canvas>
+          <div id="paper" class="paper">
+            <canvas id="map" class="sheet live"></canvas>
+            <canvas id="map-next" class="sheet"></canvas>
+            <canvas id="map-frame"></canvas>
+          </div>
           <div id="pin-ghost" class="pin-ghost" hidden></div>
           <div id="loading" class="loading" role="status"><span>Sketching...</span></div>
           <div class="frame-actions">
-            <button id="move-button" type="button">Move the map</button>
-            <button id="sketch-button" class="primary" type="button" hidden>Sketch this view</button>
+            <button id="view-button" type="button">Normal map</button>
           </div>
         </div>
       </section>
@@ -63,7 +66,7 @@
                   <button id="fit-area" type="button">Whole area</button>
                   <button id="close-up" type="button">Close up</button>
                 </div>
-                <p class="note">Or press "Move the map" on the preview and frame the view by hand.</p>
+                <p class="note">Or drag the preview to frame the view by hand. Scroll to zoom. "Normal map" shows the plain map.</p>
                 <label>Rotate <span id="rotate-value">0°</span></label>
                 <div class="rotate-row">
                   <wired-slider id="rotate" min="-180" max="180" step="1" value="0"></wired-slider>

@@ -1,5 +1,5 @@
 type Pt = [number, number];
-type Line = { points: Pt[]; closed: boolean };
+type Line = { points: Pt[]; closed: boolean; key?: number };
 
 export function ringArea(points: Pt[]): number {
   let sum = 0;
