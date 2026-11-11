@@ -1383,6 +1383,19 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   line-height: 1.6;
 }
 
+.about-art {
+  margin: 14px 0 6px;
+  border-radius: var(--radius);
+  background: var(--workspace);
+  line-height: 0;
+}
+
+.about-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .dialog-card.about p {
   margin: 10px 0 0;
   color: #3d3a35;
