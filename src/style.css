@@ -404,24 +404,23 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   align-items: center;
   gap: 7px;
   height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
+  padding: 0 12px 0 9px;
   border-radius: var(--radius-sm);
+  background: #ffdd00;
+  color: var(--ink);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .support:hover {
-  background: var(--subtle);
+  background: #f5d400;
   color: var(--ink);
 }
 
-.support svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.support img {
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .app {
@@ -1124,6 +1123,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   padding: 7px 18px;
   border-top: 1px solid var(--line);
   background: var(--bg);
+  text-align: center;
 }
 
 .footer p {
@@ -1377,7 +1377,9 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
     width: 32px;
     padding: 0;
     justify-content: center;
-    gap: 0;
-    font-size: 0;
+  }
+
+  .support span {
+    display: none;
   }
 }
