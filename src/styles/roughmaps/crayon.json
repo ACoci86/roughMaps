@@ -1,0 +1,47 @@
+{
+  "id": "crayon",
+  "name": "Crayon",
+  "note": "Waxy scribbles, like a child's drawing",
+  "paper": "#fffdf5",
+  "ink": "#2b2b2b",
+  "outline": 1.3,
+  "buildings": [
+    "#e8443a",
+    "#f6a01a",
+    "#f7d038",
+    "#7a4fc2",
+    "#ef6fa8"
+  ],
+  "water": {
+    "color": "#d6ecfb",
+    "pattern": "scribble",
+    "patternColor": "#2a8de0",
+    "gap": 5,
+    "weight": 2.2
+  },
+  "park": {
+    "color": "#e2f3cb",
+    "pattern": "scribble",
+    "patternColor": "#46b03c",
+    "gap": 5,
+    "weight": 2.2
+  },
+  "wood": {
+    "color": "#d3e9bd",
+    "pattern": "scribble",
+    "patternColor": "#2f8f3a",
+    "gap": 5,
+    "weight": 2.2
+  },
+  "sand": {
+    "color": "#f7e7a6"
+  },
+  "road": {
+    "fill": "#e3ded6",
+    "edge": "#2b2b2b",
+    "edgeRatio": 0.14,
+    "path": "#8a5a34"
+  },
+  "rail": "#2b2b2b",
+  "order": 7
+}

@@ -88,6 +88,10 @@
                   <div id="swatch-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
                 </div>
                 <p id="style-note" class="note"></p>
+                <div id="tint-row" class="row" hidden>
+                  <label for="tint">Pencil colour</label>
+                  <input id="tint" type="color" value="#c2557a" />
+                </div>
                 <label>Roughness <span data-value="roughness">1</span></label>
                 <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
                 <label>Label size <span data-value="labelScale">1</span></label>
@@ -135,6 +139,7 @@
                 </div>
                 <div class="toggles">
                   <wired-checkbox data-setting="poster" checked>Show title</wired-checkbox>
+                  <wired-checkbox data-setting="coords" checked>Coordinates</wired-checkbox>
                   <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
                   <wired-checkbox data-setting="border">Poster border</wired-checkbox>
                 </div>

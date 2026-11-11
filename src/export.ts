@@ -114,6 +114,7 @@ export type Config = {
   zoom: number;
   bearing: number;
   style: string;
+  tint?: string;
   settings: SketchSettings;
   size: string;
   dpi: number;
@@ -194,6 +195,7 @@ export function parseConfig(text: string): Config {
     zoom: data.zoom,
     bearing: isNumber(data.bearing) ? Math.max(-180, Math.min(180, data.bearing)) : 0,
     style: String(data.style ?? ''),
+    ...(typeof data.tint === 'string' && /^#[0-9a-f]{6}$/i.test(data.tint) ? { tint: data.tint } : {}),
     settings: {
       roughness: clamp(s.roughness, 0, 5, DEFAULT_SETTINGS.roughness),
       strokeWidth: clamp(s.strokeWidth, 0, 5, DEFAULT_SETTINGS.strokeWidth),
@@ -204,6 +206,7 @@ export function parseConfig(text: string): Config {
       doodles: s.doodles !== false,
       poster: s.poster !== false,
       compass: s.compass !== false,
+      coords: s.coords !== false,
       border: s.border === true,
       labelScale: clamp(s.labelScale, 0.5, 2, DEFAULT_SETTINGS.labelScale),
       inked: s.inked !== false,

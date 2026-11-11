@@ -1,0 +1,48 @@
+{
+  "id": "paint-pens",
+  "name": "Paint pens",
+  "note": "Bright opaque markers on black paper",
+  "paper": "#141414",
+  "ink": "#f5f5f0",
+  "outline": 1.1,
+  "flat": true,
+  "buildings": [
+    "#ff4f79",
+    "#ffd23f",
+    "#3ddc97",
+    "#3fa7ff",
+    "#ff8c42"
+  ],
+  "water": {
+    "color": "#141414",
+    "pattern": "waves",
+    "patternColor": "#3fa7ff",
+    "gap": 6,
+    "weight": 1.4
+  },
+  "park": {
+    "color": "#141414",
+    "pattern": "scribble",
+    "patternColor": "#3ddc97",
+    "gap": 6,
+    "weight": 1.4
+  },
+  "wood": {
+    "color": "#141414",
+    "pattern": "cross",
+    "patternColor": "#3ddc97",
+    "gap": 7,
+    "weight": 1.1
+  },
+  "sand": {
+    "color": "#2a2a2a"
+  },
+  "road": {
+    "fill": "#141414",
+    "edge": "#f5f5f0",
+    "edgeRatio": 0.14,
+    "path": "#f5f5f0"
+  },
+  "rail": "#f5f5f0",
+  "order": 13
+}

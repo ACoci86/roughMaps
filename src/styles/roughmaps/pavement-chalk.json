@@ -1,0 +1,47 @@
+{
+  "id": "pavement-chalk",
+  "name": "Pavement chalk",
+  "note": "Coloured chalk on dark asphalt",
+  "paper": "#3a3d42",
+  "ink": "#ecebe6",
+  "outline": 0.9,
+  "buildings": [
+    "#f2a6b8",
+    "#f6d776",
+    "#9ad1e8",
+    "#b6e0a5",
+    "#f4b183"
+  ],
+  "water": {
+    "color": "#3a3d42",
+    "pattern": "waves",
+    "patternColor": "#9ad1e8",
+    "gap": 6,
+    "weight": 1.2
+  },
+  "park": {
+    "color": "#3a3d42",
+    "pattern": "hatch",
+    "patternColor": "#b6e0a5",
+    "gap": 5,
+    "weight": 1.2
+  },
+  "wood": {
+    "color": "#41454a",
+    "pattern": "cross",
+    "patternColor": "#b6e0a5",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#55524a"
+  },
+  "road": {
+    "fill": "#3a3d42",
+    "edge": "#ecebe6",
+    "edgeRatio": 0.15,
+    "path": "#cfcfc8"
+  },
+  "rail": "#ecebe6",
+  "order": 12
+}

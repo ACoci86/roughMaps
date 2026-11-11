@@ -500,7 +500,7 @@ button:disabled {
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   max-height: 272px;
   overflow-y: auto;
@@ -520,6 +520,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: none;

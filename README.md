@@ -6,12 +6,12 @@
 
 <p align="center">Turn any place into a hand-drawn, doodle-style map.</p>
 
-Search for a place and roughMaps redraws its streets, buildings, parks and water as a sketch, with handwritten labels, little trees and doodled icons. Pick one of 54 styles, tune the roughness and line weights, and download it as a PNG for print or screen.
+Search for a place and roughMaps redraws its streets, buildings, parks and water as a sketch, with handwritten labels, little trees and doodled icons. Pick one of 48 styles, tune the roughness and line weights, and download it as a PNG for print or screen.
 
 ## Features
 
 - Hand-drawn maps of anywhere, drawn with Rough.js
-- 54 styles, from pencil and chalkboard to Bauhaus, Ukiyo-e and editor themes like Gruvbox and Dracula
+- 48 styles, from pencil, crayon and ink brush to linocut, Ukiyo-e and old map sheets
 - Roughness, stroke, fill and fill style controls
 - Street and place names in handwriting, for Latin, Cyrillic, Greek, Arabic, Hebrew, Chinese, Japanese, Korean, Thai, Hindi and Bengali
 - Trees in parks and icons for cafés, restaurants, museums and more
@@ -42,8 +42,6 @@ npm run dev
 ## Credits
 
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the ODbL. Tiles by [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://www.openmaptiles.org). Country outlines, cities, lakes and rivers from [Natural Earth](https://www.naturalearthdata.com) (public domain).
-
-The editor theme styles use the colours of Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Rosé Pine, Everforest, Monokai, One Dark, Kanagawa and Solarized.
 
 ## License
 

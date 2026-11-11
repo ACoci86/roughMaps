@@ -1,0 +1,48 @@
+{
+  "id": "picture-book",
+  "name": "Picture book",
+  "note": "Flat gouache colours from a children's travel book",
+  "paper": "#fdf6e3",
+  "ink": "#2e2a26",
+  "outline": 0.6,
+  "flat": true,
+  "buildings": [
+    "#e4572e",
+    "#f3a712",
+    "#29335c",
+    "#a8c686",
+    "#669bbc"
+  ],
+  "water": {
+    "color": "#7ec4cf",
+    "pattern": "waves",
+    "patternColor": "#ffffff",
+    "gap": 8,
+    "weight": 1.2
+  },
+  "park": {
+    "color": "#a8c686",
+    "pattern": "dots",
+    "patternColor": "#5f8f4e",
+    "gap": 8,
+    "weight": 1.6
+  },
+  "wood": {
+    "color": "#8fb573",
+    "pattern": "cross",
+    "patternColor": "#5f8f4e",
+    "gap": 8,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#f6e3a1"
+  },
+  "road": {
+    "fill": "#fffaf0",
+    "edge": "#2e2a26",
+    "edgeRatio": 0.1,
+    "path": "#e4572e"
+  },
+  "rail": "#2e2a26",
+  "order": 18
+}

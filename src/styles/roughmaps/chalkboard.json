@@ -2,7 +2,7 @@
   "id": "chalkboard",
   "name": "Chalkboard",
   "note": "White chalk on a green board",
-  "order": 4,
+  "order": 11,
   "paper": "#2f3b33",
   "ink": "#e9ece6",
   "outline": 0.8,

@@ -1,0 +1,50 @@
+{
+  "id": "illuminated",
+  "name": "Illuminated manuscript",
+  "note": "Lapis blue, vermilion and gold on parchment",
+  "paper": "#efe2bf",
+  "ink": "#3b2a1a",
+  "outline": 0.8,
+  "buildings": [
+    "#c8372d",
+    "#1f3f8a",
+    "#c9a227"
+  ],
+  "water": {
+    "color": "#dfe5e6",
+    "pattern": "waves",
+    "patternColor": "#1f3f8a",
+    "gap": 6,
+    "weight": 1
+  },
+  "park": {
+    "color": "#efe2bf",
+    "pattern": "hatch",
+    "patternColor": "#4f7a3a",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#e3d8b0",
+    "pattern": "cross",
+    "patternColor": "#4f7a3a",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#f3e7c4"
+  },
+  "road": {
+    "fill": "#f7edcf",
+    "edge": "#3b2a1a",
+    "edgeRatio": 0.14,
+    "path": "#c8372d",
+    "colors": {
+      "motorway": "#c9a227",
+      "trunk": "#c9a227",
+      "primary": "#c9a227"
+    }
+  },
+  "rail": "#3b2a1a",
+  "order": 36
+}

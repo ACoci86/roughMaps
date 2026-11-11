@@ -2,7 +2,7 @@
   "id": "highlighter",
   "name": "Highlighter",
   "note": "Marker pens on white paper",
-  "order": 6,
+  "order": 8,
   "paper": "#ffffff",
   "ink": "#222222",
   "outline": 0.7,

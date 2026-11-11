@@ -36,7 +36,8 @@ function toSvg(drawable: Drawable, dash = ''): string {
 }
 
 export function styleSwatch(style: StyleSpec): string {
-  const cached = cache.get(style.id);
+  const key = `${style.id}|${style.tint ?? ''}`;
+  const cached = cache.get(key);
   if (cached) return cached;
 
   const ink = style.ink;
@@ -104,8 +105,10 @@ export function styleSwatch(style: StyleSpec): string {
     line(STREET, road.edge, 2.6 * (1 + 2 * road.edgeRatio), 41);
     line(ROAD, road.edge, 4.6 * (1 + 2 * road.edgeRatio), 43);
   }
-  line(STREET, road.colors?.secondary ?? road.fill, 2.6, 45);
-  line(ROAD, road.colors?.primary ?? road.fill, 4.6, 47);
+  const thin = road.scale ?? 1;
+  const dash = road.dash ? road.dash.map((n) => n * 0.5).join(' ') : '';
+  line(STREET, road.colors?.secondary ?? road.fill, 2.6 * thin, 45, dash);
+  line(ROAD, road.colors?.primary ?? road.fill, 4.6 * thin, 47, dash);
   line(PATH, road.path, 0.9, 49, '2.4 1.8');
 
   parts.push(
@@ -121,6 +124,6 @@ export function styleSwatch(style: StyleSpec): string {
   );
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" aria-hidden="true">${parts.join('')}</svg>`;
-  cache.set(style.id, svg);
+  cache.set(key, svg);
   return svg;
 }

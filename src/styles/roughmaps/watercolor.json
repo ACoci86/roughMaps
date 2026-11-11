@@ -2,7 +2,7 @@
   "id": "watercolor",
   "name": "Watercolor",
   "note": "Soft washes with a fine pen",
-  "order": 21,
+  "order": 16,
   "paper": "#fbf8f1",
   "ink": "#5f554b",
   "outline": 0.5,

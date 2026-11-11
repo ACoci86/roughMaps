@@ -1,0 +1,55 @@
+{
+  "id": "red-blue-pencil",
+  "name": "Red and blue pencil",
+  "note": "One pencil with two ends",
+  "paper": "#fbf9f3",
+  "ink": "#2f4a9a",
+  "outline": 0.8,
+  "flat": true,
+  "buildings": [
+    "#fbf9f3"
+  ],
+  "buildingPattern": {
+    "pattern": "hatch",
+    "patternColor": "#d2453a",
+    "gap": 4,
+    "weight": 0.8
+  },
+  "water": {
+    "color": "#fbf9f3",
+    "pattern": "waves",
+    "patternColor": "#2f4a9a",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#fbf9f3",
+    "pattern": "dots",
+    "patternColor": "#2f4a9a",
+    "gap": 6,
+    "weight": 1.1
+  },
+  "wood": {
+    "color": "#fbf9f3",
+    "pattern": "cross",
+    "patternColor": "#2f4a9a",
+    "gap": 7,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#f7f1e4"
+  },
+  "road": {
+    "fill": "#fbf9f3",
+    "edge": "#2f4a9a",
+    "edgeRatio": 0.12,
+    "path": "#d2453a",
+    "colors": {
+      "motorway": "#f3c9c4",
+      "trunk": "#f3c9c4",
+      "primary": "#f3c9c4"
+    }
+  },
+  "rail": "#d2453a",
+  "order": 5
+}

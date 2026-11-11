@@ -1,0 +1,55 @@
+{
+  "id": "yellow-trace",
+  "name": "Yellow trace",
+  "note": "Pencil and red marker on an architect's tracing paper",
+  "paper": "#f3e28f",
+  "ink": "#3b3a36",
+  "outline": 0.7,
+  "flat": true,
+  "buildings": [
+    "#f3e28f"
+  ],
+  "buildingPattern": {
+    "pattern": "hatch",
+    "patternColor": "#6a6658",
+    "gap": 5,
+    "weight": 0.6
+  },
+  "water": {
+    "color": "#f3e28f",
+    "pattern": "waves",
+    "patternColor": "#3f6fae",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "park": {
+    "color": "#f3e28f",
+    "pattern": "hatch",
+    "patternColor": "#5d8a4a",
+    "gap": 5,
+    "weight": 0.8
+  },
+  "wood": {
+    "color": "#ecd97f",
+    "pattern": "cross",
+    "patternColor": "#5d8a4a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#f6e9a8"
+  },
+  "road": {
+    "fill": "#f8ecae",
+    "edge": "#3b3a36",
+    "edgeRatio": 0.12,
+    "path": "#d6402f",
+    "colors": {
+      "motorway": "#d6402f",
+      "trunk": "#d6402f",
+      "primary": "#d6402f"
+    }
+  },
+  "rail": "#3b3a36",
+  "order": 15
+}

@@ -1,0 +1,35 @@
+{
+  "id": "paper-cut",
+  "name": "Paper cut-outs",
+  "note": "Bold flat shapes with no outlines",
+  "paper": "#f4ecd8",
+  "ink": "#1f2a44",
+  "outline": 0,
+  "flat": true,
+  "buildings": [
+    "#e8552d",
+    "#f2b632",
+    "#d6457f",
+    "#1f2a44"
+  ],
+  "water": {
+    "color": "#2f6fb5"
+  },
+  "park": {
+    "color": "#3fa66b"
+  },
+  "wood": {
+    "color": "#2d8a57"
+  },
+  "sand": {
+    "color": "#f0d9a0"
+  },
+  "road": {
+    "fill": "#f4ecd8",
+    "edge": "#f4ecd8",
+    "edgeRatio": 0,
+    "path": "#1f2a44"
+  },
+  "rail": "#1f2a44",
+  "order": 19
+}

@@ -1,0 +1,51 @@
+{
+  "id": "graph-paper",
+  "name": "Graph paper",
+  "note": "Pencil on blue squared paper",
+  "paper": "#fbfcfa",
+  "ink": "#3a3a3a",
+  "outline": 0.8,
+  "flat": true,
+  "grid": "#5f9bd6",
+  "buildings": [
+    "#fbfcfa"
+  ],
+  "buildingPattern": {
+    "pattern": "hatch",
+    "patternColor": "#8a8a8a",
+    "gap": 7,
+    "weight": 0.45
+  },
+  "water": {
+    "color": "#fbfcfa",
+    "pattern": "waves",
+    "patternColor": "#3a3a3a",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "park": {
+    "color": "#fbfcfa",
+    "pattern": "dots",
+    "patternColor": "#3a3a3a",
+    "gap": 7,
+    "weight": 1
+  },
+  "wood": {
+    "color": "#fbfcfa",
+    "pattern": "cross",
+    "patternColor": "#3a3a3a",
+    "gap": 7,
+    "weight": 0.5
+  },
+  "sand": {
+    "color": "#fbfcfa"
+  },
+  "road": {
+    "fill": "#fbfcfa",
+    "edge": "#3a3a3a",
+    "edgeRatio": 0.12,
+    "path": "#3a3a3a"
+  },
+  "rail": "#3a3a3a",
+  "order": 2
+}

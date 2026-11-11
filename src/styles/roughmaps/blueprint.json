@@ -2,7 +2,7 @@
   "id": "blueprint",
   "name": "Blueprint",
   "note": "White lines on architect blue",
-  "order": 13,
+  "order": 32,
   "paper": "#1f4e8c",
   "ink": "#e8f1ff",
   "outline": 0.6,

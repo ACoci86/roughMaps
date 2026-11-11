@@ -1,0 +1,49 @@
+{
+  "id": "whiteboard",
+  "name": "Whiteboard",
+  "note": "Dry-erase markers on a glossy board",
+  "paper": "#fdfdfd",
+  "ink": "#1a1a1a",
+  "outline": 1.2,
+  "flat": true,
+  "buildings": [
+    "#fdfdfd"
+  ],
+  "water": {
+    "color": "#fdfdfd",
+    "pattern": "scribble",
+    "patternColor": "#1e6fd9",
+    "gap": 7,
+    "weight": 1.6
+  },
+  "park": {
+    "color": "#fdfdfd",
+    "pattern": "scribble",
+    "patternColor": "#1f9d55",
+    "gap": 7,
+    "weight": 1.6
+  },
+  "wood": {
+    "color": "#fdfdfd",
+    "pattern": "cross",
+    "patternColor": "#1f9d55",
+    "gap": 8,
+    "weight": 1.3
+  },
+  "sand": {
+    "color": "#fdfdfd"
+  },
+  "road": {
+    "fill": "#fdfdfd",
+    "edge": "#1a1a1a",
+    "edgeRatio": 0.12,
+    "path": "#e02b2b",
+    "colors": {
+      "motorway": "#e02b2b",
+      "trunk": "#e02b2b",
+      "primary": "#e02b2b"
+    }
+  },
+  "rail": "#1a1a1a",
+  "order": 9
+}

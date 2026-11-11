@@ -1,0 +1,56 @@
+{
+  "id": "sashiko",
+  "name": "Sashiko",
+  "note": "White stitches on indigo cloth",
+  "paper": "#1f2f55",
+  "ink": "#f3efe2",
+  "outline": 0.7,
+  "flat": true,
+  "buildings": [
+    "#27386a",
+    "#2b3d72"
+  ],
+  "buildingPattern": {
+    "pattern": "stitch",
+    "patternColor": "#f3efe2",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "water": {
+    "color": "#1a2848",
+    "pattern": "waves",
+    "patternColor": "#cfd8ea",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "park": {
+    "color": "#1f2f55",
+    "pattern": "stitch",
+    "patternColor": "#b9d3a8",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#223562",
+    "pattern": "cross",
+    "patternColor": "#b9d3a8",
+    "gap": 8,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#3a466a"
+  },
+  "road": {
+    "fill": "#f3efe2",
+    "edge": "#1f2f55",
+    "edgeRatio": 0,
+    "path": "#cfd8ea",
+    "dash": [
+      7,
+      5
+    ],
+    "scale": 0.3
+  },
+  "rail": "#f3efe2",
+  "order": 29
+}

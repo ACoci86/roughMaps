@@ -1,28 +1,27 @@
 {
   "id": "newsprint",
   "name": "Newsprint",
-  "note": "Grey paper and printer dots",
-  "order": 34,
+  "note": "Black ink and halftone dots",
+  "order": 24,
   "paper": "#f4f1ea",
   "ink": "#1d1d1d",
   "outline": 0.7,
   "buildings": [
-    "#cfcac0",
-    "#c4bfb4"
+    "#ebe7dd"
   ],
   "water": {
     "color": "#f4f1ea",
-    "pattern": "dots",
+    "pattern": "lines",
     "patternColor": "#555555",
-    "gap": 5,
-    "weight": 1.1
+    "gap": 4,
+    "weight": 0.6
   },
   "park": {
     "color": "#f4f1ea",
-    "pattern": "hatch",
+    "pattern": "dots",
     "patternColor": "#5a5a5a",
-    "gap": 6,
-    "weight": 0.7
+    "gap": 8,
+    "weight": 1.2
   },
   "wood": {
     "color": "#e3e0da",
@@ -40,5 +39,12 @@
     "edgeRatio": 0.15,
     "path": "#1d1d1d"
   },
-  "rail": "#1d1d1d"
+  "rail": "#1d1d1d",
+  "flat": true,
+  "buildingPattern": {
+    "pattern": "dots",
+    "patternColor": "#4a4a4a",
+    "gap": 4,
+    "weight": 0.7
+  }
 }

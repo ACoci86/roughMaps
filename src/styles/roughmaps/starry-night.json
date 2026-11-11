@@ -1,11 +1,11 @@
 {
   "id": "starry-night",
   "name": "Starry night",
-  "note": "Swirling blues and yellow strokes",
-  "order": 20,
+  "note": "Swirling strokes of blue and yellow",
+  "order": 47,
   "paper": "#1b2a59",
-  "ink": "#e8d36b",
-  "outline": 0.6,
+  "ink": "#0e1630",
+  "outline": 0.9,
   "buildings": [
     "#2c4280",
     "#36508f",
@@ -14,32 +14,40 @@
   "water": {
     "color": "#142047",
     "pattern": "waves",
-    "patternColor": "#e8d36b",
-    "gap": 6,
-    "weight": 0.9
+    "patternColor": "#f2d24b",
+    "gap": 5,
+    "weight": 1.4
   },
   "park": {
     "color": "#2f5d50",
-    "pattern": "hatch",
+    "pattern": "waves",
     "patternColor": "#c8d36b",
-    "gap": 6,
-    "weight": 0.8
+    "gap": 5,
+    "weight": 1.1
   },
   "wood": {
     "color": "#3e6652",
-    "pattern": "cross",
+    "pattern": "waves",
     "patternColor": "#c8d36b",
     "gap": 6,
-    "weight": 0.8
+    "weight": 1
   },
   "sand": {
     "color": "#636670"
   },
   "road": {
-    "fill": "#e8d36b",
-    "edge": "#142047",
+    "fill": "#f2d24b",
+    "edge": "#0e1630",
     "edgeRatio": 0.15,
     "path": "#c9b65a"
   },
-  "rail": "#e8d36b"
+  "rail": "#f2d24b",
+  "text": "#f2e27a",
+  "flat": true,
+  "buildingPattern": {
+    "pattern": "waves",
+    "patternColor": "#86a8e6",
+    "gap": 5,
+    "weight": 1.1
+  }
 }

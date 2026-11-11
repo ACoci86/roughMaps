@@ -1,0 +1,33 @@
+{
+  "id": "coloured-pencil",
+  "name": "Coloured pencil",
+  "note": "One pencil, any colour you like",
+  "tint": "#c2557a",
+  "paper": "#ffffff",
+  "ink": "#000000",
+  "outline": 0.7,
+  "flat": true,
+  "buildings": [
+    "#ffffff"
+  ],
+  "water": {
+    "color": "#ffffff"
+  },
+  "park": {
+    "color": "#ffffff"
+  },
+  "wood": {
+    "color": "#ffffff"
+  },
+  "sand": {
+    "color": "#ffffff"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#000000",
+    "edgeRatio": 0.12,
+    "path": "#000000"
+  },
+  "rail": "#000000",
+  "order": 6
+}

@@ -2,7 +2,7 @@
   "id": "survey",
   "name": "Survey",
   "note": "A classic national survey sheet",
-  "order": 23,
+  "order": 39,
   "paper": "#fbfaf5",
   "ink": "#3b3b3b",
   "outline": 0.6,

@@ -2,7 +2,7 @@
   "id": "ballpoint",
   "name": "Ballpoint",
   "note": "Blue pen doodles in a notebook",
-  "order": 5,
+  "order": 4,
   "paper": "#fdfdf8",
   "ink": "#24439c",
   "outline": 0.8,

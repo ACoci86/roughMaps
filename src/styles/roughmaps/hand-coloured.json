@@ -1,0 +1,52 @@
+{
+  "id": "hand-coloured",
+  "name": "Hand-coloured engraving",
+  "note": "Fine hatching with pale watercolour tints",
+  "paper": "#f3ecd9",
+  "ink": "#2a231c",
+  "outline": 0.6,
+  "flat": true,
+  "buildings": [
+    "#e8b9a6",
+    "#ecd59a",
+    "#bcd3b0"
+  ],
+  "buildingPattern": {
+    "pattern": "hatch",
+    "patternColor": "#2a231c",
+    "gap": 3.2,
+    "weight": 0.4
+  },
+  "water": {
+    "color": "#c7dbe3",
+    "pattern": "lines",
+    "patternColor": "#2a231c",
+    "gap": 3.5,
+    "weight": 0.35
+  },
+  "park": {
+    "color": "#cfe0b8",
+    "pattern": "dots",
+    "patternColor": "#2a231c",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#c2d6aa",
+    "pattern": "cross",
+    "patternColor": "#2a231c",
+    "gap": 6,
+    "weight": 0.4
+  },
+  "sand": {
+    "color": "#f1e6c6"
+  },
+  "road": {
+    "fill": "#f3ecd9",
+    "edge": "#f3ecd9",
+    "edgeRatio": 0,
+    "path": "#6b6257"
+  },
+  "rail": "#2a231c",
+  "order": 22
+}

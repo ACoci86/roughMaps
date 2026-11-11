@@ -155,6 +155,7 @@ export function drawPosterTitle(
   layout: PosterLayout,
   colors: PosterColors,
   wobble: Options,
+  coords = true,
 ): void {
   const box = layout.title;
   if (!box) return;
@@ -181,7 +182,7 @@ export function drawPosterTitle(
   const family = titleFamily(options.title, center, options.font);
   const name = titleText(options.title);
   const cx = (box.x0 + box.x1) / 2;
-  const nameY = box.y0 + h * 0.56;
+  const nameY = box.y0 + h * (coords ? 0.56 : 0.64);
 
   ctx.save();
   const nameSize = fitFont(ctx, name, family, h * 0.46, w * 0.86);
@@ -200,6 +201,10 @@ export function drawPosterTitle(
     strokeWidth: 1.5,
   });
 
+  if (!coords) {
+    ctx.restore();
+    return;
+  }
   const coordSize = Math.max(11, Math.round(h * 0.16));
   ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
   ctx.fillText(formatCoordinates(center), cx, Math.min(lineY + coordSize * 1.25, box.y1 - 4));

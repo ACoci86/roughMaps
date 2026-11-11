@@ -1,0 +1,47 @@
+{
+  "id": "ink-brush",
+  "name": "Ink brush",
+  "note": "Black brush strokes on rice paper",
+  "paper": "#f4efe2",
+  "ink": "#151515",
+  "outline": 1.4,
+  "flat": true,
+  "buildings": [
+    "#4a4a4a",
+    "#777777",
+    "#a5a5a5"
+  ],
+  "water": {
+    "color": "#f4efe2",
+    "pattern": "waves",
+    "patternColor": "#4a4a4a",
+    "gap": 9,
+    "weight": 1.6
+  },
+  "park": {
+    "color": "#ebe6d6",
+    "pattern": "dots",
+    "patternColor": "#2a2a2a",
+    "gap": 9,
+    "weight": 2
+  },
+  "wood": {
+    "color": "#e2ddcc",
+    "pattern": "cross",
+    "patternColor": "#3a3a3a",
+    "gap": 9,
+    "weight": 1.2
+  },
+  "sand": {
+    "color": "#efe7d0"
+  },
+  "road": {
+    "fill": "#151515",
+    "edge": "#151515",
+    "edgeRatio": 0,
+    "path": "#6b6b6b",
+    "scale": 0.45
+  },
+  "rail": "#151515",
+  "order": 17
+}

@@ -5,7 +5,7 @@ import 'wired-elements/lib/wired-slider.js';
 import 'wired-elements/lib/wired-checkbox.js';
 import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, cancelSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
-import { STYLES } from './styles';
+import { STYLES, tinted } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { roughScrollbar } from './scrollbar';
@@ -38,6 +38,8 @@ const sheets = [...document.querySelectorAll<HTMLCanvasElement>('#paper .sheet')
 const frameCanvas = document.querySelector<HTMLCanvasElement>('#map-frame')!;
 const styleSelect = document.querySelector<HTMLSelectElement>('#style')!;
 const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
+const tintRow = document.querySelector<HTMLDivElement>('#tint-row')!;
+const tintInput = document.querySelector<HTMLInputElement>('#tint')!;
 const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
 const sliders = document.querySelectorAll<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>(
   'wired-slider[data-setting]',
@@ -95,7 +97,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'coords';
 
 const preset = pickPreset();
 const map = createPicker(pickerBox);
@@ -164,6 +166,7 @@ function makeScene(): Scene {
 
 for (const style of STYLES) styleSelect.add(new Option(style.name, style.id));
 if (STYLES.some((s) => s.id === preset.style)) styleSelect.value = preset.style;
+if (preset.tint) tintInput.value = preset.tint;
 const styleGrid = document.querySelector<HTMLElement>('#style-grid')!;
 buildSwatches(styleGrid, STYLES, (id) => {
   styleSelect.value = id;
@@ -171,8 +174,11 @@ buildSwatches(styleGrid, STYLES, (id) => {
 });
 
 function currentStyle() {
-  return STYLES.find((s) => s.id === styleSelect.value) ?? STYLES[0];
+  const style = STYLES.find((s) => s.id === styleSelect.value) ?? STYLES[0];
+  return style.tint ? tinted(style, tintInput.value) : style;
 }
+
+tintInput.addEventListener('input', () => redrawSoon());
 
 let fadeTimer = 0;
 
@@ -215,6 +221,7 @@ function redrawSoon(): void {
 
 function showNote(): void {
   styleNote.textContent = currentStyle().note;
+  tintRow.hidden = !currentStyle().tint;
   selectSwatch(styleGrid, currentStyle().id);
   setSummary('look', currentStyle().name);
 }
@@ -1120,6 +1127,7 @@ saveConfigButton.addEventListener('click', () => {
     zoom: map.getZoom(),
     bearing: Math.round(map.getBearing()),
     style: currentStyle().id,
+    ...(currentStyle().tint ? { tint: currentStyle().tint } : {}),
     settings: { ...settings },
     size: sizeSelect.value,
     dpi: Number(dpiSelect.value),
@@ -1140,6 +1148,7 @@ configFile.addEventListener('change', async () => {
     const config = parseConfig(await file.text());
     Object.assign(settings, config.settings);
     styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
+    if (config.tint) tintInput.value = config.tint;
     fillStyleSelect.value = settings.fillStyle;
     titleFont.value = settings.titleFont;
     titleLayout.value = settings.titleLayout;

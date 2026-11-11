@@ -1,0 +1,45 @@
+{
+  "id": "delft-tile",
+  "name": "Delft tile",
+  "note": "Cobalt blue brushwork on white glaze",
+  "paper": "#f7f9fb",
+  "ink": "#1b3f8f",
+  "outline": 0.9,
+  "buildings": [
+    "#9db7e3",
+    "#6f93d6",
+    "#c4d5f0"
+  ],
+  "water": {
+    "color": "#dbe7f7",
+    "pattern": "waves",
+    "patternColor": "#1b3f8f",
+    "gap": 6,
+    "weight": 1
+  },
+  "park": {
+    "color": "#f7f9fb",
+    "pattern": "dots",
+    "patternColor": "#3f66b8",
+    "gap": 7,
+    "weight": 1.3
+  },
+  "wood": {
+    "color": "#e6edf8",
+    "pattern": "cross",
+    "patternColor": "#3f66b8",
+    "gap": 7,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#eef2f8"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#1b3f8f",
+    "edgeRatio": 0.14,
+    "path": "#3f66b8"
+  },
+  "rail": "#1b3f8f",
+  "order": 31
+}

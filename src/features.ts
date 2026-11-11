@@ -57,7 +57,7 @@ function landcover(map: Map, classes: string[]): GeoJSONFeature[] {
 export function readFeatures(map: Map): MapFeatures {
   return {
     water: read(map, 'water'),
-    green: [...read(map, 'park'), ...landcover(map, ['grass'])],
+    green: [...read(map, 'park', ['==', ['get', 'class'], 'nature_reserve']), ...landcover(map, ['grass'])],
     forest: landcover(map, ['wood']),
     sand: landcover(map, ['sand']),
     buildings: read(map, 'building'),

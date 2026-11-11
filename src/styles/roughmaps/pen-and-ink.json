@@ -1,0 +1,50 @@
+{
+  "id": "pen-and-ink",
+  "name": "Pen and ink",
+  "note": "Fine black pen and dense cross-hatching",
+  "paper": "#fbfaf6",
+  "ink": "#141414",
+  "outline": 0.9,
+  "flat": true,
+  "buildings": [
+    "#fbfaf6"
+  ],
+  "buildingPattern": {
+    "pattern": "cross",
+    "patternColor": "#141414",
+    "gap": 4.5,
+    "weight": 0.55
+  },
+  "water": {
+    "color": "#fbfaf6",
+    "pattern": "lines",
+    "patternColor": "#141414",
+    "gap": 4,
+    "weight": 0.55
+  },
+  "park": {
+    "color": "#fbfaf6",
+    "pattern": "dots",
+    "patternColor": "#141414",
+    "gap": 6,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#fbfaf6",
+    "pattern": "cross",
+    "patternColor": "#141414",
+    "gap": 7,
+    "weight": 0.5
+  },
+  "sand": {
+    "color": "#f6f2e6"
+  },
+  "road": {
+    "fill": "#fbfaf6",
+    "edge": "#141414",
+    "edgeRatio": 0.12,
+    "path": "#141414"
+  },
+  "rail": "#141414",
+  "order": 3
+}

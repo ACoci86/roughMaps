@@ -1,0 +1,49 @@
+{
+  "id": "greek-vase",
+  "name": "Greek vase",
+  "note": "Black figures on terracotta clay",
+  "paper": "#cf6b34",
+  "ink": "#16110d",
+  "outline": 0.9,
+  "flat": true,
+  "buildings": [
+    "#16110d"
+  ],
+  "water": {
+    "color": "#cf6b34",
+    "pattern": "waves",
+    "patternColor": "#16110d",
+    "gap": 6,
+    "weight": 1.1
+  },
+  "park": {
+    "color": "#cf6b34",
+    "pattern": "dots",
+    "patternColor": "#16110d",
+    "gap": 7,
+    "weight": 1.4
+  },
+  "wood": {
+    "color": "#c26030",
+    "pattern": "cross",
+    "patternColor": "#16110d",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#dc8a52"
+  },
+  "road": {
+    "fill": "#e39a63",
+    "edge": "#16110d",
+    "edgeRatio": 0.15,
+    "path": "#16110d",
+    "colors": {
+      "motorway": "#f3e3c3",
+      "trunk": "#f3e3c3",
+      "primary": "#f3e3c3"
+    }
+  },
+  "rail": "#16110d",
+  "order": 30
+}

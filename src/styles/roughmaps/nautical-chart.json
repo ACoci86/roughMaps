@@ -1,0 +1,49 @@
+{
+  "id": "nautical-chart",
+  "name": "Nautical chart",
+  "note": "Buff land, pale shallows and magenta marks",
+  "paper": "#f3e3b3",
+  "ink": "#3a3a3a",
+  "outline": 0.6,
+  "buildings": [
+    "#e3c98d",
+    "#d9bd7f"
+  ],
+  "water": {
+    "color": "#cfe6f2",
+    "pattern": "dots",
+    "patternColor": "#6f9dbb",
+    "gap": 9,
+    "weight": 1.1
+  },
+  "park": {
+    "color": "#d3e2b4",
+    "pattern": "hatch",
+    "patternColor": "#8fae78",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#c6d9a6",
+    "pattern": "cross",
+    "patternColor": "#8fae78",
+    "gap": 6,
+    "weight": 0.7
+  },
+  "sand": {
+    "color": "#f7efc9"
+  },
+  "road": {
+    "fill": "#fbf2d2",
+    "edge": "#3a3a3a",
+    "edgeRatio": 0.12,
+    "path": "#b0358f",
+    "colors": {
+      "motorway": "#b0358f",
+      "trunk": "#b0358f",
+      "primary": "#d98cc4"
+    }
+  },
+  "rail": "#3a3a3a",
+  "order": 37
+}

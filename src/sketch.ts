@@ -299,6 +299,7 @@ export type SketchSettings = {
   poster: boolean;
   compass: boolean;
   border: boolean;
+  coords: boolean;
   labelScale: number;
   inked: boolean;
   titleFont: string;
@@ -316,6 +317,7 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   poster: true,
   compass: true,
   border: false,
+  coords: true,
   labelScale: 1,
   inked: true,
   titleFont: 'Gaegu',
@@ -349,6 +351,10 @@ export function patternFill(paint: AreaPaint, forced: string | null, weightScale
       return { fillStyle: 'dots', hachureGap: gap, fillWeight: weight };
     case 'waves':
       return { fillStyle: 'zigzag-line', hachureGap: gap, fillWeight: weight, zigzagOffset: gap / 2 };
+    case 'scribble':
+      return { fillStyle: 'zigzag', hachureGap: gap, fillWeight: weight };
+    case 'stitch':
+      return { fillStyle: 'dashed', hachureGap: gap, fillWeight: weight, dashOffset: gap * 0.9, dashGap: gap * 0.7 };
     default:
       return { fillStyle: 'hachure', hachureGap: gap, fillWeight: weight };
   }
@@ -448,7 +454,7 @@ export async function drawSketch(
     }
     return best < Math.max(width, height) * 0.35 ? angle : undefined;
   };
-  const marker = inked && forced !== 'solid';
+  const marker = inked && forced !== 'solid' && !style.flat;
   const prepared = (layer: string, list: Shape[]) => {
     if (!inked) return list.map((shape) => ({ shape, angle: undefined as number | undefined }));
     const key = `${layer}|simple`;
@@ -718,7 +724,7 @@ export async function drawSketch(
 
   const road = style.road;
   const scale = 2 ** (scene.zoom - 16);
-  const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale) * inner;
+  const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale) * inner * (road.scale ?? 1);
   const roads = scene.roads
     .filter(() => inner > 0)
     .map((r, i) => ({ ...r, i, width: roadWidth(r.kind) }))
@@ -738,8 +744,37 @@ export async function drawSketch(
   for (const r of roads) {
     if (r.kind === 'path') continue;
     steps.push(() =>
-      paint(line('road', r.shape, r.i), { stroke: road.colors?.[r.kind] ?? road.fill, strokeWidth: r.width }),
+      paint(line('road', r.shape, r.i), {
+        stroke: road.colors?.[r.kind] ?? road.fill,
+        strokeWidth: r.width,
+        strokeLineDash: road.dash,
+      }),
     );
+  }
+
+  const grid = style.grid;
+  if (grid) {
+    steps.push(() => {
+      const cell = Math.max(10, Math.round(Math.min(width, height) / 30));
+      const rule = (every: number, alpha: number, weight: number) => {
+        ctx.save();
+        ctx.strokeStyle = fade(grid, alpha);
+        ctx.lineWidth = weight;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += cell * every) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = 0; y <= height; y += cell * every) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      };
+      rule(1, 0.6, 0.7);
+      rule(5, 0.9, 1.1);
+    });
   }
 
   const title =
@@ -811,7 +846,7 @@ export async function drawSketch(
   if (title) {
     await loadTitleFont(title, scene.center);
     if (cancelled()) return false;
-    fixed(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, decor));
+    fixed(() => drawPosterTitle(ctx, rc, title, scene.center, layout, colors, decor, settings.coords));
   }
 
 

@@ -1,0 +1,45 @@
+{
+  "id": "guidebook",
+  "name": "Old guidebook",
+  "note": "A fold-out plan from an old travel guide",
+  "paper": "#f1e6c8",
+  "ink": "#2b2b2b",
+  "outline": 0.5,
+  "flat": true,
+  "buildings": [
+    "#e2a78f",
+    "#d99680"
+  ],
+  "water": {
+    "color": "#bcd6e6",
+    "pattern": "lines",
+    "patternColor": "#7fa6c2",
+    "gap": 5,
+    "weight": 0.5
+  },
+  "park": {
+    "color": "#cfe0b5",
+    "pattern": "hatch",
+    "patternColor": "#8fae78",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "wood": {
+    "color": "#c3d6a8",
+    "pattern": "cross",
+    "patternColor": "#8fae78",
+    "gap": 6,
+    "weight": 0.6
+  },
+  "sand": {
+    "color": "#f5ecd0"
+  },
+  "road": {
+    "fill": "#fbf5e2",
+    "edge": "#2b2b2b",
+    "edgeRatio": 0.1,
+    "path": "#2b2b2b"
+  },
+  "rail": "#2b2b2b",
+  "order": 38
+}

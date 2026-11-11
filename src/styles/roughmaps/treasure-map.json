@@ -1,0 +1,44 @@
+{
+  "id": "treasure-map",
+  "name": "Treasure map",
+  "note": "Burnt parchment, sepia ink and red trails",
+  "paper": "#e3c790",
+  "ink": "#472c18",
+  "outline": 0.9,
+  "buildings": [
+    "#a98458",
+    "#9c784e"
+  ],
+  "water": {
+    "color": "#d6c595",
+    "pattern": "waves",
+    "patternColor": "#557f80",
+    "gap": 6,
+    "weight": 1
+  },
+  "park": {
+    "color": "#e3c790",
+    "pattern": "hatch",
+    "patternColor": "#77883f",
+    "gap": 5,
+    "weight": 0.9
+  },
+  "wood": {
+    "color": "#d6bd83",
+    "pattern": "cross",
+    "patternColor": "#77883f",
+    "gap": 6,
+    "weight": 0.8
+  },
+  "sand": {
+    "color": "#ecd9a6"
+  },
+  "road": {
+    "fill": "#ecd6a4",
+    "edge": "#472c18",
+    "edgeRatio": 0.14,
+    "path": "#a8321c"
+  },
+  "rail": "#472c18",
+  "order": 35
+}

@@ -1,0 +1,50 @@
+{
+  "id": "engraving",
+  "name": "Engraving",
+  "note": "Fine hatching, like an 18th century city plan",
+  "paper": "#f3eee0",
+  "ink": "#1e1b18",
+  "outline": 0.5,
+  "flat": true,
+  "buildings": [
+    "#f3eee0"
+  ],
+  "buildingPattern": {
+    "pattern": "hatch",
+    "patternColor": "#1e1b18",
+    "gap": 2.4,
+    "weight": 0.5
+  },
+  "water": {
+    "color": "#f3eee0",
+    "pattern": "lines",
+    "patternColor": "#1e1b18",
+    "gap": 3,
+    "weight": 0.4
+  },
+  "park": {
+    "color": "#f3eee0",
+    "pattern": "dots",
+    "patternColor": "#1e1b18",
+    "gap": 5,
+    "weight": 0.7
+  },
+  "wood": {
+    "color": "#f3eee0",
+    "pattern": "cross",
+    "patternColor": "#1e1b18",
+    "gap": 5,
+    "weight": 0.4
+  },
+  "sand": {
+    "color": "#efe8d4"
+  },
+  "road": {
+    "fill": "#f3eee0",
+    "edge": "#f3eee0",
+    "edgeRatio": 0,
+    "path": "#6b655c"
+  },
+  "rail": "#1e1b18",
+  "order": 21
+}
