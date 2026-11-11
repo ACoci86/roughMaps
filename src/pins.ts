@@ -1,3 +1,4 @@
+import rough from 'roughjs';
 import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
 import { fontFamily } from './labels';
@@ -163,4 +164,33 @@ export function pinAt(pins: PlacedPin[], [px, py]: Point): number {
     if (Math.abs(px - x) <= SIZE + 4 && py >= cy - SIZE - 4 && py <= Math.max(y, cy + SIZE) + 4) return i;
   }
   return -1;
+}
+
+const ICON_VIEW: Record<PinIcon, string> = {
+  pin: '-13 -35 26 39',
+  heart: '-16 -24 32 32',
+  star: '-15 -26 30 30',
+  house: '-15 -24 30 30',
+  cross: '-13 -13 26 26',
+};
+
+export function pinIconSvg(icon: PinIcon, color: string): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', ICON_VIEW[icon]);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('pin-icon');
+  const draw = rough.svg(svg);
+  const keep = (node: SVGGElement) => {
+    svg.append(node);
+  };
+  const rc = {
+    line: (...a: Parameters<typeof draw.line>) => keep(draw.line(...a)),
+    ellipse: (...a: Parameters<typeof draw.ellipse>) => keep(draw.ellipse(...a)),
+    circle: (...a: Parameters<typeof draw.circle>) => keep(draw.circle(...a)),
+    path: (...a: Parameters<typeof draw.path>) => keep(draw.path(...a)),
+    polygon: (...a: Parameters<typeof draw.polygon>) => keep(draw.polygon(...a)),
+    rectangle: (...a: Parameters<typeof draw.rectangle>) => keep(draw.rectangle(...a)),
+  } as unknown as RoughCanvas;
+  drawIcon(rc, { point: [0, 0], note: '', color, icon }, 7, { paper: '#ffffff', ink: '#1c1b19' }, { roughness: 0.9, bowing: 0.8 });
+  return svg;
 }

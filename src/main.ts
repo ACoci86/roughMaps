@@ -13,6 +13,7 @@ import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
 import { pinAt } from './pins';
+import { iconPicker } from './iconpicker';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -87,6 +88,8 @@ function iconOptions(select: HTMLSelectElement, value: PinIcon): void {
 }
 
 iconOptions(pinIcon, 'pin');
+const pinPicker = iconPicker(pinIcon, () => pinColor.value);
+pinColor.addEventListener('input', pinPicker.refresh);
 for (const font of TITLE_FONTS) titleFont.add(new Option(font, font));
 for (const layout of TITLE_LAYOUTS) titleLayout.add(new Option(layout.label, layout.id));
 const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
@@ -647,6 +650,7 @@ function renderPinList(): void {
       color.setAttribute('aria-label', `Colour of ${note.textContent}`);
       color.addEventListener('input', () => {
         pin.color = color.value;
+        picker.refresh();
         if (!scene) return;
         scene.pins = placedPins();
         redrawSoon();
@@ -658,12 +662,13 @@ function renderPinList(): void {
         pin.icon = shape.value as PinIcon;
         refreshPins();
       });
+      const picker = iconPicker(shape, () => pin.color);
       const remove = removeButton(`Remove ${note.textContent}`, () => {
         pins.splice(i, 1);
         refreshPins();
       });
       const item = document.createElement('li');
-      item.append(color, shape, note, remove);
+      item.append(color, picker.element, note, remove);
       return item;
     }),
   );
