@@ -8,11 +8,39 @@ export type Rect = { x0: number; y0: number; x1: number; y1: number };
 type Box = [number, number, number, number];
 
 export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima'];
-export const TITLE_LAYOUTS: { id: TitleLayout; label: string }[] = [
-  { id: 'bottom', label: 'Bottom strip' },
-  { id: 'top', label: 'Top strip' },
-  { id: 'corner', label: 'Corner label' },
+export const TITLE_FONT_NOTES: Record<string, string> = {
+  Gaegu: 'Soft, friendly handwriting',
+  Kalam: 'Quick pen handwriting',
+  'Patrick Hand': 'Neat, upright print',
+  Pangolin: 'Round, playful letters',
+  Itim: 'Clean, rounded letters',
+  Arima: 'Classic serif, like old maps',
+};
+
+export const TITLE_LAYOUTS: { id: TitleLayout; label: string; note: string }[] = [
+  { id: 'bottom', label: 'Bottom strip', note: 'A band under the map' },
+  { id: 'top', label: 'Top strip', note: 'A band above the map' },
+  { id: 'corner', label: 'Corner label', note: 'A small box in the top-left corner' },
 ];
+
+export function layoutIcon(layout: TitleLayout): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 28 20');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('layout-icon');
+  const rect = (x: number, y: number, w: number, h: number, kind: string) => {
+    const r = document.createElementNS(ns, 'rect');
+    for (const [k, v] of Object.entries({ x, y, width: w, height: h, rx: 1 })) r.setAttribute(k, String(v));
+    r.classList.add(kind);
+    svg.append(r);
+  };
+  rect(0.75, 0.75, 26.5, 18.5, 'sheet');
+  if (layout === 'bottom') rect(2.5, 13.5, 23, 4, 'band');
+  else if (layout === 'top') rect(2.5, 2.5, 23, 4, 'band');
+  else rect(2.5, 2.5, 11, 4.5, 'band');
+  return svg;
+}
 
 export type PosterOptions = {
   title: string;

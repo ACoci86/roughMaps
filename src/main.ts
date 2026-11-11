@@ -8,12 +8,12 @@ import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountr
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
 import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
-import { styleSwatch } from './swatch';
-import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
-import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
+import { styleSwatch, fillIcon } from './swatch';
+import { PIN_COLOR, PIN_ICONS, pinIconSvg, type Pin, type PinIcon } from './pins';
+import { TITLE_FONTS, TITLE_FONT_NOTES, TITLE_LAYOUTS, layoutIcon, posterLayout, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
 import { pinAt } from './pins';
-import { iconPicker } from './iconpicker';
+import { dropdown } from './dropdown';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -87,11 +87,23 @@ function iconOptions(select: HTMLSelectElement, value: PinIcon): void {
   select.value = value;
 }
 
+function iconPicker(select: HTMLSelectElement, color: () => string) {
+  return dropdown(select, () =>
+    PIN_ICONS.map((icon) => ({ value: icon.id, label: icon.label, icon: () => pinIconSvg(icon.id, color()) })),
+  );
+}
+
 iconOptions(pinIcon, 'pin');
 const pinPicker = iconPicker(pinIcon, () => pinColor.value);
 pinColor.addEventListener('input', pinPicker.refresh);
 for (const font of TITLE_FONTS) titleFont.add(new Option(font, font));
 for (const layout of TITLE_LAYOUTS) titleLayout.add(new Option(layout.label, layout.id));
+const fontPicker = dropdown(titleFont, () =>
+  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
+);
+const layoutPicker = dropdown(titleLayout, () =>
+  TITLE_LAYOUTS.map((layout) => ({ value: layout.id, label: layout.label, note: layout.note, icon: () => layoutIcon(layout.id) })),
+);
 const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
@@ -313,6 +325,8 @@ styleSelect.addEventListener('change', () => {
 
 titleFont.value = settings.titleFont;
 titleLayout.value = settings.titleLayout;
+fontPicker.refresh();
+layoutPicker.refresh();
 
 titleFont.addEventListener('change', () => {
   settings.titleFont = titleFont.value;
@@ -325,6 +339,38 @@ titleLayout.addEventListener('change', () => {
 });
 
 fillStyleSelect.value = settings.fillStyle;
+
+const FILL_NOTES: Record<string, string> = {
+  default: "Each look's own patterns",
+  hachure: 'Parallel diagonal lines',
+  solid: 'Flat colour, no lines',
+  'cross-hatch': 'Lines crossing both ways',
+  dashed: 'Broken diagonal lines',
+  zigzag: 'One continuous zigzag',
+  'zigzag-line': 'Rows of small zigzags',
+  dots: 'Small dots',
+};
+
+function svgElement(markup: string): Element {
+  const holder = document.createElement('span');
+  holder.innerHTML = markup;
+  return holder.firstElementChild!;
+}
+
+const fillPicker = dropdown(fillStyleSelect, () =>
+  [...fillStyleSelect.options].map((option) => ({
+    value: option.value,
+    label: option.text,
+    note: FILL_NOTES[option.value],
+    icon: () =>
+      option.value === 'default'
+        ? svgElement(styleSwatch(currentStyle()).replace('<svg ', '<svg class="fill-icon look-icon" '))
+        : svgElement(fillIcon(option.value)),
+  })),
+);
+
+styleSelect.addEventListener('change', fillPicker.refresh);
+tintInput.addEventListener('input', fillPicker.refresh);
 
 fillStyleSelect.addEventListener('change', () => {
   settings.fillStyle = fillStyleSelect.value;
@@ -1164,8 +1210,11 @@ async function applyConfig(config: Config): Promise<void> {
   styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
   if (config.tint) tintInput.value = config.tint;
   fillStyleSelect.value = settings.fillStyle;
+  fillPicker.refresh();
   titleFont.value = settings.titleFont;
   titleLayout.value = settings.titleLayout;
+  fontPicker.refresh();
+  layoutPicker.refresh();
   sliders.forEach((slider) => {
     const key = slider.dataset.setting as SliderKey;
     slider.value = String(settings[key]);

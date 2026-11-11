@@ -127,3 +127,28 @@ export function styleSwatch(style: StyleSpec): string {
   cache.set(key, svg);
   return svg;
 }
+
+const fillCache = new Map<string, string>();
+
+export function fillIcon(fillStyle: string): string {
+  const cached = fillCache.get(fillStyle);
+  if (cached) return cached;
+  const shape = generator.rectangle(3, 3, 26, 26, {
+    roughness: 0.9,
+    bowing: 0.6,
+    seed: 4,
+    stroke: '#1c1b19',
+    strokeWidth: 1.2,
+    fill: '#1c1b19',
+    fillStyle,
+    hachureGap: 4.2,
+    fillWeight: 1,
+    dashOffset: 3,
+    dashGap: 2.5,
+    zigzagOffset: 2,
+    disableMultiStroke: true,
+  });
+  const svg = `<svg class="fill-icon" viewBox="0 0 32 32" aria-hidden="true">${toSvg(shape)}</svg>`;
+  fillCache.set(fillStyle, svg);
+  return svg;
+}
