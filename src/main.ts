@@ -1027,6 +1027,15 @@ function outputPixels() {
 }
 
 const narrow = window.matchMedia('(max-width: 900px)');
+let viewWidth = window.innerWidth;
+let viewHeight = window.innerHeight;
+
+function steadyHeight(): number {
+  const barOnly = narrow.matches && window.innerWidth === viewWidth && Math.abs(window.innerHeight - viewHeight) < 160;
+  if (!barOnly) viewHeight = window.innerHeight;
+  viewWidth = window.innerWidth;
+  return viewHeight;
+}
 
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
@@ -1034,7 +1043,7 @@ function fitPreview(): boolean {
   const pad = narrow.matches ? 0 : 26;
   frame.style.setProperty('--mat-pad', `${pad}px`);
   frame.style.height = narrow.matches
-    ? `${Math.min(((frame.clientWidth - pad * 2) * height) / width + pad * 2, window.innerHeight * 0.75)}px`
+    ? `${Math.min(((frame.clientWidth - pad * 2) * height) / width + pad * 2, steadyHeight() * 0.75)}px`
     : '';
   const scale = Math.min((frame.clientWidth - pad * 2) / width, (frame.clientHeight - pad * 2) / height);
   const w = Math.floor(width * scale);
@@ -1046,8 +1055,9 @@ function fitPreview(): boolean {
   mat.style.width = `${w + pad * 2}px`;
   mat.style.height = `${h + pad * 2}px`;
   frame.style.setProperty('--paper-height', paper.style.height);
-  map.resize();
-  return before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
+  const changed = before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
+  if (changed) map.resize();
+  return changed;
 }
 
 function showOutput(): void {
