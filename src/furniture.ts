@@ -9,7 +9,8 @@ const EARTH = 40075016.686;
 const MARGIN = 22;
 
 export function compassRadius(width: number, height: number): number {
-  return Math.round(Math.min(38, Math.max(18, Math.min(width, height) * 0.04)));
+  const side = Math.min(width, height);
+  return Math.round(Math.min(38, Math.max(Math.min(18, side * 0.07), side * 0.04)));
 }
 
 function compassCenter(area: Rect, r: number, bearing = 0): [number, number] {

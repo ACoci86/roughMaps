@@ -36,7 +36,7 @@ export function formatCoordinates([lng, lat]: [number, number]): string {
 }
 
 function bandHeight(height: number): number {
-  return Math.round(Math.min(220, Math.max(80, height * 0.15)));
+  return Math.round(Math.min(220, Math.max(Math.min(80, height * 0.28), height * 0.15)));
 }
 
 export function borderWidth(width: number, height: number): number {
@@ -205,7 +205,7 @@ export function drawPosterTitle(
     ctx.restore();
     return;
   }
-  const coordSize = Math.max(11, Math.round(h * 0.16));
+  const coordSize = Math.max(Math.min(11, h * 0.2), Math.round(h * 0.16));
   ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
   ctx.fillText(formatCoordinates(center), cx, Math.min(lineY + coordSize * 1.25, box.y1 - 4));
   ctx.restore();

@@ -902,6 +902,16 @@ input[type='color'] {
     flex: none;
   }
 
+  .frame {
+    margin-bottom: 44px;
+  }
+
+  .frame-actions,
+  .frame.title-top .frame-actions {
+    top: auto;
+    bottom: -42px;
+  }
+
   .frame-actions button {
     font-size: 15px;
     padding: 3px 10px;
