@@ -1,5 +1,16 @@
+import rough from 'roughjs';
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
+
+const generator = rough.generator();
+
+function pickedOutline(seed: number): string {
+  const paths = generator
+    .toPaths(generator.rectangle(3, 3, 94, 69, { roughness: 2.4, bowing: 2.2, seed }))
+    .map((p) => `<path d="${p.d}" vector-effect="non-scaling-stroke"/>`)
+    .join('');
+  return `<svg class="picked" viewBox="0 0 100 75" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>`;
+}
 
 const ARROW =
   '<svg class="arrow" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">' +
@@ -40,7 +51,7 @@ export function setSummary(name: string, text: string): void {
   if (el) el.textContent = text;
 }
 
-function swatch(style: StyleSpec): HTMLButtonElement {
+function swatch(style: StyleSpec, index: number): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'swatch';
@@ -55,11 +66,12 @@ function swatch(style: StyleSpec): HTMLButtonElement {
   name.className = 'name';
   name.textContent = style.name;
   button.append(chip, name);
+  button.insertAdjacentHTML('afterbegin', pickedOutline(index + 3));
   return button;
 }
 
 export function buildSwatches(container: HTMLElement, styles: StyleSpec[], onPick: (id: string) => void): void {
-  container.replaceChildren(...styles.map(swatch));
+  container.replaceChildren(...styles.map((style, i) => swatch(style, i)));
   container.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.swatch');
     if (button?.dataset.style) onPick(button.dataset.style);
