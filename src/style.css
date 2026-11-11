@@ -1384,16 +1384,35 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 }
 
 .about-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin: 14px 0 6px;
+  padding: 26px 0 22px;
   border-radius: var(--radius);
   background: var(--workspace);
-  line-height: 0;
 }
 
 .about-art img {
   display: block;
-  width: 100%;
+  width: 84px;
   height: auto;
+}
+
+.about-wordmark,
+.about-wordmark span {
+  font-family: 'Gaegu', cursive;
+}
+
+.about-wordmark {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.about-wordmark span {
+  color: var(--accent);
 }
 
 .dialog-card.about p {
