@@ -207,6 +207,10 @@ h3:first-child {
   gap: 8px;
 }
 
+.frame.title-top .frame-actions {
+  top: calc(var(--paper-height, 100%) - 50px);
+}
+
 .frame-actions button {
   box-shadow: 3px 3px 0 var(--ink);
   font-size: 17px;

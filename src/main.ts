@@ -136,7 +136,7 @@ function follow(): void {
 }
 
 map.on('move', follow);
-const settings: SketchSettings = { ...DEFAULT_SETTINGS, roughness: preset.roughness };
+const settings: SketchSettings = { ...DEFAULT_SETTINGS, roughness: preset.roughness, ...preset.settings };
 let redrawTimer = 0;
 let placeName = preset.place;
 let pins: Pin[] = [];
@@ -198,6 +198,7 @@ function showScene(shown: Scene, sheet: HTMLCanvasElement): void {
 }
 
 async function redraw(): Promise<void> {
+  frame.classList.toggle('title-top', settings.poster && settings.titleLayout === 'top' && titleInput.value.trim() !== '');
   if (!scene || stale) return;
   const drawn = scene;
   const style = currentStyle();
@@ -324,6 +325,8 @@ titleLayout.addEventListener('change', () => {
   redraw();
 });
 
+fillStyleSelect.value = settings.fillStyle;
+
 fillStyleSelect.addEventListener('change', () => {
   settings.fillStyle = fillStyleSelect.value;
   redraw();
@@ -343,6 +346,7 @@ sliders.forEach((slider) => {
 
 toggles.forEach((toggle) => {
   const key = toggle.dataset.setting as Toggle;
+  toggle.checked = settings[key];
   toggle.addEventListener('change', () => {
     settings[key] = toggle.checked;
     showSummaries();
@@ -1032,6 +1036,7 @@ function fitPreview(): boolean {
     el.style.width = `${Math.floor(width * scale)}px`;
     el.style.height = `${Math.floor(height * scale)}px`;
   }
+  frame.style.setProperty('--paper-height', paper.style.height);
   map.resize();
   return before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
 }
