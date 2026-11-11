@@ -366,9 +366,12 @@ const generator = rough.generator();
 const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
 const doodleCache = new WeakMap<Scene, Map<string, Doodle[][]>>();
 const treeCache = new WeakMap<Scene, { green: Point[]; forest: Point[] }>();
-const simplifiedCache = new WeakMap<Scene, Map<string, ({ shape: Shape; angle: number; small: boolean } | null)[]>>();
-const MIN_BUILDING_AREA = 6;
+type Prepared = { shape: Shape; angle: number | undefined; small: boolean; size: number };
+const simplifiedCache = new WeakMap<Scene, Map<string, (Prepared | null)[]>>();
+const MIN_BUILDING_AREA = 1;
 const SMALL_BUILDING_AREA = 45;
+const SMALL_BATCH = 1500;
+const TINY_BUILDING_AREA = 22;
 const MIN_HOLE_AREA = 80;
 const MAX_ICONS = 40;
 const ICON_SPACING = 34;
@@ -456,24 +459,95 @@ export async function drawSketch(
     return best < Math.max(width, height) * 0.35 ? angle : undefined;
   };
   const marker = inked && forced !== 'solid' && !style.flat;
-  const prepared = (layer: string, list: Shape[]) => {
-    if (!inked) return list.map((shape) => ({ shape, angle: undefined as number | undefined, small: false }));
-    const key = `${layer}|simple`;
+  const prepared = (layer: string, list: Shape[]): Prepared[] => {
+    const buildings = layer === 'buildings';
+    if (!inked && !buildings) return list.map((shape) => ({ shape, angle: undefined, small: false, size: 0 }));
+    const key = `${layer}|simple|${inked}`;
     let cached = simplifiedCache.get(scene)?.get(key);
     if (!cached) {
-      const buildings = layer === 'buildings';
-      const pieces = buildings || layer === 'bridges' ? list : list.flatMap(splitPieces);
-      cached = pieces.map((shape) => {
+      const pieces = buildings || layer === 'bridges' || !inked ? list : list.flatMap(splitPieces);
+      cached = pieces.map((shape): Prepared | null => {
         const size = buildings ? ringArea(shape[0]?.points ?? []) : 0;
         if (buildings && size < MIN_BUILDING_AREA) return null;
+        if (buildings && size < SMALL_BUILDING_AREA) return { shape: [shape[0]], angle: undefined, small: true, size };
+        if (!inked) return { shape, angle: undefined, small: false, size };
         const kept = buildings ? shape.filter((ring, k) => k === 0 || ringArea(ring.points) >= MIN_HOLE_AREA) : shape;
-        const simple = simplifyShape(kept, buildings ? (size < SMALL_BUILDING_AREA ? 0.6 : 1.9) : 0.8);
-        return { shape: simple, angle: mainAngle(simple), small: buildings && size < SMALL_BUILDING_AREA };
+        const simple = simplifyShape(kept, buildings ? 1.9 : 0.8);
+        return { shape: simple, angle: mainAngle(simple), small: false, size };
       });
       if (!simplifiedCache.has(scene)) simplifiedCache.set(scene, new Map());
       simplifiedCache.get(scene)!.set(key, cached);
     }
-    return cached.map((c) => c ?? { shape: [] as Shape, angle: undefined, small: false });
+    return cached.map((c) => c ?? { shape: [] as Shape, angle: undefined, small: false, size: 0 });
+  };
+
+  type SmallBatch = { fill: string; pen: number; rings: Point[][] };
+  const smallBatches = new Map<string, SmallBatch>();
+  const smallFills = new Map<string, string>();
+  const smallFill = (p: AreaPaint): string => {
+    const known = smallFills.get(p.color);
+    if (known) return known;
+    const made = smallTone(p);
+    smallFills.set(p.color, made);
+    return made;
+  };
+  const smallTone = (p: AreaPaint): string => {
+    const patterned = forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
+    if (!patterned) return p.color;
+    const fill = patternFill(p, forced, settings.fillWeight);
+    const strokes = fill.fillStyle === 'cross-hatch' ? 2 : fill.fillStyle === 'dots' ? 0.5 : 1;
+    const cover = Math.min(0.6, Math.max(0.15, (strokes * 1.4 * (fill.fillWeight ?? 1)) / (fill.hachureGap ?? 4)));
+    return mix(p.color, p.patternColor ?? mix(p.color, style.ink, 0.45), cover);
+  };
+  const drawSmall = (batch: SmallBatch) => {
+    ctx.save();
+    ctx.beginPath();
+    for (const points of batch.rings) {
+      const n = points.length;
+      let turn = 0;
+      for (let k = 0; k < n; k++) {
+        const from = points[k];
+        const to = points[k + 1 === n ? 0 : k + 1];
+        turn += from[0] * to[1] - to[0] * from[1];
+      }
+      if (turn < 0) {
+        ctx.moveTo(points[n - 1][0], points[n - 1][1]);
+        for (let k = n - 2; k >= 0; k--) ctx.lineTo(points[k][0], points[k][1]);
+      } else {
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let k = 1; k < n; k++) ctx.lineTo(points[k][0], points[k][1]);
+      }
+      ctx.closePath();
+    }
+    ctx.fillStyle = batch.fill;
+    ctx.fill();
+    if (batch.pen > 0) {
+      ctx.strokeStyle = style.ink;
+      ctx.lineWidth = batch.pen;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  const tinyFills = new Map<string, string>();
+  const tinyFill = (fill: string): string => {
+    let made = tinyFills.get(fill);
+    if (!made) tinyFills.set(fill, (made = hasOutline ? mix(fill, style.ink, 0.25) : fill));
+    return made;
+  };
+  const addSmall = (points: Point[], size: number, p: AreaPaint) => {
+    const tiny = size < TINY_BUILDING_AREA;
+    const fill = tiny ? tinyFill(smallFill(p)) : smallFill(p);
+    const pen = hasOutline && !tiny ? Math.round(Math.max(0.8, outlineWidth * 1.3) * 75) / 100 : 0;
+    const key = `${fill}|${pen}`;
+    let batch = smallBatches.get(key);
+    if (!batch || batch.rings.length >= SMALL_BATCH) {
+      const made: SmallBatch = { fill, pen, rings: [] };
+      smallBatches.set(key, made);
+      steps.push(() => drawSmall(made));
+      batch = made;
+    }
+    batch.rings.push(points);
   };
 
   const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint, parts?: Shape[]) => {
@@ -481,27 +555,15 @@ export async function drawSketch(
     const mode = inked ? 'inked' : 'plain';
     const baseKey = `${layer}|base|${hasOutline}|${roughness}|${mode}`;
     const shapes = prepared(layer, list);
-    shapes.forEach(({ shape, angle, small }, i) => {
+    shapes.forEach(({ shape, angle, small, size }, i) => {
       if (!shape.length) return;
       const id = shape[0]?.key ?? i;
+      if (small) {
+        addSmall(shape[0].points, size, look(id));
+        return;
+      }
       steps.push(() => {
         const p = look(id);
-        if (small) {
-          ctx.beginPath();
-          for (const { points } of shape) {
-            points.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-            ctx.closePath();
-          }
-          ctx.fillStyle = p.color;
-          ctx.fill('evenodd');
-          if (hasOutline) {
-            ctx.strokeStyle = style.ink;
-            ctx.lineWidth = Math.max(0.6, outlineWidth);
-            ctx.lineJoin = 'round';
-            ctx.stroke();
-          }
-          return;
-        }
         const base = shaped(baseKey, i, () =>
           generator.path(toPath(shape), {
             ...wobble,
@@ -517,7 +579,7 @@ export async function drawSketch(
         const [dx, dy] = inked ? fillOffset(id + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
-        if (marker && !small) {
+        if (marker) {
           const gap = layer === 'buildings' ? 2.6 : 3.4;
           const strokes = shaped(`${layer}|marker|${roughness}`, i, () =>
             generator.path(toPath(shape), {
@@ -537,7 +599,7 @@ export async function drawSketch(
         } else {
           paint(onlyFill(base), { stroke: 'none', fill: p.color });
         }
-        const patterned = !small && !split && forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
+        const patterned = !split && forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
         if (patterned) {
           const fill = patternFill(p, forced, settings.fillWeight);
           if (tilt !== undefined && fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle(tilt);
