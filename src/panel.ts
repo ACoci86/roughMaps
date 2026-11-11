@@ -1,4 +1,3 @@
-import rough from 'roughjs';
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
 
@@ -17,7 +16,10 @@ export function setupSteps(onOpen: () => void): void {
     body.addEventListener('transitionend', (event) => {
       if (event.target !== body || event.propertyName !== 'grid-template-rows') return;
       onOpen();
-      if (step.classList.contains('open')) step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (!step.classList.contains('open')) return;
+      const view = step.parentElement!;
+      const room = view.scrollHeight > view.clientHeight + 1 ? view.clientHeight : window.innerHeight / 2;
+      step.scrollIntoView({ block: step.offsetHeight > room ? 'start' : 'nearest', behavior: 'smooth' });
     });
     const head = step.querySelector<HTMLButtonElement>('.step-head')!;
     head.insertAdjacentHTML('beforeend', ARROW);
@@ -73,93 +75,17 @@ export function selectSwatch(container: HTMLElement, id: string): void {
       if (top < container.scrollTop || top + button.offsetHeight > container.scrollTop + container.clientHeight) {
         container.scrollTop = top - container.clientHeight / 2 + button.offsetHeight / 2;
       }
+      const left = button.offsetLeft - container.offsetLeft;
+      if (left < container.scrollLeft || left + button.offsetWidth > container.scrollLeft + container.clientWidth) {
+        container.scrollLeft = left - container.clientWidth / 2 + button.offsetWidth / 2;
+      }
     }
   }
 }
-
-export function roughFrame(target: HTMLElement): void {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.classList.add('rough-frame');
-  svg.setAttribute('aria-hidden', 'true');
-  target.prepend(svg);
-  const draw = () => {
-    const pad = 7;
-    const w = target.offsetWidth + pad * 2;
-    const h = target.offsetHeight + pad * 2;
-    if (w <= pad * 2) return;
-    svg.setAttribute('width', String(w + 6));
-    svg.setAttribute('height', String(h + 6));
-    svg.setAttribute('viewBox', `0 0 ${w + 6} ${h + 6}`);
-    const rc = rough.svg(svg);
-    const shadow = rc.rectangle(6, 6, w - 3, h - 3, {
-      stroke: 'none',
-      fill: '#1a1a1a',
-      fillStyle: 'zigzag',
-      hachureGap: 3,
-      fillWeight: 1,
-      roughness: 1.4,
-      seed: 9,
-    });
-    shadow.classList.add('shadow');
-    const frame = rc.rectangle(2, 2, w - 4, h - 4, {
-      stroke: '#1a1a1a',
-      strokeWidth: 1.6,
-      roughness: 1.3,
-      seed: 4,
-      fill: '#ffdd00',
-      fillStyle: 'solid',
-    });
-    frame.classList.add('frame-line');
-    const inner = rc.rectangle(4, 3.5, w - 7, h - 6, { stroke: '#1a1a1a', strokeWidth: 0.8, roughness: 1.6, seed: 5 });
-    inner.classList.add('frame-line');
-    svg.replaceChildren(shadow, frame, inner);
-  };
-  draw();
-  new ResizeObserver(draw).observe(target);
-}
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function openStep(name: string): void {
   const step = document.querySelector<HTMLElement>(`.step[data-step="${name}"]`);
   if (!step) return;
   if (!step.classList.contains('open')) step.querySelector<HTMLButtonElement>('.step-head')!.click();
   else step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}
-
-export function roughBox(target: HTMLElement, seed: number, strokeWidth = 1.6): void {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.classList.add('rough-box');
-  svg.setAttribute('aria-hidden', 'true');
-  target.prepend(svg);
-  const draw = () => {
-    const w = target.offsetWidth;
-    const h = target.offsetHeight;
-    if (!w || !h) return;
-    svg.setAttribute('width', String(w));
-    svg.setAttribute('height', String(h));
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    const rc = rough.svg(svg);
-    const box = rc.rectangle(2, 2, w - 4, h - 4, { stroke: '#1a1a1a', strokeWidth, roughness: 1.1, bowing: 0.8, seed });
-    svg.replaceChildren(box);
-  };
-  draw();
-  new ResizeObserver(draw).observe(target);
-}
-
-export function roughRule(target: HTMLElement, seed: number): void {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('aria-hidden', 'true');
-  target.replaceChildren(svg);
-  const draw = () => {
-    const w = target.offsetWidth;
-    if (!w) return;
-    svg.setAttribute('width', String(w));
-    svg.setAttribute('height', '8');
-    svg.setAttribute('viewBox', `0 0 ${w} 8`);
-    const rc = rough.svg(svg);
-    svg.replaceChildren(rc.line(2, 4, w - 2, 4, { stroke: '#1a1a1a', strokeWidth: 1.6, roughness: 1.2, bowing: 0.6, seed }));
-  };
-  draw();
-  new ResizeObserver(draw).observe(target);
 }

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>roughMaps</title>
     <meta name="description" content="Turn any place into a hand-drawn map, right in your browser." />
+    <meta name="theme-color" content="#fbf8f2" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,7 +22,7 @@
       <p class="tagline">Turn any place into a hand-drawn map, right in your browser.</p>
       <nav class="nav" aria-label="Main">
         <button class="nav-link active" type="button" data-nav="explore" aria-current="page">Explore</button>
-        <button class="nav-link" type="button" data-nav="styles">Styles</button>
+        <button class="nav-link" type="button" data-nav="styles">Looks</button>
         <button class="nav-link" type="button" data-nav="gallery">Gallery</button>
         <button class="nav-link" type="button" data-nav="about">About</button>
       </nav>
@@ -37,7 +38,6 @@
         </a>
       </div>
     </header>
-    <div class="rule top-rule" aria-hidden="true"></div>
 
     <main class="app">
       <section id="stage" class="stage">
@@ -58,19 +58,13 @@
       </section>
 
       <div class="panel-wrap">
-        <div class="panel-scroll">
           <aside id="panel" class="panel">
             <section class="intro">
-              <svg class="spark" viewBox="0 0 30 26" width="30" height="26" aria-hidden="true">
-                <path d="M4 6 C7 9 9 12 11 16" />
-                <path d="M15 2 C15.4 6 15.6 9 15.5 13" />
-                <path d="M26 5 C23.6 8 21.8 11 20.4 15" />
-              </svg>
               <h1>Create a hand-drawn map of any place</h1>
-              <p>Search for a place, choose a style, and download a printable map.</p>
+              <p>Search for a place, pick a look, and download a printable map.</p>
             </section>
 
-            <wired-card class="card step open" data-step="place" elevation="2">
+            <section class="card step open" data-step="place">
               <button class="step-head" type="button" aria-expanded="true">
                 <span class="num">1</span>
                 <span class="step-name">Place</span>
@@ -93,40 +87,37 @@
                   <button id="fit-area" type="button">Whole area</button>
                   <button id="close-up" type="button">Close up</button>
                 </div>
-                <p class="note">Or drag the preview to frame the view by hand. Scroll or pinch to zoom. "Normal map" shows the plain map.</p>
+                <p class="note">Drag the map to frame it. Scroll or pinch to zoom.</p>
                 <label>Rotate <span id="rotate-value">0°</span></label>
                 <div class="rotate-row">
-                  <wired-slider id="rotate" min="-180" max="180" step="1" value="0"></wired-slider>
+                  <input id="rotate" type="range" min="-180" max="180" step="1" value="0" aria-label="Rotate" />
                   <button id="straighten" type="button">Straighten</button>
                 </div>
               </div>
-            </wired-card>
+            </section>
 
-            <wired-card class="card step" data-step="look" elevation="2">
+            <section class="card step" data-step="look">
               <button class="step-head" type="button" aria-expanded="false">
                 <span class="num">2</span>
                 <span class="step-name">Look</span>
                 <span class="summary" id="summary-look"></span>
               </button>
               <div class="step-body">
-                <select id="style" aria-label="Style" hidden></select>
-                <div class="swatch-wrap">
-                  <div id="style-grid" class="swatches" role="listbox" aria-label="Style"></div>
-                  <div id="swatch-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
-                </div>
+                <select id="style" aria-label="Look" hidden></select>
+                <div id="style-grid" class="swatches" role="listbox" aria-label="Look"></div>
                 <p id="style-note" class="note"></p>
                 <div id="tint-row" class="row" hidden>
                   <label for="tint">Pencil colour</label>
                   <input id="tint" type="color" value="#c2557a" />
                 </div>
                 <label>Roughness <span data-value="roughness">1</span></label>
-                <wired-slider data-setting="roughness" min="0" max="5" step="0.25" value="1"></wired-slider>
+                <input type="range" data-setting="roughness" min="0" max="5" step="0.25" value="1" aria-label="Roughness" />
                 <label>Label size <span data-value="labelScale">1</span></label>
-                <wired-slider data-setting="labelScale" min="0.5" max="2" step="0.1" value="1"></wired-slider>
+                <input type="range" data-setting="labelScale" min="0.5" max="2" step="0.1" value="1" aria-label="Label size" />
                 <div class="toggles">
-                  <wired-checkbox data-setting="labels" checked>Labels</wired-checkbox>
-                  <wired-checkbox data-setting="doodles" checked>Doodles</wired-checkbox>
-                  <wired-checkbox data-setting="inked" checked>Hand-drawn touches</wired-checkbox>
+                  <label class="check"><input type="checkbox" data-setting="labels" checked /><span>Labels</span></label>
+                  <label class="check"><input type="checkbox" data-setting="doodles" checked /><span>Doodles</span></label>
+                  <label class="check"><input type="checkbox" data-setting="inked" checked /><span>Hand-drawn touches</span></label>
                 </div>
                 <details id="more-options" class="more">
                   <summary>More options</summary>
@@ -142,16 +133,16 @@
                     <option value="dots">Dots</option>
                   </select>
                   <label>Outlines <span data-value="strokeWidth">1</span></label>
-                  <wired-slider data-setting="strokeWidth" min="0" max="5" step="0.25" value="1"></wired-slider>
+                  <input type="range" data-setting="strokeWidth" min="0" max="5" step="0.25" value="1" aria-label="Outlines" />
                   <label>Roads <span data-value="innerStrokeWidth">1</span></label>
-                  <wired-slider data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1"></wired-slider>
+                  <input type="range" data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1" aria-label="Roads" />
                   <label>Hatching <span data-value="fillWeight">1</span></label>
-                  <wired-slider data-setting="fillWeight" min="0" max="3" step="0.1" value="1"></wired-slider>
+                  <input type="range" data-setting="fillWeight" min="0" max="3" step="0.1" value="1" aria-label="Hatching" />
                 </details>
               </div>
-            </wired-card>
+            </section>
 
-            <wired-card class="card step" data-step="decorate" elevation="2">
+            <section class="card step" data-step="decorate">
               <button class="step-head" type="button" aria-expanded="false">
                 <span class="num">3</span>
                 <span class="step-name">Decorate</span>
@@ -165,10 +156,10 @@
                   <select id="title-layout" aria-label="Title position"></select>
                 </div>
                 <div class="toggles">
-                  <wired-checkbox data-setting="poster" checked>Show title</wired-checkbox>
-                  <wired-checkbox data-setting="coords" checked>Coordinates</wired-checkbox>
-                  <wired-checkbox data-setting="compass" checked>Compass and scale</wired-checkbox>
-                  <wired-checkbox data-setting="border">Poster border</wired-checkbox>
+                  <label class="check"><input type="checkbox" data-setting="poster" checked /><span>Show title</span></label>
+                  <label class="check"><input type="checkbox" data-setting="coords" checked /><span>Coordinates</span></label>
+                  <label class="check"><input type="checkbox" data-setting="compass" checked /><span>Compass and scale</span></label>
+                  <label class="check"><input type="checkbox" data-setting="border" /><span>Poster border</span></label>
                 </div>
 
                 <h3>Pins</h3>
@@ -200,9 +191,9 @@
                 <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
                 <ul id="route-list" class="results pins"></ul>
               </div>
-            </wired-card>
+            </section>
 
-            <wired-card class="card step" data-step="size" elevation="2">
+            <section class="card step" data-step="size">
               <button class="step-head" type="button" aria-expanded="false">
                 <span class="num">4</span>
                 <span class="step-name">Size</span>
@@ -222,10 +213,8 @@
                 <input id="config-file" type="file" accept="application/json,.json" hidden />
                 <p class="note">A small file that reopens this exact map later.</p>
               </div>
-            </wired-card>
+            </section>
           </aside>
-          <div id="rough-scrollbar" class="rough-scrollbar" aria-hidden="true"></div>
-        </div>
 
         <div class="download-bar">
           <span class="download-label">
@@ -247,7 +236,6 @@
     </main>
 
     <footer class="footer">
-      <div class="rule" aria-hidden="true"></div>
       <ul class="perks">
         <li>
           <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
@@ -294,18 +282,28 @@
       <div class="dialog-card">
         <div class="dialog-head">
           <h2 id="gallery-title">Gallery</h2>
-          <button class="dialog-close" type="button" aria-label="Close">×</button>
+          <button class="dialog-close" type="button" aria-label="Close">
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path d="M4.6 4.2 C7.8 7.6 11.4 11.6 15.6 15.8" />
+              <path d="M15.9 4.4 C12.2 7.9 8.6 11.9 4.3 15.5" />
+            </svg>
+          </button>
         </div>
-        <p class="note">Places from around the world, each in a look that suits it. Pick one to open it.</p>
+        <p class="note">Places from around the world, each in a look that suits it. Tap one to open it.</p>
         <ul id="gallery-list" class="gallery"></ul>
       </div>
     </dialog>
 
-    <dialog id="about-dialog" class="dialog" aria-labelledby="about-title">
+    <dialog id="about-dialog" class="dialog narrow" aria-labelledby="about-title">
       <div class="dialog-card about">
         <div class="dialog-head">
           <h2 id="about-title">About roughMaps</h2>
-          <button class="dialog-close" type="button" aria-label="Close">×</button>
+          <button class="dialog-close" type="button" aria-label="Close">
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path d="M4.6 4.2 C7.8 7.6 11.4 11.6 15.6 15.8" />
+              <path d="M15.9 4.4 C12.2 7.9 8.6 11.9 4.3 15.5" />
+            </svg>
+          </button>
         </div>
         <p>roughMaps turns any place into a hand-drawn map, right in your browser. Search a place, pick one of 48 looks, frame it, and download it as a PNG, SVG or PDF.</p>
         <p>It's free, with no ads and no sign-up. It's still in beta, so things may change or break.</p>

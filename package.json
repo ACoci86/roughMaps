@@ -13,8 +13,7 @@
   "dependencies": {
     "maplibre-gl": "^6.17.0",
     "polyclip-ts": "^0.16.8",
-    "roughjs": "^4.6.6",
-    "wired-elements": "^3.0.0-rc.6"
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",

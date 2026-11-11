@@ -1,17 +1,13 @@
 import { LngLat } from 'maplibre-gl';
 import { createPicker, MIN_ZOOM, MAX_ZOOM, COUNTRY_MIN_ZOOM, COUNTRY_MAX_ZOOM } from './picker';
 import { readFeatures } from './features';
-import 'wired-elements/lib/wired-slider.js';
-import 'wired-elements/lib/wired-checkbox.js';
-import 'wired-elements/lib/wired-card.js';
 import { prepareScene, drawSketch, cancelSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES, tinted } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
-import { roughScrollbar } from './scrollbar';
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
-import { setupSteps, setSummary, buildSwatches, selectSwatch, roughFrame, openStep, roughBox, roughRule } from './panel';
+import { setupSteps, setSummary, buildSwatches, selectSwatch, openStep } from './panel';
 import { styleSwatch } from './swatch';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
@@ -42,10 +38,8 @@ const styleNote = document.querySelector<HTMLParagraphElement>('#style-note')!;
 const tintRow = document.querySelector<HTMLDivElement>('#tint-row')!;
 const tintInput = document.querySelector<HTMLInputElement>('#tint')!;
 const fillStyleSelect = document.querySelector<HTMLSelectElement>('#fill-style')!;
-const sliders = document.querySelectorAll<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>(
-  'wired-slider[data-setting]',
-);
-const toggles = document.querySelectorAll<HTMLElement & { checked: boolean }>('wired-checkbox[data-setting]');
+const sliders = document.querySelectorAll<HTMLInputElement>('input[type="range"][data-setting]');
+const toggles = document.querySelectorAll<HTMLInputElement>('input[type="checkbox"][data-setting]');
 const loading = document.querySelector<HTMLDivElement>('#loading')!;
 const viewButton = document.querySelector<HTMLButtonElement>('#view-button')!;
 const searchForm = document.querySelector<HTMLFormElement>('#search-form')!;
@@ -55,6 +49,7 @@ const searchResults = document.querySelector<HTMLUListElement>('#search-results'
 const suggestionList = document.querySelector<HTMLUListElement>('#suggestions')!;
 const frame = document.querySelector<HTMLDivElement>('#frame')!;
 const mat = document.querySelector<HTMLDivElement>('#mat')!;
+const stage = document.querySelector<HTMLElement>('#stage')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
 const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
@@ -338,9 +333,9 @@ fillStyleSelect.addEventListener('change', () => {
 sliders.forEach((slider) => {
   const key = slider.dataset.setting as SliderKey;
   const label = document.querySelector<HTMLSpanElement>(`[data-value="${key}"]`)!;
-  slider.value = settings[key];
+  slider.value = String(settings[key]);
   label.textContent = String(settings[key]);
-  slider.addEventListener('change', () => {
+  slider.addEventListener('input', () => {
     settings[key] = Number(slider.value);
     label.textContent = String(settings[key]);
     redrawSoon();
@@ -1037,14 +1032,17 @@ function steadyHeight(): number {
   return viewHeight;
 }
 
+function mapPinned(): boolean {
+  return narrow.matches && steadyHeight() >= 600;
+}
+
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
   const pad = narrow.matches ? 0 : 26;
+  const cap = steadyHeight() * (mapPinned() ? 0.42 : 0.7);
   frame.style.setProperty('--mat-pad', `${pad}px`);
-  frame.style.height = narrow.matches
-    ? `${Math.min(((frame.clientWidth - pad * 2) * height) / width + pad * 2, steadyHeight() * 0.75)}px`
-    : '';
+  frame.style.height = narrow.matches ? `${Math.min((frame.clientWidth * height) / width, cap)}px` : '';
   const scale = Math.min((frame.clientWidth - pad * 2) / width, (frame.clientHeight - pad * 2) / height);
   const w = Math.floor(width * scale);
   const h = Math.floor(height * scale);
@@ -1055,6 +1053,7 @@ function fitPreview(): boolean {
   mat.style.width = `${w + pad * 2}px`;
   mat.style.height = `${h + pad * 2}px`;
   frame.style.setProperty('--paper-height', paper.style.height);
+  document.documentElement.style.setProperty('--stuck', mapPinned() ? `${stage.offsetHeight}px` : '0px');
   const changed = before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
   if (changed) map.resize();
   return changed;
@@ -1075,23 +1074,11 @@ function reshape(): void {
   if (!normalMap && map.isStyleLoaded()) sketchWhenReady();
 }
 
-function redrawControls(): void {
-  sliders.forEach((slider) => slider.wiredRender?.(true));
-  document.querySelector<HTMLElement & { wiredRender?: (force?: boolean) => void }>('#rotate')?.wiredRender?.(true);
-}
-
-function onWindowResize(): void {
-  fitPreview();
-  redrawControls();
-}
-
 sizeSelect.addEventListener('change', reshape);
 dpiSelect.addEventListener('change', showOutput);
-window.addEventListener('resize', onWindowResize);
+window.addEventListener('resize', fitPreview);
 showOutput();
 fitPreview();
-requestAnimationFrame(redrawControls);
-document.fonts.ready.then(redrawControls);
 
 async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
   if (!scene || stale) {
@@ -1173,7 +1160,7 @@ async function applyConfig(config: Config): Promise<void> {
   titleLayout.value = settings.titleLayout;
   sliders.forEach((slider) => {
     const key = slider.dataset.setting as SliderKey;
-    slider.value = settings[key];
+    slider.value = String(settings[key]);
     document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
   });
   toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
@@ -1222,13 +1209,12 @@ configFile.addEventListener('change', async () => {
   }
 });
 
-const rotateSlider = document.querySelector<HTMLElement & { value: number; wiredRender?: (force?: boolean) => void }>('#rotate')!;
+const rotateSlider = document.querySelector<HTMLInputElement>('#rotate')!;
 const rotateValue = document.querySelector<HTMLSpanElement>('#rotate-value')!;
 const straightenButton = document.querySelector<HTMLButtonElement>('#straighten')!;
 function showRotation(): void {
   const bearing = Math.round(map.getBearing());
-  rotateSlider.value = bearing;
-  rotateSlider.wiredRender?.(true);
+  rotateSlider.value = String(bearing);
   rotateValue.textContent = `${bearing}°`;
   straightenButton.disabled = bearing === 0;
 }
@@ -1239,24 +1225,17 @@ function rotateTo(bearing: number): void {
   straightenButton.disabled = Math.round(bearing) === 0;
 }
 
-rotateSlider.addEventListener('change', () => rotateTo(Number(rotateSlider.value)));
+rotateSlider.addEventListener('input', () => rotateTo(Number(rotateSlider.value)));
 straightenButton.addEventListener('click', () => {
   rotateTo(0);
   showRotation();
 });
 requestAnimationFrame(showRotation);
 
-roughFrame(document.querySelector<HTMLElement>('.coffee')!);
 sketchingAnimation(loading);
 
 const panel = document.querySelector<HTMLElement>('#panel')!;
-roughScrollbar(panel, document.querySelector<HTMLElement>('#rough-scrollbar')!);
-roughScrollbar(styleGrid, document.querySelector<HTMLElement>('#swatch-scrollbar')!);
-new ResizeObserver(redrawControls).observe(panel);
-setupSteps(() => {
-  requestAnimationFrame(redrawControls);
-  showNav();
-});
+setupSteps(showNav);
 
 const navLinks = [...document.querySelectorAll<HTMLButtonElement>('.nav-link')];
 const galleryDialog = document.querySelector<HTMLDialogElement>('#gallery-dialog')!;
@@ -1303,7 +1282,6 @@ for (const link of navLinks) {
 }
 
 for (const dialog of [galleryDialog, aboutDialog]) {
-  roughBox(dialog.querySelector<HTMLElement>('.dialog-card')!, 31);
   dialog.querySelector('.dialog-close')!.addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
@@ -1345,9 +1323,9 @@ async function openPreset(preset: Preset): Promise<void> {
     version: 1,
     place: preset.place,
     title: preset.place,
-    pins: [],
-    routes: [],
-    highlights: [],
+    pins,
+    routes,
+    highlights,
     center: preset.center,
     zoom: preset.zoom,
     bearing: preset.bearing ?? 0,
@@ -1358,12 +1336,14 @@ async function openPreset(preset: Preset): Promise<void> {
     dpi: Number(dpiSelect.value),
   });
   exportStatus.textContent = `Opened ${preset.place}`;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!mapPinned()) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-roughBox(mat, 17, 1.8);
-roughBox(document.querySelector<HTMLElement>('.intro')!, 23);
-document.querySelectorAll<HTMLElement>('.rule').forEach((rule, i) => roughRule(rule, 41 + i));
-document.querySelector('#more-options')!.addEventListener('toggle', () => requestAnimationFrame(redrawControls));
+panel.addEventListener('focusin', (event) => {
+  const typing = (event.target as HTMLElement).matches('input[type="search"], input[type="text"]');
+  document.body.classList.toggle('typing', typing);
+});
+panel.addEventListener('focusout', () => document.body.classList.remove('typing'));
+
 titleInput.addEventListener('input', showSummaries);
 showSummaries();
