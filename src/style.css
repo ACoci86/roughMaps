@@ -240,10 +240,49 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 
 .check {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   cursor: pointer;
   font-size: 13px;
+}
+
+.check > span {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  line-height: 18px;
+}
+
+.check small {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.range-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -2px;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.shape-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.shape-icon rect {
+  fill: var(--bg);
+  stroke: var(--muted);
+  stroke-width: 1.4;
+}
+
+.dropdown-list button[aria-selected='true'] .shape-icon rect,
+.dropdown-button .shape-icon rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
 }
 
 .check input {
@@ -942,6 +981,18 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.chip.photo {
+  aspect-ratio: 16 / 9;
+  background: var(--subtle);
+}
+
+.chip.photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .chip svg > path:last-child {

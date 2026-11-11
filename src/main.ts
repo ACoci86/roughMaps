@@ -1062,6 +1062,30 @@ for (const dpi of DPI_OPTIONS) dpiSelect.add(new Option(`${dpi} DPI`, String(dpi
 sizeSelect.value = DEFAULT_SIZE;
 dpiSelect.value = String(DEFAULT_DPI);
 
+function shapeIcon(width: number, height: number): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('shape-icon');
+  const k = 20 / Math.max(width, height);
+  const w = Math.max(6, width * k);
+  const h = Math.max(6, height * k);
+  const r = document.createElementNS(ns, 'rect');
+  for (const [key, v] of Object.entries({ x: 12 - w / 2, y: 12 - h / 2, width: w, height: h, rx: 1.5 })) r.setAttribute(key, String(v));
+  svg.append(r);
+  return svg;
+}
+
+const sizePicker = dropdown(sizeSelect, () =>
+  SIZES.map((size) => ({
+    value: size.id,
+    label: size.label,
+    note: `${size.group} · ${size.width} × ${size.height} ${size.unit}`,
+    icon: () => shapeIcon(size.width, size.height),
+  })),
+);
+
 function currentSize() {
   return SIZES.find((s) => s.id === sizeSelect.value) ?? SIZES[0];
 }
@@ -1222,6 +1246,7 @@ async function applyConfig(config: Config): Promise<void> {
   });
   toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
   if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
+  sizePicker.refresh();
   if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
   placeName = config.place || 'map';
   titleInput.value = config.title;
@@ -1342,8 +1367,19 @@ function buildGallery(): void {
       const button = document.createElement('button');
       button.type = 'button';
       const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.innerHTML = styleSwatch(style);
+      chip.className = 'chip photo';
+      const picture = document.createElement('img');
+      picture.src = `/gallery/${slug(preset.place)}.webp`;
+      picture.alt = '';
+      picture.width = 400;
+      picture.height = 225;
+      picture.loading = 'lazy';
+      picture.decoding = 'async';
+      picture.addEventListener('error', () => {
+        chip.classList.remove('photo');
+        chip.innerHTML = styleSwatch(style);
+      });
+      chip.append(picture);
       const name = document.createElement('b');
       name.textContent = preset.place;
       const look = document.createElement('small');

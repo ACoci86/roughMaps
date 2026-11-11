@@ -104,12 +104,14 @@
                 </div>
                 <label>Roughness <span data-value="roughness">1</span></label>
                 <input type="range" data-setting="roughness" min="0" max="5" step="0.25" value="1" aria-label="Roughness" />
+                <div class="range-ends" aria-hidden="true"><span>Neat</span><span>Wild</span></div>
                 <label>Label size <span data-value="labelScale">1</span></label>
                 <input type="range" data-setting="labelScale" min="0.5" max="2" step="0.1" value="1" aria-label="Label size" />
+                <div class="range-ends" aria-hidden="true"><span>Small</span><span>Large</span></div>
                 <div class="toggles">
-                  <label class="check"><input type="checkbox" data-setting="labels" checked /><span>Labels</span></label>
-                  <label class="check"><input type="checkbox" data-setting="doodles" checked /><span>Doodles</span></label>
-                  <label class="check"><input type="checkbox" data-setting="inked" checked /><span>Hand-drawn touches</span></label>
+                  <label class="check"><input type="checkbox" data-setting="labels" checked /><span>Labels<small>Street and place names</small></span></label>
+                  <label class="check"><input type="checkbox" data-setting="doodles" checked /><span>Doodles<small>Trees and little icons for cafés, museums and more</small></span></label>
+                  <label class="check"><input type="checkbox" data-setting="inked" checked /><span>Hand-drawn touches<small>Wobbly ink lines and marker-style fills</small></span></label>
                 </div>
                 <details id="more-options" class="more">
                   <summary>More options</summary>
@@ -126,10 +128,13 @@
                   </select>
                   <label>Outlines <span data-value="strokeWidth">1</span></label>
                   <input type="range" data-setting="strokeWidth" min="0" max="5" step="0.25" value="1" aria-label="Outlines" />
+                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
                   <label>Roads <span data-value="innerStrokeWidth">1</span></label>
                   <input type="range" data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1" aria-label="Roads" />
+                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
                   <label>Hatching <span data-value="fillWeight">1</span></label>
                   <input type="range" data-setting="fillWeight" min="0" max="3" step="0.1" value="1" aria-label="Hatching" />
+                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Dense</span></div>
                 </details>
               </div>
             </section>
@@ -148,10 +153,10 @@
                   <select id="title-layout" aria-label="Title position"></select>
                 </div>
                 <div class="toggles">
-                  <label class="check"><input type="checkbox" data-setting="poster" checked /><span>Show title</span></label>
-                  <label class="check"><input type="checkbox" data-setting="coords" checked /><span>Coordinates</span></label>
-                  <label class="check"><input type="checkbox" data-setting="compass" checked /><span>Compass and scale</span></label>
-                  <label class="check"><input type="checkbox" data-setting="border" /><span>Poster border</span></label>
+                  <label class="check"><input type="checkbox" data-setting="poster" checked /><span>Show title<small>The place name in a box on the poster</small></span></label>
+                  <label class="check"><input type="checkbox" data-setting="coords" checked /><span>Coordinates<small>Latitude and longitude under the title</small></span></label>
+                  <label class="check"><input type="checkbox" data-setting="compass" checked /><span>Compass and scale<small>North arrow and a scale bar</small></span></label>
+                  <label class="check"><input type="checkbox" data-setting="border" /><span>Poster border<small>A double frame around the whole poster</small></span></label>
                 </div>
 
                 <h3>Pins</h3>
