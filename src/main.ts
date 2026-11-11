@@ -1031,7 +1031,7 @@ const narrow = window.matchMedia('(max-width: 900px)');
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
-  const pad = narrow.matches ? 12 : 26;
+  const pad = narrow.matches ? 0 : 26;
   frame.style.setProperty('--mat-pad', `${pad}px`);
   frame.style.height = narrow.matches
     ? `${Math.min(((frame.clientWidth - pad * 2) * height) / width + pad * 2, window.innerHeight * 0.75)}px`

@@ -1254,12 +1254,9 @@ input[type='color'] {
     margin: 0 12px 12px;
   }
 
-  .intro {
-    margin: 10px 4px 2px 8px;
-  }
-
-  .intro h1 {
-    font-size: 26px;
+  .intro,
+  .mat {
+    display: none;
   }
 
   .perks {
@@ -1302,7 +1299,8 @@ input[type='color'] {
 
   .app {
     flex-direction: column;
-    padding: 0 16px;
+    gap: 6px;
+    padding: 0 12px;
   }
 
   .stage {
@@ -1315,18 +1313,19 @@ input[type='color'] {
   }
 
   .frame {
-    margin-bottom: 44px;
+    margin-bottom: 40px;
   }
 
   .frame-actions,
   .frame.title-top .frame-actions {
     top: auto;
-    bottom: -42px;
+    bottom: -36px;
   }
 
   .frame-actions button {
     font-size: 15px;
-    padding: 3px 10px;
+    padding: 2px 10px;
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
   body {
@@ -1345,9 +1344,11 @@ input[type='color'] {
 
   .panel {
     overflow: visible;
+    padding: 4px 2px 12px 0;
   }
 
-  .rough-scrollbar {
+  .rough-scrollbar,
+  .swatch-wrap .rough-scrollbar {
     display: none;
   }
 
@@ -1388,5 +1389,59 @@ input[type='color'] {
 
   .download-bar .note:empty {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar {
+    gap: 6px 8px;
+    padding: 10px 12px 4px;
+  }
+
+  .brand {
+    gap: 6px;
+  }
+
+  .brand img {
+    width: 30px;
+  }
+
+  .wordmark {
+    font-size: 1.45rem;
+  }
+
+  .top-actions {
+    gap: 10px;
+  }
+
+  .github {
+    padding: 2px 6px;
+  }
+
+  .github-mark {
+    width: 18px;
+    height: 18px;
+  }
+
+  .coffee img {
+    height: 24px;
+  }
+
+  .nav-link {
+    padding: 1px 8px;
+    font-size: 17px;
+  }
+
+  .download-bar {
+    gap: 6px 8px;
+    padding: 8px 12px 10px;
+  }
+
+  .download-label {
+    font-size: 17px;
+  }
+
+  .download-buttons .primary {
+    font-size: 17px;
   }
 }
