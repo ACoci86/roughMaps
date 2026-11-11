@@ -366,8 +366,9 @@ const generator = rough.generator();
 const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
 const doodleCache = new WeakMap<Scene, Map<string, Doodle[][]>>();
 const treeCache = new WeakMap<Scene, { green: Point[]; forest: Point[] }>();
-const simplifiedCache = new WeakMap<Scene, Map<string, ({ shape: Shape; angle: number } | null)[]>>();
-const MIN_BUILDING_AREA = 45;
+const simplifiedCache = new WeakMap<Scene, Map<string, ({ shape: Shape; angle: number; small: boolean } | null)[]>>();
+const MIN_BUILDING_AREA = 6;
+const SMALL_BUILDING_AREA = 45;
 const MIN_HOLE_AREA = 80;
 const MAX_ICONS = 40;
 const ICON_SPACING = 34;
@@ -456,22 +457,23 @@ export async function drawSketch(
   };
   const marker = inked && forced !== 'solid' && !style.flat;
   const prepared = (layer: string, list: Shape[]) => {
-    if (!inked) return list.map((shape) => ({ shape, angle: undefined as number | undefined }));
+    if (!inked) return list.map((shape) => ({ shape, angle: undefined as number | undefined, small: false }));
     const key = `${layer}|simple`;
     let cached = simplifiedCache.get(scene)?.get(key);
     if (!cached) {
       const buildings = layer === 'buildings';
       const pieces = buildings || layer === 'bridges' ? list : list.flatMap(splitPieces);
       cached = pieces.map((shape) => {
-        if (buildings && ringArea(shape[0]?.points ?? []) < MIN_BUILDING_AREA) return null;
+        const size = buildings ? ringArea(shape[0]?.points ?? []) : 0;
+        if (buildings && size < MIN_BUILDING_AREA) return null;
         const kept = buildings ? shape.filter((ring, k) => k === 0 || ringArea(ring.points) >= MIN_HOLE_AREA) : shape;
-        const simple = simplifyShape(kept, buildings ? 1.9 : 0.8);
-        return { shape: simple, angle: mainAngle(simple) };
+        const simple = simplifyShape(kept, buildings ? (size < SMALL_BUILDING_AREA ? 0.6 : 1.9) : 0.8);
+        return { shape: simple, angle: mainAngle(simple), small: buildings && size < SMALL_BUILDING_AREA };
       });
       if (!simplifiedCache.has(scene)) simplifiedCache.set(scene, new Map());
       simplifiedCache.get(scene)!.set(key, cached);
     }
-    return cached.map((c) => c ?? { shape: [] as Shape, angle: undefined });
+    return cached.map((c) => c ?? { shape: [] as Shape, angle: undefined, small: false });
   };
 
   const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint, parts?: Shape[]) => {
@@ -479,11 +481,27 @@ export async function drawSketch(
     const mode = inked ? 'inked' : 'plain';
     const baseKey = `${layer}|base|${hasOutline}|${roughness}|${mode}`;
     const shapes = prepared(layer, list);
-    shapes.forEach(({ shape, angle }, i) => {
+    shapes.forEach(({ shape, angle, small }, i) => {
       if (!shape.length) return;
       const id = shape[0]?.key ?? i;
       steps.push(() => {
         const p = look(id);
+        if (small) {
+          ctx.beginPath();
+          for (const { points } of shape) {
+            points.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+            ctx.closePath();
+          }
+          ctx.fillStyle = p.color;
+          ctx.fill('evenodd');
+          if (hasOutline) {
+            ctx.strokeStyle = style.ink;
+            ctx.lineWidth = Math.max(0.6, outlineWidth);
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          }
+          return;
+        }
         const base = shaped(baseKey, i, () =>
           generator.path(toPath(shape), {
             ...wobble,
@@ -499,7 +517,7 @@ export async function drawSketch(
         const [dx, dy] = inked ? fillOffset(id + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
-        if (marker) {
+        if (marker && !small) {
           const gap = layer === 'buildings' ? 2.6 : 3.4;
           const strokes = shaped(`${layer}|marker|${roughness}`, i, () =>
             generator.path(toPath(shape), {
@@ -519,7 +537,7 @@ export async function drawSketch(
         } else {
           paint(onlyFill(base), { stroke: 'none', fill: p.color });
         }
-        const patterned = !split && forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
+        const patterned = !small && !split && forced !== 'solid' && settings.fillWeight > 0 && (forced || (p.pattern && p.patternColor));
         if (patterned) {
           const fill = patternFill(p, forced, settings.fillWeight);
           if (tilt !== undefined && fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle(tilt);
