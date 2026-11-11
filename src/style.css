@@ -14,11 +14,13 @@
   --gutter: 36px;
   --panel-width: 380px;
   --soft: cubic-bezier(0.45, 0.05, 0.25, 1);
+  --sans: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hand: 'Gaegu', cursive;
 }
 
 * {
   box-sizing: border-box;
-  font-family: 'Gaegu', cursive;
+  font-family: var(--sans);
   scrollbar-width: thin;
   scrollbar-color: var(--rail) transparent;
 }
@@ -54,6 +56,18 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.wordmark,
+.wordmark span,
+.step-name,
+.download-label,
+.dialog-head h2,
+.loading,
+h3 {
+  font-family: var(--hand);
 }
 
 :focus-visible {
@@ -90,7 +104,7 @@ input[type='text'],
   border-radius: var(--radius);
   background: var(--paper);
   color: var(--ink);
-  font-size: 18px;
+  font-size: 14px;
 }
 
 button,
@@ -178,7 +192,7 @@ input[type='range']::-moz-range-thumb {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .check input {
@@ -228,7 +242,7 @@ input[type='range']::-moz-range-thumb {
 
 .note {
   margin: 4px 0 0;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -270,7 +284,7 @@ input[type='range']::-moz-range-thumb {
   margin: 0;
   flex: 1;
   min-width: 0;
-  font-size: 18px;
+  font-size: 15px;
   color: var(--muted);
 }
 
@@ -280,10 +294,11 @@ input[type='range']::-moz-range-thumb {
 }
 
 .nav-link {
-  padding: 4px 16px;
+  padding: 4px 14px;
   border-color: transparent;
   background: none;
-  font-size: 20px;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .nav-link.active,
@@ -438,7 +453,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .frame-actions button {
-  font-size: 17px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -523,32 +538,12 @@ input[type='range']::-moz-range-thumb {
   flex: none;
 }
 
-.intro {
-  padding: 14px 18px 15px;
-  border: var(--line);
-  border-radius: var(--radius);
-  background: var(--accent-soft);
-}
-
-.intro h1 {
-  margin: 0 0 4px;
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.08;
-}
-
-.intro p {
-  margin: 0;
-  font-size: 17px;
-  line-height: 1.25;
-}
-
 .card {
   padding: 6px 14px 8px;
   border: var(--line);
   border-radius: var(--radius);
   background: var(--paper);
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .step-head {
@@ -596,7 +591,7 @@ input[type='range']::-moz-range-thumb {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--muted);
   transition: opacity 0.4s ease;
@@ -665,7 +660,7 @@ input[type='range']::-moz-range-thumb {
 .card label:not(.check) {
   display: block;
   margin: 8px 0 0;
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .card label span[data-value],
@@ -724,7 +719,7 @@ input[type='range']::-moz-range-thumb {
   width: 100%;
   margin-bottom: 4px;
   text-align: left;
-  font-size: 16px;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -763,7 +758,7 @@ input[type='range']::-moz-range-thumb {
 
 .rotate-row button {
   flex: none;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .toggles {
@@ -799,7 +794,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .swatch {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .swatch:hover:not(:disabled),
@@ -844,6 +839,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .more summary {
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -853,7 +849,7 @@ input[type='range']::-moz-range-thumb {
   border-radius: var(--radius);
   background: var(--paper);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   list-style: none;
   user-select: none;
@@ -913,7 +909,7 @@ input[type='range']::-moz-range-thumb {
 .pins select {
   width: 84px;
   padding: 0 4px;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .pins .remove,
@@ -965,8 +961,9 @@ input[type='range']::-moz-range-thumb {
 }
 
 .download-buttons button {
+  font-weight: 700;
   min-height: 40px;
-  font-size: 19px;
+  font-size: 15px;
   letter-spacing: 1px;
 }
 
@@ -977,70 +974,14 @@ input[type='range']::-moz-range-thumb {
 
 .footer {
   margin: 14px var(--gutter) 0;
-  padding: 14px 0 10px;
+  padding: 10px 0 12px;
   border-top: var(--line);
   text-align: center;
 }
 
-.perks {
-  display: flex;
-  justify-content: center;
+.footer p {
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.perks li,
-.perks a {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  text-align: left;
-  text-decoration: none;
-}
-
-.perks li {
-  padding: 0 40px;
-}
-
-.perks li + li {
-  border-left: var(--line);
-}
-
-.perks svg {
-  flex: none;
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.perks b,
-.perks small {
-  display: block;
-}
-
-.perks b {
-  font-size: 19px;
-  font-weight: 400;
-}
-
-.perks small {
-  font-size: 15px;
-  color: var(--muted);
-}
-
-.perks a:hover b {
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-.credits {
-  margin: 10px 0 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -1076,7 +1017,7 @@ input[type='range']::-moz-range-thumb {
 }
 
 .dialog-card.about {
-  font-size: 19px;
+  font-size: 16px;
   line-height: 1.35;
 }
 
@@ -1118,18 +1059,12 @@ input[type='range']::-moz-range-thumb {
 
 .gallery b {
   margin-top: 3px;
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .gallery small {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--muted);
-}
-
-@media (max-height: 780px) and (min-width: 901px) {
-  .intro {
-    display: none;
-  }
 }
 
 @media (max-width: 1350px) {
@@ -1195,7 +1130,7 @@ input[type='range']::-moz-range-thumb {
 
   .nav-link {
     padding: 4px 12px;
-    font-size: 19px;
+    font-size: 15px;
   }
 
   .app {
@@ -1213,7 +1148,6 @@ input[type='range']::-moz-range-thumb {
     background: var(--page);
   }
 
-  .intro,
   .mat {
     display: none;
   }
@@ -1240,7 +1174,7 @@ input[type='range']::-moz-range-thumb {
   }
 
   .note {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .swatches {
@@ -1303,39 +1237,6 @@ input[type='range']::-moz-range-thumb {
     margin-top: 6px;
   }
 
-  .perks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 10px;
-  }
-
-  .perks li,
-  .perks a {
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .perks li {
-    padding: 0;
-  }
-
-  .perks li + li {
-    border-left: 0;
-  }
-
-  .perks svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .perks b {
-    font-size: 17px;
-  }
-
-  .perks small {
-    font-size: 14px;
-  }
-
   .dialog,
   .dialog.narrow {
     width: calc(100vw - 24px);
@@ -1381,7 +1282,7 @@ input[type='range']::-moz-range-thumb {
 
   .nav-link {
     padding: 4px 8px;
-    font-size: 18px;
+    font-size: 14px;
   }
 
   .download-bar {
