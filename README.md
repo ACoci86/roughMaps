@@ -6,6 +6,8 @@
 
 <p align="center">Turn any place into a hand-drawn map, right in your browser.</p>
 
+<p align="center"><b><a href="https://roughmaps.pages.dev">Try it at roughmaps.pages.dev</a></b></p>
+
 > **Beta:** roughMaps is still being built, so things may change or break.
 
 <p align="center">
