@@ -82,10 +82,3 @@ export function selectSwatch(container: HTMLElement, id: string): void {
     }
   }
 }
-
-export function openStep(name: string): void {
-  const step = document.querySelector<HTMLElement>(`.step[data-step="${name}"]`);
-  if (!step) return;
-  if (!step.classList.contains('open')) step.querySelector<HTMLButtonElement>('.step-head')!.click();
-  else step.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}

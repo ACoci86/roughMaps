@@ -7,7 +7,7 @@ import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type P
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
-import { setupSteps, setSummary, buildSwatches, selectSwatch, openStep } from './panel';
+import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
 import { styleSwatch } from './swatch';
 import { PIN_COLOR, PIN_ICONS, type Pin, type PinIcon } from './pins';
 import { TITLE_FONTS, TITLE_LAYOUTS, posterLayout, type TitleLayout } from './poster';
@@ -48,7 +48,6 @@ const searchStatus = document.querySelector<HTMLParagraphElement>('#search-statu
 const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
 const suggestionList = document.querySelector<HTMLUListElement>('#suggestions')!;
 const frame = document.querySelector<HTMLDivElement>('#frame')!;
-const mat = document.querySelector<HTMLDivElement>('#mat')!;
 const stage = document.querySelector<HTMLElement>('#stage')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
@@ -201,7 +200,6 @@ async function redraw(): Promise<void> {
   const style = currentStyle();
   const drawFrame = () => drawSketch(frameCanvas, drawn, style, settings, undefined, 'frame');
   paper.style.background = style.paper;
-  frame.style.setProperty('--mat', style.paper);
   if (drawn === shownScene) {
     await Promise.all([drawSketch(liveSheet, drawn, style, settings, undefined, 'map'), drawFrame()]);
     return;
@@ -259,7 +257,7 @@ function setNormalMap(on: boolean): void {
   normalMap = on;
   paper.hidden = on;
   frame.classList.toggle('sketching', !on);
-  viewButton.textContent = on ? 'Back to the sketch' : 'Normal map';
+  viewButton.textContent = on ? 'Show sketch' : 'Show plain map';
 }
 
 function sketchWhenReady(): void {
@@ -1039,20 +1037,25 @@ function mapPinned(): boolean {
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
-  const pad = narrow.matches ? 0 : 26;
-  const cap = steadyHeight() * (mapPinned() ? 0.42 : 0.7);
-  frame.style.setProperty('--mat-pad', `${pad}px`);
-  frame.style.height = narrow.matches ? `${Math.min((frame.clientWidth * height) / width, cap)}px` : '';
-  const scale = Math.min((frame.clientWidth - pad * 2) / width, (frame.clientHeight - pad * 2) / height);
+  const side = narrow.matches ? 12 : 40;
+  const top = narrow.matches ? 12 : 32;
+  const bottom = narrow.matches ? 56 : 76;
+  const cap = steadyHeight() * (mapPinned() ? 0.36 : 0.62);
+  frame.style.height = narrow.matches
+    ? `${Math.round(Math.min(((frame.clientWidth - side * 2) * height) / width, cap)) + top + bottom}px`
+    : '';
+  const roomW = frame.clientWidth - side * 2;
+  const roomH = frame.clientHeight - top - bottom;
+  const scale = Math.min(roomW / width, roomH / height);
   const w = Math.floor(width * scale);
   const h = Math.floor(height * scale);
   for (const el of [pickerBox, paper]) {
     el.style.width = `${w}px`;
     el.style.height = `${h}px`;
   }
-  mat.style.width = `${w + pad * 2}px`;
-  mat.style.height = `${h + pad * 2}px`;
-  frame.style.setProperty('--paper-height', paper.style.height);
+  const y = Math.round(top + Math.max(0, roomH - h) / 2);
+  frame.style.setProperty('--paper-top', `${y}px`);
+  frame.style.setProperty('--paper-bottom', `${y + h}px`);
   document.documentElement.style.setProperty('--stuck', mapPinned() ? `${stage.offsetHeight}px` : '0px');
   const changed = before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
   if (changed) map.resize();
@@ -1243,13 +1246,7 @@ const aboutDialog = document.querySelector<HTMLDialogElement>('#about-dialog')!;
 const galleryList = document.querySelector<HTMLUListElement>('#gallery-list')!;
 
 function showNav(): void {
-  const current = galleryDialog.open
-    ? 'gallery'
-    : aboutDialog.open
-      ? 'about'
-      : document.querySelector('.step[data-step="look"]')?.classList.contains('open')
-        ? 'styles'
-        : 'explore';
+  const current = galleryDialog.open ? 'gallery' : aboutDialog.open ? 'about' : '';
   for (const link of navLinks) {
     const on = link.dataset.nav === current;
     link.classList.toggle('active', on);
@@ -1258,20 +1255,10 @@ function showNav(): void {
   }
 }
 
-function showPanel(): void {
-  if (narrow.matches) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 for (const link of navLinks) {
   link.addEventListener('click', () => {
     const name = link.dataset.nav;
-    if (name === 'explore') {
-      openStep('place');
-      showPanel();
-    } else if (name === 'styles') {
-      openStep('look');
-      showPanel();
-    } else if (name === 'gallery') {
+    if (name === 'gallery') {
       if (!galleryList.childElementCount) buildGallery();
       galleryDialog.showModal();
     } else if (name === 'about') {
