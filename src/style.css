@@ -903,9 +903,91 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 .search input {
   flex: 1;
   min-width: 0;
-  height: 38px;
-  padding-left: 38px;
+  height: 40px;
+  padding-left: 40px;
+  padding-right: 40px;
+  border-color: var(--line-strong);
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.06);
   font-size: 14px;
+}
+
+.search input::placeholder {
+  color: var(--muted);
+}
+
+.search-key {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--subtle);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search input:focus ~ .search-key,
+.search input:not(:placeholder-shown) ~ .search-key {
+  display: none;
+}
+
+@media (hover: none) {
+  .search-key {
+    display: none;
+  }
+}
+
+.start {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.start-lead {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.start .note {
+  margin: 4px 0 0;
+}
+
+.start-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+}
+
+.start-search:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.try {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .search .search-go {
@@ -915,12 +997,12 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   bottom: 0;
   display: grid;
   place-items: center;
-  width: 38px;
+  width: 40px;
   height: auto;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .search .search-go:hover:not(:disabled) {

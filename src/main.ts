@@ -80,6 +80,7 @@ type SliderKey = 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight'
 const titleFont = document.querySelector<HTMLSelectElement>('#title-font')!;
 const titleLayout = document.querySelector<HTMLSelectElement>('#title-layout')!;
 const framing = document.querySelector<HTMLDivElement>('#framing')!;
+const start = document.querySelector<HTMLDivElement>('#start')!;
 const fitAreaButton = document.querySelector<HTMLButtonElement>('#fit-area')!;
 const closeUpButton = document.querySelector<HTMLButtonElement>('#close-up')!;
 
@@ -858,6 +859,7 @@ function setPlace(place: Place): void {
   showSummaries();
   lastPlace = place;
   framing.hidden = false;
+  start.hidden = true;
 }
 
 async function enterCountry(country: Country): Promise<void> {
@@ -1452,6 +1454,34 @@ async function openPreset(preset: Preset): Promise<void> {
   });
   exportStatus.textContent = `Opened ${preset.place}`;
 }
+
+const tryPlaces = document.querySelector<HTMLDivElement>('#try-places')!;
+tryPlaces.replaceChildren(
+  ...PRESETS.filter((p) => p !== preset)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 4)
+    .map((p) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'kind';
+      button.textContent = p.place;
+      button.addEventListener('click', () => openPreset(p));
+      return button;
+    }),
+);
+
+document.querySelector<HTMLButtonElement>('#search-focus')!.addEventListener('click', () => {
+  searchInput.focus();
+  searchInput.select();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+  if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
+  event.preventDefault();
+  searchInput.focus();
+  searchInput.select();
+});
 
 panel.addEventListener('focusin', (event) => {
   const typing = (event.target as HTMLElement).matches('input[type="search"], input[type="text"]');
