@@ -35,6 +35,8 @@ export const SIZES: OutputSize[] = [
 export const DPI_OPTIONS = [150, 200, 300];
 export const DEFAULT_SIZE = 'desktop';
 export const DEFAULT_DPI = 300;
+export const PHONE_SIZE = 'a3';
+export const PHONE_DPI = 200;
 
 export function pixelSize(size: OutputSize, dpi: number): { width: number; height: number } {
   if (size.unit === 'px') return { width: size.width, height: size.height };

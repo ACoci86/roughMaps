@@ -21,6 +21,8 @@ import {
   DPI_OPTIONS,
   DEFAULT_SIZE,
   DEFAULT_DPI,
+  PHONE_SIZE,
+  PHONE_DPI,
   pixelSize,
   renderPng,
   renderSvg,
@@ -122,7 +124,7 @@ let stale = false;
 let fresh = true;
 let normalMap = false;
 
-type Anchor = { x: number; y: number; here: LngLat; east: LngLat };
+type Anchor = { x: number; y: number; w: number; here: LngLat; east: LngLat };
 const ANCHOR_SPAN = 100;
 const sceneAnchors = new WeakMap<Scene, Anchor>();
 const sheetAnchors = new WeakMap<HTMLCanvasElement, Anchor>();
@@ -130,19 +132,20 @@ const sheetAnchors = new WeakMap<HTMLCanvasElement, Anchor>();
 function anchorHere(): Anchor {
   const x = pickerBox.clientWidth / 2;
   const y = pickerBox.clientHeight / 2;
-  return { x, y, here: map.unproject([x, y]), east: map.unproject([x + ANCHOR_SPAN, y]) };
+  return { x, y, w: pickerBox.clientWidth, here: map.unproject([x, y]), east: map.unproject([x + ANCHOR_SPAN, y]) };
 }
 
 function follow(): void {
   for (const sheet of sheets) {
     const anchor = sheetAnchors.get(sheet);
     if (!anchor) continue;
+    const s = pickerBox.clientWidth / anchor.w || 1;
     const p = map.project(anchor.here);
     const q = map.project(anchor.east);
-    const a = (q.x - p.x) / ANCHOR_SPAN;
-    const b = (q.y - p.y) / ANCHOR_SPAN;
-    const tx = p.x - (a * anchor.x - b * anchor.y);
-    const ty = p.y - (b * anchor.x + a * anchor.y);
+    const a = (q.x - p.x) / (ANCHOR_SPAN * s);
+    const b = (q.y - p.y) / (ANCHOR_SPAN * s);
+    const tx = p.x - s * (a * anchor.x - b * anchor.y);
+    const ty = p.y - s * (b * anchor.x + a * anchor.y);
     const still = Math.abs(a - 1) < 1e-4 && Math.abs(b) < 1e-4 && Math.abs(tx) < 0.05 && Math.abs(ty) < 0.05;
     sheet.style.transform = still ? '' : `matrix(${a}, ${b}, ${-b}, ${a}, ${tx}, ${ty})`;
   }
@@ -624,7 +627,8 @@ function moveGhost(event: PointerEvent): void {
 
 function mapPoint(event: PointerEvent): [number, number] {
   const box = map.getCanvas().getBoundingClientRect();
-  return [event.clientX - box.left, event.clientY - box.top];
+  const k = box.width / pickerBox.offsetWidth || 1;
+  return [(event.clientX - box.left) / k, (event.clientY - box.top) / k];
 }
 
 function usingTool(): boolean {
@@ -942,6 +946,7 @@ function hideSuggestions(): void {
 
 function pickSuggestion(place: Place): void {
   hideSuggestions();
+  if (narrow.matches) searchInput.blur();
   searchInput.value = place.name;
   searchResults.replaceChildren();
   searchStatus.textContent = place.label;
@@ -1038,6 +1043,7 @@ searchInput.addEventListener('blur', hideSuggestions);
 searchForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   hideSuggestions();
+  if (narrow.matches) searchInput.blur();
   const query = searchInput.value;
   if (!query.trim()) return;
   searchStatus.textContent = 'Searching...';
@@ -1065,7 +1071,11 @@ searchForm.addEventListener('submit', async (event) => {
   }
 });
 
-for (const size of SIZES) {
+const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+const sizeChoices = phone ? SIZES.filter((s) => s.height > s.width) : SIZES;
+const dpiChoices = phone ? DPI_OPTIONS.filter((d) => d <= PHONE_DPI) : DPI_OPTIONS;
+
+for (const size of sizeChoices) {
   let group = [...sizeSelect.querySelectorAll('optgroup')].find((g) => g.label === size.group);
   if (!group) {
     group = document.createElement('optgroup');
@@ -1074,9 +1084,9 @@ for (const size of SIZES) {
   }
   group.append(new Option(`${size.label}`, size.id));
 }
-for (const dpi of DPI_OPTIONS) dpiSelect.add(new Option(`${dpi} DPI`, String(dpi)));
-sizeSelect.value = DEFAULT_SIZE;
-dpiSelect.value = String(DEFAULT_DPI);
+for (const dpi of dpiChoices) dpiSelect.add(new Option(`${dpi} DPI`, String(dpi)));
+sizeSelect.value = phone ? PHONE_SIZE : DEFAULT_SIZE;
+dpiSelect.value = String(phone ? PHONE_DPI : DEFAULT_DPI);
 
 function shapeIcon(width: number, height: number): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
@@ -1094,7 +1104,7 @@ function shapeIcon(width: number, height: number): SVGSVGElement {
 }
 
 const sizePicker = dropdown(sizeSelect, () =>
-  SIZES.map((size) => ({
+  sizeChoices.map((size) => ({
     value: size.id,
     label: size.label,
     note: `${size.group} · ${size.width} × ${size.height} ${size.unit}`,
@@ -1111,27 +1121,40 @@ function outputPixels() {
 }
 
 const narrow = window.matchMedia('(max-width: 900px) and (orientation: portrait)');
+const short = window.matchMedia('(orientation: landscape) and (max-height: 500px)');
+const MIN_LAYOUT = 700;
 
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
+  const oldWidth = pickerBox.style.width ? pickerBox.clientWidth : 0;
   const { width, height } = outputPixels();
-  const side = narrow.matches ? 14 : 40;
-  const top = narrow.matches ? 14 : 32;
-  const bottom = narrow.matches ? 58 : 96;
+  const side = narrow.matches || short.matches ? 14 : 40;
+  const top = narrow.matches ? 52 : short.matches ? 12 : 32;
+  const bottom = narrow.matches ? 52 : short.matches ? 12 : 96;
   const roomW = frame.clientWidth - side * 2;
   const roomH = frame.clientHeight - top - bottom;
-  const scale = Math.min(roomW / width, roomH / height);
-  const w = Math.floor(width * scale);
-  const h = Math.floor(height * scale);
+  if (roomW < 40 || roomH < 40) return false;
+  const shown = Math.min(roomW / width, roomH / height);
+  const drawn = Math.max(shown, MIN_LAYOUT / Math.max(width, height));
+  const layoutW = Math.floor(width * drawn);
+  const layoutH = Math.floor(height * drawn);
+  const shrink = shown / drawn;
+  const w = Math.round(layoutW * shrink);
+  const h = Math.round(layoutH * shrink);
   for (const el of [pickerBox, paper]) {
-    el.style.width = `${w}px`;
-    el.style.height = `${h}px`;
+    el.style.width = `${layoutW}px`;
+    el.style.height = `${layoutH}px`;
   }
   const y = Math.round(top + Math.max(0, roomH - h) / 2);
-  frame.style.setProperty('--paper-top', `${y}px`);
-  frame.style.setProperty('--paper-bottom', `${y + h}px`);
+  frame.parentElement!.style.setProperty('--paper-scale', String(shrink));
+  frame.parentElement!.style.setProperty('--paper-top', `${y}px`);
+  frame.parentElement!.style.setProperty('--paper-bottom', `${y + h}px`);
+  frame.parentElement!.style.setProperty('--paper-right', `${Math.floor((frame.clientWidth - w) / 2)}px`);
   const changed = before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
-  if (changed) map.resize();
+  if (changed) {
+    map.resize();
+    if (oldWidth > 0 && layoutW !== oldWidth) map.setZoom(map.getZoom() + Math.log2(layoutW / oldWidth));
+  }
   return changed;
 }
 
@@ -1153,8 +1176,7 @@ function reshape(): void {
 
 sizeSelect.addEventListener('change', reshape);
 dpiSelect.addEventListener('change', showOutput);
-window.addEventListener('resize', fitPreview);
-narrow.addEventListener('change', fitPreview);
+new ResizeObserver(() => fitPreview()).observe(frame);
 
 const sheetInfo = document.querySelector<HTMLSpanElement>('#sheet-info')!;
 
@@ -1167,6 +1189,51 @@ function showSheetInfo(): void {
 map.on('moveend', showSheetInfo);
 showOutput();
 fitPreview();
+
+const readyDialog = document.querySelector<HTMLDialogElement>('#ready-dialog')!;
+const readyImage = document.querySelector<HTMLImageElement>('#ready-image')!;
+const readyName = document.querySelector<HTMLParagraphElement>('#ready-name')!;
+let readyFile: File | null = null;
+
+function deliver(blob: Blob, filename: string): void {
+  const file = new File([blob], filename, { type: blob.type });
+  if (!phone || !navigator.canShare?.({ files: [file] })) {
+    download(blob, filename);
+    return;
+  }
+  readyFile = file;
+  readyImage.hidden = !blob.type.startsWith('image/');
+  if (!readyImage.hidden) readyImage.src = URL.createObjectURL(blob);
+  readyName.textContent = filename;
+  readyDialog.showModal();
+}
+
+document.querySelector('#ready-share')!.addEventListener('click', async () => {
+  if (!readyFile) return;
+  try {
+    await navigator.share({ files: [readyFile] });
+    readyDialog.close();
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') return;
+    download(readyFile, readyFile.name);
+    readyDialog.close();
+  }
+});
+
+document.querySelector('#ready-download')!.addEventListener('click', () => {
+  if (readyFile) download(readyFile, readyFile.name);
+  readyDialog.close();
+});
+
+readyDialog.querySelector('.dialog-close')!.addEventListener('click', () => readyDialog.close());
+readyDialog.addEventListener('click', (event) => {
+  if (event.target === readyDialog) readyDialog.close();
+});
+readyDialog.addEventListener('close', () => {
+  if (readyImage.src) URL.revokeObjectURL(readyImage.src);
+  readyImage.removeAttribute('src');
+  readyFile = null;
+});
 
 async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
   if (!scene || stale) {
@@ -1186,15 +1253,15 @@ async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
     const name = `${slug(placeName)}-${currentStyle().id}`;
     if (format === 'png') {
       const blob = await renderPng(scene, currentStyle(), settings, output);
-      download(blob, `${name}-${output.width}x${output.height}.png`);
+      deliver(blob, `${name}-${output.width}x${output.height}.png`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else if (format === 'pdf') {
       const blob = await renderPdf(scene, currentStyle(), settings, currentSize(), output, titleInput.value || placeName);
-      download(blob, `${name}-${currentSize().id}.pdf`);
+      deliver(blob, `${name}-${currentSize().id}.pdf`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else {
       const blob = await renderSvg(scene, currentStyle(), settings, currentSize());
-      download(blob, `${name}-${currentSize().id}.svg`);
+      deliver(blob, `${name}-${currentSize().id}.svg`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     }
   } catch (error) {
@@ -1285,9 +1352,9 @@ async function applyConfig(config: Config): Promise<void> {
     document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
   });
   toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
-  if (SIZES.some((s) => s.id === config.size)) sizeSelect.value = config.size;
+  if (sizeChoices.some((s) => s.id === config.size)) sizeSelect.value = config.size;
   sizePicker.refresh();
-  if (DPI_OPTIONS.includes(config.dpi)) dpiSelect.value = String(config.dpi);
+  if (dpiChoices.includes(config.dpi)) dpiSelect.value = String(config.dpi);
   placeName = config.place || 'map';
   titleInput.value = config.title;
   pins = config.pins;
@@ -1483,11 +1550,17 @@ document.addEventListener('keydown', (event) => {
   searchInput.select();
 });
 
+const TEXT_FIELD = 'input[type="search"], input[type="text"]';
 panel.addEventListener('focusin', (event) => {
-  const typing = (event.target as HTMLElement).matches('input[type="search"], input[type="text"]');
-  document.body.classList.toggle('typing', typing);
+  if ((event.target as HTMLElement).matches(TEXT_FIELD)) document.body.classList.add('typing');
 });
-panel.addEventListener('focusout', () => document.body.classList.remove('typing'));
+panel.addEventListener('focusout', () => {
+  window.setTimeout(() => {
+    if (!document.activeElement?.matches(TEXT_FIELD)) document.body.classList.remove('typing');
+  }, 250);
+});
+searchInput.addEventListener('focus', () => document.body.classList.add('searching'));
+searchInput.addEventListener('blur', () => document.body.classList.remove('searching'));
 
 titleInput.addEventListener('input', showSummaries);
 showSummaries();

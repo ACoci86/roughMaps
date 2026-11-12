@@ -3,6 +3,7 @@ import { styleSwatch } from './swatch';
 import { LOOK_KINDS } from './kinds';
 
 const MOVES: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+const folding = window.matchMedia('(max-width: 900px) and (orientation: portrait)');
 
 let openTab: (name: string) => void = () => {};
 
@@ -11,9 +12,14 @@ export function setupSteps(onOpen: () => void): void {
   const steps = [...document.querySelectorAll<HTMLElement>('.step')];
   const panel = document.querySelector<HTMLElement>('#panel')!;
 
+  const title = document.querySelector<HTMLElement>('#sheet-title')!;
+  document.querySelector('#sheet-close')!.addEventListener('click', () => document.body.classList.remove('sheet-open'));
+
   const open = (name: string, focus = false) => {
+    document.body.classList.add('sheet-open');
     for (const tab of tabs) {
       const on = tab.dataset.step === name;
+      if (on) title.textContent = tab.textContent!.trim();
       tab.setAttribute('aria-selected', String(on));
       tab.tabIndex = on ? 0 : -1;
       if (on && focus) tab.focus();
@@ -31,7 +37,11 @@ export function setupSteps(onOpen: () => void): void {
   panel.dataset.step = 'place';
 
   tabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => open(tab.dataset.step!));
+    tab.addEventListener('click', () => {
+      const shut = folding.matches && document.body.classList.contains('sheet-open') && panel.dataset.step === tab.dataset.step;
+      if (shut) document.body.classList.remove('sheet-open');
+      else open(tab.dataset.step!);
+    });
     tab.addEventListener('keydown', (event) => {
       const move = MOVES[event.key];
       if (!move) return;

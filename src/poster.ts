@@ -141,7 +141,7 @@ function setTitleFont(ctx: CanvasRenderingContext2D, family: string, size: numbe
 function fitFont(ctx: CanvasRenderingContext2D, text: string, family: string, start: number, maxWidth: number): number {
   let size = Math.round(start);
   setTitleFont(ctx, family, size);
-  while (size > 12 && ctx.measureText(text).width > maxWidth) {
+  while (size > 6 && ctx.measureText(text).width > maxWidth) {
     size -= 2;
     setTitleFont(ctx, family, size);
   }
@@ -233,8 +233,13 @@ export function drawPosterTitle(
     ctx.restore();
     return;
   }
-  const coordSize = Math.max(Math.min(11, h * 0.2), Math.round(h * 0.16));
+  const coordText = formatCoordinates(center);
+  let coordSize = Math.max(Math.min(11, h * 0.2), Math.round(h * 0.16));
   ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
-  ctx.fillText(formatCoordinates(center), cx, Math.min(lineY + coordSize * 1.25, box.y1 - 4));
+  while (coordSize > 5 && ctx.measureText(coordText).width > w * 0.9) {
+    coordSize -= 1;
+    ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
+  }
+  ctx.fillText(coordText, cx, Math.min(lineY + coordSize * 1.25, box.y1 - 4));
   ctx.restore();
 }
