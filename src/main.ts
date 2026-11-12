@@ -7,10 +7,10 @@ import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type P
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
-import { setupSteps, setSummary, buildSwatches, selectSwatch } from './panel';
+import { setupSteps, openStep, setSummary, buildSwatches, selectSwatch } from './panel';
 import { styleSwatch, fillIcon } from './swatch';
 import { PIN_COLOR, PIN_ICONS, pinIconSvg, type Pin, type PinIcon } from './pins';
-import { TITLE_FONTS, TITLE_FONT_NOTES, TITLE_LAYOUTS, layoutIcon, posterLayout, type TitleLayout } from './poster';
+import { TITLE_FONTS, TITLE_FONT_NOTES, TITLE_LAYOUTS, layoutIcon, posterLayout, formatCoordinates, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
 import { pinAt } from './pins';
 import { dropdown } from './dropdown';
@@ -49,7 +49,6 @@ const searchStatus = document.querySelector<HTMLParagraphElement>('#search-statu
 const searchResults = document.querySelector<HTMLUListElement>('#search-results')!;
 const suggestionList = document.querySelector<HTMLUListElement>('#suggestions')!;
 const frame = document.querySelector<HTMLDivElement>('#frame')!;
-const stage = document.querySelector<HTMLElement>('#stage')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
 const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
@@ -357,15 +356,24 @@ function svgElement(markup: string): Element {
   return holder.firstElementChild!;
 }
 
+function lookIcon(): Element {
+  const style = currentStyle();
+  const icon = document.createElement('span');
+  icon.className = 'fill-icon look-icon';
+  const picture = document.createElement('img');
+  picture.src = `/looks/${style.id}.webp`;
+  picture.alt = '';
+  picture.addEventListener('error', () => icon.replaceChildren(svgElement(styleSwatch(style))));
+  icon.append(picture);
+  return icon;
+}
+
 const fillPicker = dropdown(fillStyleSelect, () =>
   [...fillStyleSelect.options].map((option) => ({
     value: option.value,
     label: option.text,
     note: FILL_NOTES[option.value],
-    icon: () =>
-      option.value === 'default'
-        ? svgElement(styleSwatch(currentStyle()).replace('<svg ', '<svg class="fill-icon look-icon" '))
-        : svgElement(fillIcon(option.value)),
+    icon: () => (option.value === 'default' ? lookIcon() : svgElement(fillIcon(option.value))),
   })),
 );
 
@@ -1027,6 +1035,7 @@ searchForm.addEventListener('submit', async (event) => {
   if (!query.trim()) return;
   searchStatus.textContent = 'Searching...';
   searchResults.replaceChildren();
+  openStep('place');
   const country = await findCountry(query);
   if (country) {
     if (searchInput.value !== query) return;
@@ -1094,31 +1103,14 @@ function outputPixels() {
   return pixelSize(currentSize(), Number(dpiSelect.value));
 }
 
-const narrow = window.matchMedia('(max-width: 900px)');
-let viewWidth = window.innerWidth;
-let viewHeight = window.innerHeight;
-
-function steadyHeight(): number {
-  const barOnly = narrow.matches && window.innerWidth === viewWidth && Math.abs(window.innerHeight - viewHeight) < 160;
-  if (!barOnly) viewHeight = window.innerHeight;
-  viewWidth = window.innerWidth;
-  return viewHeight;
-}
-
-function mapPinned(): boolean {
-  return narrow.matches && steadyHeight() >= 600;
-}
+const narrow = window.matchMedia('(max-width: 900px) and (orientation: portrait)');
 
 function fitPreview(): boolean {
   const before = `${pickerBox.style.width} ${pickerBox.style.height}`;
   const { width, height } = outputPixels();
-  const side = narrow.matches ? 12 : 40;
-  const top = narrow.matches ? 12 : 32;
-  const bottom = narrow.matches ? 56 : 76;
-  const cap = steadyHeight() * (mapPinned() ? 0.36 : 0.62);
-  frame.style.height = narrow.matches
-    ? `${Math.round(Math.min(((frame.clientWidth - side * 2) * height) / width, cap)) + top + bottom}px`
-    : '';
+  const side = narrow.matches ? 14 : 40;
+  const top = narrow.matches ? 14 : 32;
+  const bottom = narrow.matches ? 58 : 96;
   const roomW = frame.clientWidth - side * 2;
   const roomH = frame.clientHeight - top - bottom;
   const scale = Math.min(roomW / width, roomH / height);
@@ -1131,7 +1123,6 @@ function fitPreview(): boolean {
   const y = Math.round(top + Math.max(0, roomH - h) / 2);
   frame.style.setProperty('--paper-top', `${y}px`);
   frame.style.setProperty('--paper-bottom', `${y + h}px`);
-  document.documentElement.style.setProperty('--stuck', mapPinned() ? `${stage.offsetHeight}px` : '0px');
   const changed = before !== `${pickerBox.style.width} ${pickerBox.style.height}`;
   if (changed) map.resize();
   return changed;
@@ -1143,6 +1134,7 @@ function showOutput(): void {
   pixelsNote.textContent = `${width} × ${height} px`;
   const size = currentSize();
   setSummary('size', size.unit === 'mm' ? `${size.label}, ${dpiSelect.value} DPI` : size.label);
+  showSheetInfo();
 }
 
 function reshape(): void {
@@ -1155,6 +1147,17 @@ function reshape(): void {
 sizeSelect.addEventListener('change', reshape);
 dpiSelect.addEventListener('change', showOutput);
 window.addEventListener('resize', fitPreview);
+narrow.addEventListener('change', fitPreview);
+
+const sheetInfo = document.querySelector<HTMLSpanElement>('#sheet-info')!;
+
+function showSheetInfo(): void {
+  const { lng, lat } = map.getCenter();
+  const { width, height } = outputPixels();
+  sheetInfo.textContent = `${formatCoordinates([lng, lat]).replace(/\s+(?=\d)/, ', ')}  ·  ${currentSize().label}  ·  ${width} × ${height} px`;
+}
+
+map.on('moveend', showSheetInfo);
 showOutput();
 fitPreview();
 
@@ -1198,9 +1201,39 @@ function seconds(started: number): string {
   return ((performance.now() - started) / 1000).toFixed(1);
 }
 
-downloadButton.addEventListener('click', () => exportFile('png'));
-downloadSvgButton.addEventListener('click', () => exportFile('svg'));
-downloadPdfButton.addEventListener('click', () => exportFile('pdf'));
+const downloadOpen = document.querySelector<HTMLButtonElement>('#download-open')!;
+const downloadMenu = document.querySelector<HTMLDivElement>('#download-menu')!;
+
+function showDownloadMenu(open: boolean): void {
+  downloadMenu.hidden = !open;
+  downloadOpen.setAttribute('aria-expanded', String(open));
+}
+
+downloadOpen.addEventListener('click', () => {
+  const open = downloadOpen.getAttribute('aria-expanded') !== 'true';
+  showDownloadMenu(open);
+  if (open) downloadButton.focus();
+});
+document.addEventListener('click', (event) => {
+  if (!(event.target as HTMLElement).closest('.download')) showDownloadMenu(false);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && downloadOpen.getAttribute('aria-expanded') === 'true') {
+    showDownloadMenu(false);
+    downloadOpen.focus();
+  }
+});
+
+for (const [button, kind] of [
+  [downloadButton, 'png'],
+  [downloadSvgButton, 'svg'],
+  [downloadPdfButton, 'pdf'],
+] as const) {
+  button.addEventListener('click', () => {
+    showDownloadMenu(false);
+    exportFile(kind);
+  });
+}
 
 saveConfigButton.addEventListener('click', () => {
   const { lng, lat } = map.getCenter();
@@ -1413,7 +1446,6 @@ async function openPreset(preset: Preset): Promise<void> {
     dpi: Number(dpiSelect.value),
   });
   exportStatus.textContent = `Opened ${preset.place}`;
-  if (!mapPinned()) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 panel.addEventListener('focusin', (event) => {

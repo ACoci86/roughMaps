@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>roughMaps</title>
     <meta name="description" content="Turn any place into a hand-drawn map, right in your browser." />
     <meta name="theme-color" content="#ffffff" />
@@ -14,11 +14,19 @@
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/">
+      <a class="brand" href="/" aria-label="roughMaps home">
         <img src="/logo.svg" alt="" width="30" height="31" />
         <span class="wordmark">rough<span>Maps</span></span>
       </a>
-      <p class="tagline">Turn any place into a hand-drawn map</p>
+      <div class="finder">
+        <form id="search-form" class="search" role="search">
+          <input id="search" type="search" placeholder="Search a city, street or country" autocomplete="off" role="combobox" aria-label="Search a place" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" enterkeyhint="search" />
+          <button class="search-go" type="submit" aria-label="Search">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.25" /><path d="m15.6 15.6 4.4 4.4" /></svg>
+          </button>
+        </form>
+        <ul id="suggestions" class="results suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
+      </div>
       <nav class="nav" aria-label="Main">
         <button class="nav-link" type="button" data-nav="gallery">Gallery</button>
         <button class="nav-link" type="button" data-nav="about">About</button>
@@ -51,178 +59,173 @@
             <button id="view-button" type="button">Show plain map</button>
           </div>
         </div>
+        <div class="status-bar">
+          <span id="sheet-info"></span>
+          <span id="export-status" role="status"></span>
+        </div>
       </section>
 
-      <div class="panel-wrap">
-          <aside id="panel" class="panel">
-
-            <section class="card step open" data-step="place">
-              <button class="step-head" type="button" aria-expanded="true">
-                <span class="num">1</span>
-                <span class="step-name">Place</span>
-                <span class="summary" id="summary-place"></span>
-              </button>
-              <div class="step-body">
-                <form id="search-form" class="search">
-                  <input id="search" type="search" placeholder="Search a place" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" />
-                  <button class="search-go" type="submit" aria-label="Search">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                      <circle cx="10.5" cy="10.5" r="6.5" />
-                      <path d="m15.5 15.5 4.5 4.5" />
-                    </svg>
-                  </button>
-                </form>
-                <ul id="suggestions" class="results suggestions" role="listbox" aria-label="Suggestions" hidden></ul>
-                <p id="search-status" class="note"></p>
-                <ul id="search-results" class="results"></ul>
-                <div id="framing" class="row" hidden>
-                  <button id="fit-area" type="button">Whole area</button>
-                  <button id="close-up" type="button">Close up</button>
-                </div>
-                <p class="note">Drag the map to frame it. Scroll or pinch to zoom.</p>
-                <label>Rotate <span id="rotate-value">0°</span></label>
-                <div class="rotate-row">
-                  <input id="rotate" type="range" min="-180" max="180" step="1" value="0" aria-label="Rotate" />
-                  <button id="straighten" type="button">Straighten</button>
-                </div>
-              </div>
-            </section>
-
-            <section class="card step" data-step="look">
-              <button class="step-head" type="button" aria-expanded="false">
-                <span class="num">2</span>
-                <span class="step-name">Look</span>
-                <span class="summary" id="summary-look"></span>
-              </button>
-              <div class="step-body">
-                <select id="style" aria-label="Look" hidden></select>
-                <div id="style-grid" class="swatches" role="listbox" aria-label="Look"></div>
-                <p id="style-note" class="note"></p>
-                <div id="tint-row" class="row" hidden>
-                  <label for="tint">Pencil colour</label>
-                  <input id="tint" type="color" value="#c2557a" />
-                </div>
-                <label>Roughness <span data-value="roughness">1</span></label>
-                <input type="range" data-setting="roughness" min="0" max="5" step="0.25" value="1" aria-label="Roughness" />
-                <div class="range-ends" aria-hidden="true"><span>Neat</span><span>Wild</span></div>
-                <label>Label size <span data-value="labelScale">1</span></label>
-                <input type="range" data-setting="labelScale" min="0.5" max="2" step="0.1" value="1" aria-label="Label size" />
-                <div class="range-ends" aria-hidden="true"><span>Small</span><span>Large</span></div>
-                <div class="toggles">
-                  <label class="check"><input type="checkbox" data-setting="labels" checked /><span>Labels<small>Street and place names</small></span></label>
-                  <label class="check"><input type="checkbox" data-setting="doodles" checked /><span>Doodles<small>Trees and little icons for cafés, museums and more</small></span></label>
-                  <label class="check"><input type="checkbox" data-setting="inked" checked /><span>Hand-drawn touches<small>Wobbly ink lines and marker-style fills</small></span></label>
-                </div>
-                <details id="more-options" class="more">
-                  <summary>More options</summary>
-                  <label for="fill-style">Fill pattern</label>
-                  <select id="fill-style">
-                    <option value="default">Style default</option>
-                    <option value="hachure">Hachure</option>
-                    <option value="solid">Solid</option>
-                    <option value="cross-hatch">Cross-hatch</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="zigzag">Zigzag</option>
-                    <option value="zigzag-line">Zigzag line</option>
-                    <option value="dots">Dots</option>
-                  </select>
-                  <label>Outlines <span data-value="strokeWidth">1</span></label>
-                  <input type="range" data-setting="strokeWidth" min="0" max="5" step="0.25" value="1" aria-label="Outlines" />
-                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
-                  <label>Roads <span data-value="innerStrokeWidth">1</span></label>
-                  <input type="range" data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1" aria-label="Roads" />
-                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
-                  <label>Hatching <span data-value="fillWeight">1</span></label>
-                  <input type="range" data-setting="fillWeight" min="0" max="3" step="0.1" value="1" aria-label="Hatching" />
-                  <div class="range-ends" aria-hidden="true"><span>None</span><span>Dense</span></div>
-                </details>
-              </div>
-            </section>
-
-            <section class="card step" data-step="decorate">
-              <button class="step-head" type="button" aria-expanded="false">
-                <span class="num">3</span>
-                <span class="step-name">Decorate</span>
-                <span class="summary" id="summary-decorate"></span>
-              </button>
-              <div class="step-body">
-                <h3>Title</h3>
-                <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" aria-label="Title" />
-                <div class="row">
-                  <select id="title-font" aria-label="Title font"></select>
-                  <select id="title-layout" aria-label="Title position"></select>
-                </div>
-                <div class="toggles">
-                  <label class="check"><input type="checkbox" data-setting="poster" checked /><span>Show title<small>The place name in a box on the poster</small></span></label>
-                  <label class="check"><input type="checkbox" data-setting="coords" checked /><span>Coordinates<small>Latitude and longitude under the title</small></span></label>
-                  <label class="check"><input type="checkbox" data-setting="compass" checked /><span>Compass and scale<small>North arrow and a scale bar</small></span></label>
-                  <label class="check"><input type="checkbox" data-setting="border" /><span>Poster border<small>A double frame around the whole poster</small></span></label>
-                </div>
-
-                <h3>Pins</h3>
-                <form id="pin-form">
-                  <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
-                  <div class="row">
-                    <select id="pin-icon" aria-label="Pin shape"></select>
-                    <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
-                    <button id="pin-button" type="submit">Add pin</button>
-                  </div>
-                </form>
-                <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
-                <ul id="pin-list" class="results pins"></ul>
-
-                <h3>Buildings</h3>
-                <div class="row">
-                  <input id="highlight-color" type="color" value="#f2b134" aria-label="Building colour" title="Building colour" />
-                  <button id="highlight-button" type="button">Highlight a building</button>
-                </div>
-                <p id="highlight-status" class="note">Press Highlight a building, then click a building on the map.</p>
-                <ul id="highlight-list" class="results pins"></ul>
-
-                <h3>Routes</h3>
-                <div class="row">
-                  <input id="route-color" type="color" value="#2a6fdb" aria-label="Route colour" title="Route colour" />
-                  <button id="route-button" type="button">Draw a route</button>
-                  <button id="route-cancel" type="button" hidden>Cancel</button>
-                </div>
-                <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
-                <ul id="route-list" class="results pins"></ul>
-              </div>
-            </section>
-
-            <section class="card step" data-step="size">
-              <button class="step-head" type="button" aria-expanded="false">
-                <span class="num">4</span>
-                <span class="step-name">Size</span>
-                <span class="summary" id="summary-size"></span>
-              </button>
-              <div class="step-body">
-                <div class="row">
-                  <select id="size" aria-label="Size"></select>
-                  <select id="dpi" aria-label="Resolution"></select>
-                </div>
-                <p id="pixels" class="note"></p>
-                <h3>Your settings</h3>
-                <div class="row">
-                  <button id="save-config" type="button">Save to a file</button>
-                  <button id="load-config" type="button">Load a file</button>
-                </div>
-                <input id="config-file" type="file" accept="application/json,.json" hidden />
-                <p class="note">A small file that reopens this exact map later.</p>
-              </div>
-            </section>
-          </aside>
-
-        <div class="download-bar">
-          <span class="download-label">Download</span>
-          <div class="download-buttons">
-            <button id="download" class="primary" type="button">PNG</button>
-            <button id="download-svg" type="button">SVG</button>
-            <button id="download-pdf" type="button">PDF</button>
+      <aside id="panel" class="panel">
+        <section class="step" id="step-place" data-step="place" role="tabpanel" aria-labelledby="tab-place">
+          <h2 class="step-title">Place <span class="summary" id="summary-place"></span></h2>
+          <p id="search-status" class="note"></p>
+          <ul id="search-results" class="results"></ul>
+          <div id="framing" class="row" hidden>
+            <button id="fit-area" type="button">Whole area</button>
+            <button id="close-up" type="button">Close up</button>
           </div>
-          <p id="export-status" class="note"></p>
+          <p class="note">Drag the map to frame it. Scroll or pinch to zoom.</p>
+          <label>Rotate <span id="rotate-value">0°</span></label>
+          <div class="rotate-row">
+            <input id="rotate" type="range" min="-180" max="180" step="1" value="0" aria-label="Rotate" />
+            <button id="straighten" type="button">Straighten</button>
+          </div>
+        </section>
+
+        <section class="step" id="step-look" data-step="look" role="tabpanel" aria-labelledby="tab-look" hidden>
+          <h2 class="step-title">Look <span class="summary" id="summary-look"></span></h2>
+          <div id="look-kinds" class="kinds" role="group" aria-label="Kinds of look"></div>
+          <select id="style" aria-label="Look" hidden></select>
+          <div id="style-grid" class="swatches" role="listbox" aria-label="Look"></div>
+          <p class="note look-sample">Every preview shows Bern's old town, in the bend of the Aare.</p>
+          <div class="tune">
+            <p id="style-note" class="note"></p>
+            <div id="tint-row" class="row" hidden>
+              <label for="tint">Pencil colour</label>
+              <input id="tint" type="color" value="#c2557a" />
+            </div>
+            <label>Roughness <span data-value="roughness">1</span></label>
+            <input type="range" data-setting="roughness" min="0" max="5" step="0.25" value="1" aria-label="Roughness" />
+            <div class="range-ends" aria-hidden="true"><span>Neat</span><span>Wild</span></div>
+            <label>Label size <span data-value="labelScale">1</span></label>
+            <input type="range" data-setting="labelScale" min="0.5" max="2" step="0.1" value="1" aria-label="Label size" />
+            <div class="range-ends" aria-hidden="true"><span>Small</span><span>Large</span></div>
+            <details id="more-options" class="more">
+              <summary>
+                <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2.25" /><circle cx="9" cy="17" r="2.25" /></svg>
+                <span>More settings</span>
+              </summary>
+              <div class="toggles">
+                <label class="check"><input type="checkbox" data-setting="labels" checked /><span>Labels<small>Street and place names</small></span></label>
+                <label class="check"><input type="checkbox" data-setting="doodles" checked /><span>Doodles<small>Trees and little icons for cafés, museums and more</small></span></label>
+                <label class="check"><input type="checkbox" data-setting="inked" checked /><span>Hand-drawn touches<small>Wobbly ink lines and marker-style fills</small></span></label>
+              </div>
+              <label for="fill-style">Fill pattern</label>
+              <select id="fill-style">
+                <option value="default">Style default</option>
+                <option value="hachure">Hachure</option>
+                <option value="solid">Solid</option>
+                <option value="cross-hatch">Cross-hatch</option>
+                <option value="dashed">Dashed</option>
+                <option value="zigzag">Zigzag</option>
+                <option value="zigzag-line">Zigzag line</option>
+                <option value="dots">Dots</option>
+              </select>
+              <label>Outlines <span data-value="strokeWidth">1</span></label>
+              <input type="range" data-setting="strokeWidth" min="0" max="5" step="0.25" value="1" aria-label="Outlines" />
+              <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
+              <label>Roads <span data-value="innerStrokeWidth">1</span></label>
+              <input type="range" data-setting="innerStrokeWidth" min="0" max="3" step="0.25" value="1" aria-label="Roads" />
+              <div class="range-ends" aria-hidden="true"><span>None</span><span>Thick</span></div>
+              <label>Hatching <span data-value="fillWeight">1</span></label>
+              <input type="range" data-setting="fillWeight" min="0" max="3" step="0.1" value="1" aria-label="Hatching" />
+              <div class="range-ends" aria-hidden="true"><span>None</span><span>Dense</span></div>
+            </details>
+          </div>
+        </section>
+
+        <section class="step" id="step-decorate" data-step="decorate" role="tabpanel" aria-labelledby="tab-decorate" hidden>
+          <h2 class="step-title">Decorate <span class="summary" id="summary-decorate"></span></h2>
+          <h3>Title</h3>
+          <input id="title" type="text" maxlength="80" placeholder="Place name" autocomplete="off" aria-label="Title" />
+          <div class="row">
+            <select id="title-font" aria-label="Title font"></select>
+            <select id="title-layout" aria-label="Title position"></select>
+          </div>
+          <div class="toggles">
+            <label class="check"><input type="checkbox" data-setting="poster" checked /><span>Show title<small>The place name in a box on the poster</small></span></label>
+            <label class="check"><input type="checkbox" data-setting="coords" checked /><span>Coordinates<small>Latitude and longitude under the title</small></span></label>
+            <label class="check"><input type="checkbox" data-setting="compass" checked /><span>Compass and scale<small>North arrow and a scale bar</small></span></label>
+            <label class="check"><input type="checkbox" data-setting="border" /><span>Poster border<small>A double frame around the whole poster</small></span></label>
+          </div>
+
+          <h3>Pins</h3>
+          <form id="pin-form">
+            <input id="pin-note" type="text" maxlength="40" placeholder="A note, like: we met here" autocomplete="off" />
+            <div class="row">
+              <select id="pin-icon" aria-label="Pin shape"></select>
+              <input id="pin-color" type="color" value="#e4572e" aria-label="Pin colour" title="Pin colour" />
+              <button id="pin-button" type="submit">Add pin</button>
+            </div>
+          </form>
+          <p id="pin-status" class="note">Write a note, press Add pin, then click the map. Drag a pin to move it.</p>
+          <ul id="pin-list" class="results pins"></ul>
+
+          <h3>Buildings</h3>
+          <div class="row">
+            <input id="highlight-color" type="color" value="#f2b134" aria-label="Building colour" title="Building colour" />
+            <button id="highlight-button" type="button">Highlight a building</button>
+          </div>
+          <p id="highlight-status" class="note">Press Highlight a building, then click a building on the map.</p>
+          <ul id="highlight-list" class="results pins"></ul>
+
+          <h3>Routes</h3>
+          <div class="row">
+            <input id="route-color" type="color" value="#2a6fdb" aria-label="Route colour" title="Route colour" />
+            <button id="route-button" type="button">Draw a route</button>
+            <button id="route-cancel" type="button" hidden>Cancel</button>
+          </div>
+          <p id="route-status" class="note">Press Draw a route, then click the map point by point.</p>
+          <ul id="route-list" class="results pins"></ul>
+        </section>
+
+        <section class="step" id="step-size" data-step="size" role="tabpanel" aria-labelledby="tab-size" hidden>
+          <h2 class="step-title">Size <span class="summary" id="summary-size"></span></h2>
+          <div class="row">
+            <select id="size" aria-label="Size"></select>
+            <select id="dpi" aria-label="Resolution"></select>
+          </div>
+          <p id="pixels" class="note"></p>
+          <h3>Your settings</h3>
+          <div class="row">
+            <button id="save-config" type="button">Save to a file</button>
+            <button id="load-config" type="button">Load a file</button>
+          </div>
+          <input id="config-file" type="file" accept="application/json,.json" hidden />
+          <p class="note">A small file that reopens this exact map later.</p>
+        </section>
+      </aside>
+
+      <div class="download">
+        <button id="download-open" class="primary download-open" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="download-menu">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v10.5M7.5 10l4.5 4.5 4.5-4.5" /><path d="M4.5 15.5V18a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2.5" /></svg>
+          <span>Download</span>
+        </button>
+        <div id="download-menu" class="download-menu" role="menu" hidden>
+          <button id="download" type="button" role="menuitem">PNG image</button>
+          <button id="download-svg" type="button" role="menuitem">SVG vector</button>
+          <button id="download-pdf" type="button" role="menuitem">PDF document</button>
         </div>
       </div>
+
+      <nav class="rail" role="tablist" aria-label="Steps" aria-orientation="vertical">
+        <button class="rail-tab" id="tab-place" type="button" role="tab" data-step="place" aria-controls="step-place" aria-selected="true" tabindex="0">
+          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 21c-3.2-3-6.5-6.6-6.5-10.6a6.5 6.5 0 0 1 13 0c0 4-3.3 7.6-6.5 10.6Z" /><circle cx="12" cy="10.2" r="2.4" /></svg>
+          <span>Place</span>
+        </button>
+        <button class="rail-tab" id="tab-look" type="button" role="tab" data-step="look" aria-controls="step-look" aria-selected="false" tabindex="-1">
+          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M19.2 3.6a1.7 1.7 0 0 1 2.4 2.4l-8 8.2-2.5-2.5Z" /><path d="M11.1 11.7c-2.5-.8-5.1.5-5.4 3.3-.2 2-1.1 3.3-2.4 4 3 1.6 8 1.2 9.6-1.7.8-1.2 1-2.2.7-3.1" /></svg>
+          <span>Look</span>
+        </button>
+        <button class="rail-tab" id="tab-decorate" type="button" role="tab" data-step="decorate" aria-controls="step-decorate" aria-selected="false" tabindex="-1">
+          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="7.25" cy="7.5" r="3.5" /><path d="M16.75 4 20.6 10.75h-7.7Z" /><rect x="8.5" y="13.5" width="7" height="7" rx="1.2" /></svg>
+          <span>Decorate</span>
+        </button>
+        <button class="rail-tab" id="tab-size" type="button" role="tab" data-step="size" aria-controls="step-size" aria-selected="false" tabindex="-1">
+          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8.5V5a1 1 0 0 1 1-1h3.5M15.5 4H19a1 1 0 0 1 1 1v3.5M20 15.5V19a1 1 0 0 1-1 1h-3.5M8.5 20H5a1 1 0 0 1-1-1v-3.5" /><rect x="8.5" y="8" width="7" height="8" rx="1" /></svg>
+          <span>Size</span>
+        </button>
+      </nav>
     </main>
 
     <footer class="footer">

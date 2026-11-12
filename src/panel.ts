@@ -1,49 +1,48 @@
-import rough from 'roughjs';
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
+import { LOOK_KINDS } from './kinds';
 
-const generator = rough.generator();
+const MOVES: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
 
-function pickedOutline(seed: number): string {
-  const paths = generator
-    .toPaths(generator.rectangle(3, 3, 94, 69, { roughness: 2.4, bowing: 2.2, seed }))
-    .map((p) => `<path d="${p.d}" vector-effect="non-scaling-stroke"/>`)
-    .join('');
-  return `<svg class="picked" viewBox="0 0 100 75" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>`;
-}
-
-const ARROW =
-  '<svg class="arrow" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">' +
-  '<path d="M4.2 7.4 C6.6 9.6 8.4 11.6 10.1 13.6 C12 11.4 13.8 9.5 15.9 7.2"/></svg>';
+let openTab: (name: string) => void = () => {};
 
 export function setupSteps(onOpen: () => void): void {
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('.rail-tab')];
   const steps = [...document.querySelectorAll<HTMLElement>('.step')];
-  for (const step of steps) {
-    const body = step.querySelector<HTMLElement>('.step-body')!;
-    const inner = document.createElement('div');
-    inner.className = 'step-inner';
-    inner.append(...body.childNodes);
-    body.append(inner);
-    body.addEventListener('transitionend', (event) => {
-      if (event.target !== body || event.propertyName !== 'grid-template-rows') return;
-      onOpen();
-      if (!step.classList.contains('open')) return;
-      const view = step.parentElement!;
-      const room = view.scrollHeight > view.clientHeight + 1 ? view.clientHeight : window.innerHeight / 2;
-      step.scrollIntoView({ block: step.offsetHeight > room ? 'start' : 'nearest', behavior: 'smooth' });
+  const panel = document.querySelector<HTMLElement>('#panel')!;
+
+  const open = (name: string, focus = false) => {
+    for (const tab of tabs) {
+      const on = tab.dataset.step === name;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      if (on && focus) tab.focus();
+    }
+    for (const step of steps) step.hidden = step.dataset.step !== name;
+    panel.dataset.step = name;
+    panel.scrollTop = 0;
+    for (const grid of document.querySelectorAll<HTMLElement>(`#step-${name} .swatches`)) {
+      const picked = grid.querySelector<HTMLElement>('.swatch[aria-selected="true"]');
+      if (picked) revealSwatch(grid, picked);
+    }
+    onOpen();
+  };
+  openTab = open;
+  panel.dataset.step = 'place';
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => open(tab.dataset.step!));
+    tab.addEventListener('keydown', (event) => {
+      const move = MOVES[event.key];
+      if (!move) return;
+      event.preventDefault();
+      open(tabs[(i + move + tabs.length) % tabs.length].dataset.step!, true);
     });
-    const head = step.querySelector<HTMLButtonElement>('.step-head')!;
-    head.insertAdjacentHTML('beforeend', ARROW);
-    head.addEventListener('click', () => {
-      const opening = !step.classList.contains('open');
-      for (const other of steps) {
-        const open = other === step && opening;
-        other.classList.toggle('open', open);
-        other.querySelector('.step-head')!.setAttribute('aria-expanded', String(open));
-      }
-      onOpen();
-    });
-  }
+  });
+}
+
+export function openStep(name: string): void {
+  openTab(name);
 }
 
 export function setSummary(name: string, text: string): void {
@@ -51,7 +50,7 @@ export function setSummary(name: string, text: string): void {
   if (el) el.textContent = text;
 }
 
-function swatch(style: StyleSpec, index: number): HTMLButtonElement {
+function swatch(style: StyleSpec): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'swatch';
@@ -60,37 +59,75 @@ function swatch(style: StyleSpec, index: number): HTMLButtonElement {
   button.setAttribute('role', 'option');
   button.setAttribute('aria-selected', 'false');
   const chip = document.createElement('span');
-  chip.className = 'chip';
-  chip.innerHTML = styleSwatch(style);
+  chip.className = 'chip photo';
+  const picture = document.createElement('img');
+  picture.src = `/looks/${style.id}.webp`;
+  picture.alt = '';
+  picture.width = 360;
+  picture.height = 270;
+  picture.loading = 'lazy';
+  picture.decoding = 'async';
+  picture.addEventListener('error', () => {
+    chip.classList.remove('photo');
+    chip.innerHTML = styleSwatch(style);
+  });
+  chip.append(picture);
   const name = document.createElement('span');
   name.className = 'name';
   name.textContent = style.name;
   button.append(chip, name);
-  button.insertAdjacentHTML('afterbegin', pickedOutline(index + 3));
   return button;
 }
 
+function buildKinds(container: HTMLElement): void {
+  const bar = document.querySelector<HTMLElement>('#look-kinds');
+  if (!bar) return;
+  const kinds = [{ name: 'All', looks: [] as string[] }, ...LOOK_KINDS];
+  const chips = kinds.map((kind, i) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'kind';
+    chip.textContent = kind.name;
+    chip.setAttribute('aria-pressed', String(i === 0));
+    chip.addEventListener('click', () => {
+      for (const other of chips) other.setAttribute('aria-pressed', String(other === chip));
+      for (const button of container.querySelectorAll<HTMLButtonElement>('.swatch')) {
+        button.hidden = i > 0 && !kind.looks.includes(button.dataset.style!);
+      }
+      container.scrollTop = 0;
+      container.scrollLeft = 0;
+      const picked = container.querySelector<HTMLElement>('.swatch[aria-selected="true"]:not([hidden])');
+      if (picked) revealSwatch(container, picked);
+    });
+    return chip;
+  });
+  bar.replaceChildren(...chips);
+}
+
 export function buildSwatches(container: HTMLElement, styles: StyleSpec[], onPick: (id: string) => void): void {
-  container.replaceChildren(...styles.map((style, i) => swatch(style, i)));
+  container.replaceChildren(...styles.map((style) => swatch(style)));
+  buildKinds(container);
   container.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.swatch');
     if (button?.dataset.style) onPick(button.dataset.style);
   });
 }
 
+function revealSwatch(container: HTMLElement, button: HTMLElement): void {
+  const top = button.offsetTop - container.offsetTop;
+  if (top < container.scrollTop || top + button.offsetHeight > container.scrollTop + container.clientHeight) {
+    container.scrollTop = top - container.clientHeight / 2 + button.offsetHeight / 2;
+  }
+  const left = button.offsetLeft - container.offsetLeft;
+  if (left < container.scrollLeft || left + button.offsetWidth > container.scrollLeft + container.clientWidth) {
+    container.scrollLeft = left - container.clientWidth / 2 + button.offsetWidth / 2;
+  }
+}
+
 export function selectSwatch(container: HTMLElement, id: string): void {
   for (const button of container.querySelectorAll<HTMLButtonElement>('.swatch')) {
     const on = button.dataset.style === id;
     button.setAttribute('aria-selected', String(on));
-    if (on && container.clientHeight) {
-      const top = button.offsetTop - container.offsetTop;
-      if (top < container.scrollTop || top + button.offsetHeight > container.scrollTop + container.clientHeight) {
-        container.scrollTop = top - container.clientHeight / 2 + button.offsetHeight / 2;
-      }
-      const left = button.offsetLeft - container.offsetLeft;
-      if (left < container.scrollLeft || left + button.offsetWidth > container.scrollLeft + container.clientWidth) {
-        container.scrollLeft = left - container.clientWidth / 2 + button.offsetWidth / 2;
-      }
-    }
+    if (on && container.clientHeight) revealSwatch(container, button);
   }
 }
