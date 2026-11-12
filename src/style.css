@@ -1189,6 +1189,10 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   aspect-ratio: 4 / 3;
 }
 
+.gallery.tall .chip.photo {
+  aspect-ratio: 280 / 396;
+}
+
 .swatch[aria-selected='true'] {
   color: var(--accent);
   font-weight: 600;

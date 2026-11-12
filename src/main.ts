@@ -114,9 +114,17 @@ const PIN_HINT = pinStatus.textContent ?? '';
 
 type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'coords';
 
+const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+const PHONE_ZOOM_OUT = 0.6;
+
+function presetView(chosen: Preset): { center: [number, number]; zoom: number } {
+  if (!phone) return { center: chosen.center, zoom: chosen.zoom };
+  return chosen.phone ?? { center: chosen.center, zoom: chosen.zoom - PHONE_ZOOM_OUT };
+}
+
 const preset = pickPreset();
 const map = createPicker(pickerBox);
-map.jumpTo({ center: preset.center, zoom: preset.zoom, bearing: preset.bearing ?? 0 });
+map.jumpTo({ ...presetView(preset), bearing: preset.bearing ?? 0 });
 let scene: Scene | null = null;
 let shownScene: Scene | null = null;
 let liveSheet = sheets[0];
@@ -1071,7 +1079,6 @@ searchForm.addEventListener('submit', async (event) => {
   }
 });
 
-const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const sizeChoices = phone ? SIZES.filter((s) => s.height > s.width) : SIZES;
 const dpiChoices = phone ? DPI_OPTIONS.filter((d) => d <= PHONE_DPI) : DPI_OPTIONS;
 
@@ -1468,6 +1475,7 @@ function presetStyle(preset: Preset) {
 }
 
 function buildGallery(): void {
+  galleryList.classList.toggle('tall', phone);
   galleryList.replaceChildren(
     ...PRESETS.map((preset) => {
       const style = presetStyle(preset);
@@ -1476,10 +1484,10 @@ function buildGallery(): void {
       const chip = document.createElement('span');
       chip.className = 'chip photo';
       const picture = document.createElement('img');
-      picture.src = `/gallery/${slug(preset.place)}.webp`;
+      picture.src = `/gallery/${phone ? 'phone/' : ''}${slug(preset.place)}.webp`;
       picture.alt = '';
-      picture.width = 400;
-      picture.height = 225;
+      picture.width = phone ? 280 : 400;
+      picture.height = phone ? 396 : 225;
       picture.loading = 'lazy';
       picture.decoding = 'async';
       picture.addEventListener('error', () => {
@@ -1510,8 +1518,7 @@ async function openPreset(preset: Preset): Promise<void> {
     pins,
     routes,
     highlights,
-    center: preset.center,
-    zoom: preset.zoom,
+    ...presetView(preset),
     bearing: preset.bearing ?? 0,
     style: preset.style,
     ...(preset.tint ? { tint: preset.tint } : {}),
