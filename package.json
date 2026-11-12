@@ -11,7 +11,9 @@
     "logo": "node scripts/logo.mjs"
   },
   "dependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
     "maplibre-gl": "^6.17.0",
+    "pbf": "^5.1.2",
     "polyclip-ts": "^0.16.8",
     "roughjs": "^4.6.6"
   },

@@ -1,6 +1,8 @@
 import { LngLat } from 'maplibre-gl';
 import { createPicker, MIN_ZOOM, MAX_ZOOM, COUNTRY_MIN_ZOOM, COUNTRY_MAX_ZOOM } from './picker';
 import { readFeatures } from './features';
+import { loadHouses } from './houses';
+import type { Feature } from 'geojson';
 import { prepareScene, drawSketch, cancelSketch, buildingAt, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import { STYLES, tinted } from './styles';
 import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type Place } from './search';
@@ -163,10 +165,12 @@ function placedPins() {
   });
 }
 
-function makeScene(): Scene {
+function makeScene(houses: Feature[] | null = null): Scene {
+  const features = readFeatures(map);
+  if (houses) features.buildings = houses;
   const made = countryMode
     ? prepareCountryScene(map, focusCountry, titleInput.value)
-    : prepareScene(map, readFeatures(map), titleInput.value);
+    : prepareScene(map, features, titleInput.value);
   made.pins = placedPins();
   made.routes = placedRoutes();
   made.highlights = placedHighlights();
@@ -249,8 +253,9 @@ let sketchRun = 0;
 async function sketch(): Promise<void> {
   const run = ++sketchRun;
   if (countryMode) await loadDetails(map);
+  const houses = countryMode ? null : await loadHouses(map);
   if (run !== sketchRun) return;
-  scene = makeScene();
+  scene = makeScene(houses);
   stale = false;
   if (fresh || !shownScene) showScene(scene, liveSheet);
   fresh = false;
@@ -1168,7 +1173,7 @@ async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
       return;
     }
     if (countryMode) await loadDetails(map);
-    scene = makeScene();
+    scene = makeScene(countryMode ? null : await loadHouses(map));
   }
   const output = outputPixels();
   const buttons = [downloadButton, downloadSvgButton, downloadPdfButton];

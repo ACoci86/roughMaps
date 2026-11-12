@@ -135,7 +135,7 @@ function mergeAreas(list: GeoJSONFeature[]): Geometry[] {
   }
 }
 
-function splitPolygons(list: GeoJSONFeature[]): Polygon[] {
+function splitPolygons(list: { geometry: Geometry }[]): Polygon[] {
   return list.flatMap((f): Polygon[] => {
     const g = f.geometry;
     if (g.type === 'Polygon') return [g];

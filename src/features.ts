@@ -1,11 +1,12 @@
 import type { Map, GeoJSONFeature, FilterSpecification, ExpressionSpecification } from 'maplibre-gl';
+import type { Feature } from 'geojson';
 
 export type MapFeatures = {
   water: GeoJSONFeature[];
   green: GeoJSONFeature[];
   forest: GeoJSONFeature[];
   sand: GeoJSONFeature[];
-  buildings: GeoJSONFeature[];
+  buildings: Feature[];
   bridges: GeoJSONFeature[];
   roads: GeoJSONFeature[];
   railways: GeoJSONFeature[];
