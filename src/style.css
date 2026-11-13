@@ -272,6 +272,23 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   color: var(--muted);
 }
 
+.setting-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-name .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  stroke-width: 1.9;
+}
+
+.check .setting-name + small {
+  padding-left: 26px;
+}
+
 .range-ends {
   display: flex;
   justify-content: space-between;
@@ -891,7 +908,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 .step label:not(.check) {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin: 14px 0 2px;
   font-size: 13px;
   font-weight: 500;
@@ -1087,6 +1104,15 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 
 .row > input[type='color'] {
   flex: none;
+}
+
+#tint-row {
+  align-items: center;
+  margin-top: 14px;
+}
+
+#tint-row label {
+  margin: 0;
 }
 
 #framing {
