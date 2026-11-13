@@ -275,7 +275,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 .setting-name {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .setting-name .icon {
@@ -286,7 +286,7 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 }
 
 .check .setting-name + small {
-  padding-left: 26px;
+  padding-left: 30px;
 }
 
 .range-ends {
