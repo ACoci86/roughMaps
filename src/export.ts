@@ -62,12 +62,16 @@ export async function renderSvg(
   style: StyleSpec,
   settings: SketchSettings,
   size: OutputSize,
+  compressed = false,
 ): Promise<Blob> {
   const target = svgCanvas();
   await drawSketch(target.canvas, scene, style, settings, { width: scene.width, height: scene.height });
   const unit = size.unit === 'mm' ? 'mm' : '';
   const svg = await target.toSvg({ width: `${size.width}${unit}`, height: `${size.height}${unit}` });
-  return new Blob([svg], { type: 'image/svg+xml' });
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  if (!compressed) return blob;
+  const packed = await new Response(blob.stream().pipeThrough(new CompressionStream('gzip'))).blob();
+  return new Blob([packed], { type: 'image/svg+xml' });
 }
 
 export async function renderPdf(

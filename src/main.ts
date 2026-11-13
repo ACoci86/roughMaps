@@ -62,6 +62,7 @@ const loadConfigButton = document.querySelector<HTMLButtonElement>('#load-config
 const configFile = document.querySelector<HTMLInputElement>('#config-file')!;
 const exportStatus = document.querySelector<HTMLParagraphElement>('#export-status')!;
 const downloadSvgButton = document.querySelector<HTMLButtonElement>('#download-svg')!;
+const downloadSvgzButton = document.querySelector<HTMLButtonElement>('#download-svgz')!;
 const titleInput = document.querySelector<HTMLInputElement>('#title')!;
 const pinForm = document.querySelector<HTMLFormElement>('#pin-form')!;
 const pinNote = document.querySelector<HTMLInputElement>('#pin-note')!;
@@ -1281,7 +1282,7 @@ readyDialog.addEventListener('close', () => {
   readyFile = null;
 });
 
-async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
+async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf'): Promise<void> {
   if (!scene || stale) {
     if (!map.isStyleLoaded()) {
       exportStatus.textContent = 'The map is still loading. Try again in a moment.';
@@ -1291,7 +1292,7 @@ async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
     scene = makeScene(countryMode ? null : await loadHouses(map));
   }
   const output = outputPixels();
-  const buttons = [downloadButton, downloadSvgButton, downloadPdfButton];
+  const buttons = [downloadButton, downloadSvgButton, downloadSvgzButton, downloadPdfButton];
   buttons.forEach((b) => (b.disabled = true));
   exportStatus.textContent = 'Drawing...';
   const started = performance.now();
@@ -1306,8 +1307,8 @@ async function exportFile(format: 'png' | 'svg' | 'pdf'): Promise<void> {
       deliver(blob, `${name}-${currentSize().id}.pdf`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else {
-      const blob = await renderSvg(scene, currentStyle(), settings, currentSize());
-      deliver(blob, `${name}-${currentSize().id}.svg`);
+      const blob = await renderSvg(scene, currentStyle(), settings, currentSize(), format === 'svgz');
+      deliver(blob, `${name}-${currentSize().id}.${format}`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     }
   } catch (error) {
@@ -1347,6 +1348,7 @@ document.addEventListener('keydown', (event) => {
 for (const [button, kind] of [
   [downloadButton, 'png'],
   [downloadSvgButton, 'svg'],
+  [downloadSvgzButton, 'svgz'],
   [downloadPdfButton, 'pdf'],
 ] as const) {
   button.addEventListener('click', () => {

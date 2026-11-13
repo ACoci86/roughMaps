@@ -14,6 +14,9 @@ type State = {
   matrix: Matrix;
 };
 
+type Op = { cmd: 'M' | 'L' | 'C' | 'Z'; at: number[] };
+type Piece = { ops: Op[]; x0: number; y0: number; x1: number; y1: number };
+
 const ANCHORS: Record<string, string> = { left: 'start', start: 'start', center: 'middle', right: 'end', end: 'end' };
 const BASELINES: Record<string, string> = {
   top: 'text-before-edge',
@@ -26,6 +29,53 @@ const BASELINES: Record<string, string> = {
 
 function num(n: number): string {
   return String(Math.round(n * 100) / 100);
+}
+
+function tenths(n: number): string {
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  const whole = Math.floor(a / 10);
+  const part = a % 10;
+  if (!part) return sign + whole;
+  return `${sign}${whole || ''}.${part}`;
+}
+
+function pathData(pieces: Piece[]): string {
+  let out = '';
+  let last = '';
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  const put = (cmd: string, values: number[]) => {
+    if (cmd !== last) out += cmd;
+    else if (values[0] >= 0) out += ' ';
+    values.forEach((v, i) => {
+      if (i > 0 && v >= 0) out += ' ';
+      out += tenths(v);
+    });
+    last = cmd === 'm' ? 'l' : cmd;
+  };
+  for (const piece of pieces) {
+    for (const { cmd, at } of piece.ops) {
+      if (cmd === 'Z') {
+        out += 'z';
+        last = 'z';
+        x = startX;
+        y = startY;
+        continue;
+      }
+      const relative = at.map((v, i) => v - (i % 2 ? y : x));
+      put(cmd.toLowerCase(), relative);
+      x = at[at.length - 2];
+      y = at[at.length - 1];
+      if (cmd === 'M') {
+        startX = x;
+        startY = y;
+      }
+    }
+  }
+  return out;
 }
 
 function escape(text: string): string {
@@ -51,11 +101,14 @@ class SvgContext {
     matrix: [1, 0, 0, 1, 0, 0],
   };
   private stack: State[] = [];
-  private path: string[] = [];
+  private pieces: Piece[] = [];
+  private group = '';
   private measurer = document.createElement('canvas').getContext('2d')!;
   readonly parts: string[] = [];
   readonly families = new Set<string>();
   readonly chars = new Set<number>();
+
+  constructor(private size: () => [number, number]) {}
 
   get fillStyle() { return this.state.fillStyle; }
   set fillStyle(v: string) { this.state.fillStyle = String(v); }
@@ -118,34 +171,73 @@ class SvgContext {
     m[3] *= y;
   }
 
-  private point(x: number, y: number): string {
-    const [a, b, c, d, e, f] = this.state.matrix;
-    return `${num(a * x + c * y + e)} ${num(b * x + d * y + f)}`;
-  }
-
   private zoom(): number {
     const [a, b, c, d] = this.state.matrix;
     return Math.sqrt(Math.abs(a * d - b * c));
   }
 
+  private add(cmd: 'M' | 'L' | 'C', coords: number[]): void {
+    const [a, b, c, d, e, f] = this.state.matrix;
+    const at: number[] = [];
+    for (let i = 0; i < coords.length; i += 2) {
+      const [x, y] = [coords[i], coords[i + 1]];
+      at.push(Math.round((a * x + c * y + e) * 10), Math.round((b * x + d * y + f) * 10));
+    }
+    let piece = this.pieces[this.pieces.length - 1];
+    if (cmd === 'M' || !piece) {
+      piece = { ops: [], x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+      this.pieces.push(piece);
+      cmd = 'M';
+      at.splice(0, at.length - 2);
+    }
+    piece.ops.push({ cmd, at });
+    for (let i = 0; i < at.length; i += 2) {
+      if (at[i] < piece.x0) piece.x0 = at[i];
+      if (at[i] > piece.x1) piece.x1 = at[i];
+      if (at[i + 1] < piece.y0) piece.y0 = at[i + 1];
+      if (at[i + 1] > piece.y1) piece.y1 = at[i + 1];
+    }
+  }
+
+  private onFrame(reach: number): Piece[] {
+    const [width, height] = this.size();
+    const m = Math.ceil(reach * 10) + 10;
+    const w = width * 10;
+    const h = height * 10;
+    return this.pieces.filter((p) => p.x1 >= -m && p.x0 <= w + m && p.y1 >= -m && p.y0 <= h + m);
+  }
+
+  private emit(attrs: string, element: string): void {
+    if (attrs !== this.group) {
+      if (this.group) this.parts.push('</g>');
+      if (attrs) this.parts.push(`<g ${attrs}>`);
+      this.group = attrs;
+    }
+    this.parts.push(element);
+  }
+
+  finish(): void {
+    this.emit('', '');
+  }
+
   beginPath(): void {
-    this.path = [];
+    this.pieces = [];
   }
 
   moveTo(x: number, y: number): void {
-    this.path.push(`M${this.point(x, y)}`);
+    this.add('M', [x, y]);
   }
 
   lineTo(x: number, y: number): void {
-    this.path.push(`L${this.point(x, y)}`);
+    this.add('L', [x, y]);
   }
 
   bezierCurveTo(x1: number, y1: number, x2: number, y2: number, x: number, y: number): void {
-    this.path.push(`C${this.point(x1, y1)} ${this.point(x2, y2)} ${this.point(x, y)}`);
+    this.add('C', [x1, y1, x2, y2, x, y]);
   }
 
   closePath(): void {
-    this.path.push('Z');
+    this.pieces[this.pieces.length - 1]?.ops.push({ cmd: 'Z', at: [] });
   }
 
   private strokeAttrs(): string {
@@ -158,20 +250,31 @@ class SvgContext {
   }
 
   fill(rule?: CanvasFillRule): void {
-    if (!this.path.length || !visible(this.state.fillStyle)) return;
+    if (!visible(this.state.fillStyle)) return;
+    const pieces = this.onFrame(0);
+    if (!pieces.length) return;
     const ruleAttr = rule === 'evenodd' ? ' fill-rule="evenodd"' : '';
-    this.parts.push(`<path d="${this.path.join('')}" fill="${escape(this.state.fillStyle)}"${ruleAttr}/>`);
+    this.emit(`fill="${escape(this.state.fillStyle)}"${ruleAttr}`, `<path d="${pathData(pieces)}"/>`);
   }
 
   stroke(): void {
-    if (!this.path.length || !visible(this.state.strokeStyle)) return;
-    this.parts.push(`<path d="${this.path.join('')}" ${this.strokeAttrs()}/>`);
+    if (!visible(this.state.strokeStyle)) return;
+    const pieces = this.onFrame(this.state.lineWidth * this.zoom());
+    if (!pieces.length) return;
+    this.emit(this.strokeAttrs(), `<path d="${pathData(pieces)}"/>`);
   }
 
   fillRect(x: number, y: number, w: number, h: number): void {
     if (!visible(this.state.fillStyle)) return;
-    const d = `M${this.point(x, y)}L${this.point(x + w, y)}L${this.point(x + w, y + h)}L${this.point(x, y + h)}Z`;
-    this.parts.push(`<path d="${d}" fill="${escape(this.state.fillStyle)}"/>`);
+    const saved = this.pieces;
+    this.pieces = [];
+    this.moveTo(x, y);
+    this.lineTo(x + w, y);
+    this.lineTo(x + w, y + h);
+    this.lineTo(x, y + h);
+    this.closePath();
+    this.fill();
+    this.pieces = saved;
   }
 
   private text(text: string, x: number, y: number, paint: string): void {
@@ -182,7 +285,8 @@ class SvgContext {
     const [a, b, c, d, e, f] = s.matrix;
     const font = s.font.replace(/"/g, "'");
     const spacing = parseFloat(s.letterSpacing) ? ` letter-spacing="${escape(s.letterSpacing)}"` : '';
-    this.parts.push(
+    this.emit(
+      '',
       `<text transform="matrix(${[a, b, c, d, e, f].map(num).join(' ')})" x="${num(x)}" y="${num(y)}" ` +
         `style="font: ${escape(font)}; white-space: pre" text-anchor="${ANCHORS[s.textAlign] ?? 'start'}" ` +
         `dominant-baseline="${BASELINES[s.textBaseline] ?? 'alphabetic'}"${spacing} ${paint}>${escape(text)}</text>`,
@@ -260,11 +364,12 @@ export type SvgCanvas = {
 };
 
 export function svgCanvas(): SvgCanvas {
-  const ctx = new SvgContext();
   const target = { width: 0, height: 0, getContext: () => ctx };
+  const ctx = new SvgContext(() => [target.width, target.height]);
   return {
     canvas: target as unknown as HTMLCanvasElement,
     toSvg: async ({ width, height }) => {
+      ctx.finish();
       const fonts = await embeddedFonts(ctx.families, ctx.chars);
       return [
         `<?xml version="1.0" encoding="UTF-8"?>`,
@@ -272,7 +377,7 @@ export function svgCanvas(): SvgCanvas {
         fonts ? `<style><![CDATA[${fonts}]]></style>` : '',
         `<clipPath id="frame"><rect width="${target.width}" height="${target.height}"/></clipPath>`,
         `<g clip-path="url(#frame)">`,
-        ...ctx.parts,
+        ...ctx.parts.filter(Boolean),
         `</g>`,
         `</svg>`,
       ].join('\n');
