@@ -656,6 +656,14 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   gap: 8px;
 }
 
+.zoom-level {
+  align-self: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .frame-actions button {
   height: 32px;
   padding: 0 14px;
@@ -1750,6 +1758,8 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
     right: 14px;
     left: auto;
     transform: none;
+    flex-direction: column-reverse;
+    align-items: center;
   }
 
   .frame-actions button {

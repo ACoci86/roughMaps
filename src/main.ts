@@ -80,6 +80,7 @@ routeColor.value = ROUTE_COLOR;
 
 type SliderKey = 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight' | 'labelScale';
 const titleFont = document.querySelector<HTMLSelectElement>('#title-font')!;
+const labelFont = document.querySelector<HTMLSelectElement>('#label-font')!;
 const titleLayout = document.querySelector<HTMLSelectElement>('#title-layout')!;
 const framing = document.querySelector<HTMLDivElement>('#framing')!;
 const start = document.querySelector<HTMLDivElement>('#start')!;
@@ -101,8 +102,12 @@ iconOptions(pinIcon, 'pin');
 const pinPicker = iconPicker(pinIcon, () => pinColor.value);
 pinColor.addEventListener('input', pinPicker.refresh);
 for (const font of TITLE_FONTS) titleFont.add(new Option(font, font));
+for (const font of TITLE_FONTS) labelFont.add(new Option(font, font));
 for (const layout of TITLE_LAYOUTS) titleLayout.add(new Option(layout.label, layout.id));
 const fontPicker = dropdown(titleFont, () =>
+  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
+);
+const labelFontPicker = dropdown(labelFont, () =>
   TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
 );
 const layoutPicker = dropdown(titleLayout, () =>
@@ -112,7 +117,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'coords';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords';
 
 const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const PHONE_ZOOM_OUT = 0.6;
@@ -124,7 +129,11 @@ function presetView(chosen: Preset): { center: [number, number]; zoom: number } 
 
 const preset = pickPreset();
 const map = createPicker(pickerBox);
+const zoomLevel = document.querySelector<HTMLSpanElement>('#zoom-level')!;
+const showZoom = () => (zoomLevel.textContent = `Zoom ${map.getZoom().toFixed(1)}`);
+map.on('zoom', showZoom);
 map.jumpTo({ ...presetView(preset), bearing: preset.bearing ?? 0 });
+showZoom();
 let scene: Scene | null = null;
 let shownScene: Scene | null = null;
 let liveSheet = sheets[0];
@@ -364,11 +373,18 @@ styleSelect.addEventListener('change', () => {
 
 titleFont.value = settings.titleFont;
 titleLayout.value = settings.titleLayout;
+labelFont.value = settings.labelFont;
 fontPicker.refresh();
 layoutPicker.refresh();
+labelFontPicker.refresh();
 
 titleFont.addEventListener('change', () => {
   settings.titleFont = titleFont.value;
+  redraw();
+});
+
+labelFont.addEventListener('change', () => {
+  settings.labelFont = labelFont.value;
   redraw();
 });
 
@@ -1374,8 +1390,10 @@ async function applyConfig(config: Config): Promise<void> {
   fillPicker.refresh();
   titleFont.value = settings.titleFont;
   titleLayout.value = settings.titleLayout;
+  labelFont.value = settings.labelFont;
   fontPicker.refresh();
   layoutPicker.refresh();
+  labelFontPicker.refresh();
   sliders.forEach((slider) => {
     const key = slider.dataset.setting as SliderKey;
     slider.value = String(settings[key]);

@@ -40,18 +40,29 @@ export function fontFamily(text: string, center: [number, number]): string {
   return LATIN_FONT;
 }
 
+export function chosenFamily(text: string, center: [number, number], chosen: string): string {
+  const script = fontFamily(text, center);
+  if (script === LATIN_FONT) return chosen;
+  if (script === 'Patrick Hand' && chosen !== LATIN_FONT) return chosen;
+  return script;
+}
+
+export async function loadMapFont(family: string): Promise<void> {
+  await Promise.all([400, 700].map((weight) => document.fonts.load(`${weight} 16px "${family}"`, 'Aa0123456789 km').catch(() => [])));
+}
+
 function allLabels(scene: Scene): string[] {
   return [...scene.places, ...scene.waterNames, ...scene.streetNames].map((l) => l.name);
 }
 
-export async function loadLabelFonts(scene: Scene): Promise<void> {
+export async function loadLabelFonts(scene: Scene, chosen: string): Promise<void> {
   const byFamily = new Map<string, Set<string>>();
   for (const text of allLabels(scene)) {
-    const family = fontFamily(text, scene.center);
+    const family = chosenFamily(text, scene.center, chosen);
     if (!byFamily.has(family)) byFamily.set(family, new Set());
     for (const char of text) byFamily.get(family)!.add(char);
   }
-  byFamily.set(LATIN_FONT, new Set([...(byFamily.get(LATIN_FONT) ?? []), ...'Aa']));
+  byFamily.set(chosen, new Set([...(byFamily.get(chosen) ?? []), ...'Aa']));
   await Promise.all(
     [...byFamily].flatMap(([family, chars]) => {
       const sample = [...chars].join('');
@@ -203,12 +214,12 @@ function lineLength(points: Point[]): number {
   return total;
 }
 
-export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer: Placer, scale = 1): PlacedLabel[] {
+export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer: Placer, scale: number, chosen: string): PlacedLabel[] {
   const placed: PlacedLabel[] = [];
 
   const placePoint = (label: Label, base: number, bold: boolean, role: PlacedLabel['role']) => {
     const size = Math.round(base * scale * 10) / 10;
-    const family = fontFamily(label.name, scene.center);
+    const family = chosenFamily(label.name, scene.center, chosen);
     ctx.font = font(size, bold, family);
     for (const spot of [label.points[0], ...(label.spots ?? [])]) {
       const glyphs = straight(ctx, label.name, spot);
@@ -223,7 +234,7 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
     const centres = new Map<string, Point[]>();
     for (const label of labels) {
       const s = Math.round(size(label) * scale * 10) / 10;
-      const family = fontFamily(label.name, scene.center);
+      const family = chosenFamily(label.name, scene.center, chosen);
       ctx.font = font(s, false, family);
       const glyphs = along(ctx, label.name, label.points, s);
       if (!glyphs) continue;

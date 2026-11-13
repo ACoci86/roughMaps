@@ -5,7 +5,7 @@ import type { Map as MapLibreMap, GeoJSONFeature } from 'maplibre-gl';
 import type { Geometry, Polygon, Position } from 'geojson';
 import { POI_ICONS, type MapFeatures } from './features';
 import type { AreaPaint, StyleSpec } from './styles';
-import { Placer, layoutLabels, drawLabel, loadLabelFonts } from './labels';
+import { Placer, layoutLabels, drawLabel, loadLabelFonts, loadMapFont } from './labels';
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
 import { drawPosterTitle, drawBorder, loadTitleFont, posterLayout, type TitleLayout } from './poster';
 import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
@@ -393,7 +393,9 @@ export type SketchSettings = {
   border: boolean;
   coords: boolean;
   labelScale: number;
+  labelFont: string;
   inked: boolean;
+  wobblyLabels: boolean;
   titleFont: string;
   titleLayout: TitleLayout;
 };
@@ -411,7 +413,9 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   border: false,
   coords: true,
   labelScale: 1,
+  labelFont: 'Gaegu',
   inked: true,
+  wobblyLabels: true,
   titleFont: 'Gaegu',
   titleLayout: 'bottom',
 };
@@ -1006,6 +1010,8 @@ export async function drawSketch(
   }
 
   const road = style.road;
+  const blank = !scene.buildings.length && road.edgeRatio <= 0 && !road.colors && road.fill.toLowerCase() === style.paper.toLowerCase();
+  const roadFill = blank ? mix(style.ink, style.paper, 0.3) : null;
   const scale = 2 ** (scene.zoom - 16);
   const roadWidth = (kind: string) => Math.max(0.6, (ROAD_WIDTHS[kind] ?? 1) * scale) * inner * (road.scale ?? 1);
   const roads = scene.roads
@@ -1028,7 +1034,7 @@ export async function drawSketch(
     if (r.kind === 'path') continue;
     sketched(() =>
       paint(line('road', r.shape, r.i), {
-        stroke: road.colors?.[r.kind] ?? road.fill,
+        stroke: roadFill ?? road.colors?.[r.kind] ?? road.fill,
         strokeWidth: r.width,
         strokeLineDash: road.dash,
       }),
@@ -1109,10 +1115,10 @@ export async function drawSketch(
 
   if (part !== 'frame' && (settings.labels || settings.doodles)) {
     if (settings.labels) {
-      await loadLabelFonts(scene);
+      await loadLabelFonts(scene, settings.labelFont);
       if (cancelled()) return false;
     }
-    const labels = settings.labels ? layoutLabels(ctx, scene, placer, settings.labelScale) : [];
+    const labels = settings.labels ? layoutLabels(ctx, scene, placer, settings.labelScale, settings.labelFont) : [];
 
     if (settings.doodles) {
       const r = ICON_RADIUS + 1;
@@ -1136,14 +1142,16 @@ export async function drawSketch(
     const waterInk = style.water.patternColor ? mix(style.water.patternColor, text, 0.35) : text;
     for (const label of labels) {
       steps.push(() =>
-        drawLabel(ctx, label, label.role === 'water' ? waterInk : text, style.paper, settings.inked ? Math.min(1.8, 0.7 + roughness * 0.4) : 0),
+        drawLabel(ctx, label, label.role === 'water' ? waterInk : text, style.paper, settings.wobblyLabels ? Math.min(1.8, 0.7 + roughness * 0.4) : 0),
       );
     }
   }
 
   if (settings.compass) {
-    fixed(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing));
-    fixed(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor));
+    await loadMapFont(settings.labelFont);
+    if (cancelled()) return false;
+    fixed(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing, settings.labelFont));
+    fixed(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor, settings.labelFont));
   }
 
   pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor)));

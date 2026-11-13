@@ -1,6 +1,6 @@
 import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
-import { fontFamily } from './labels';
+import { chosenFamily } from './labels';
 
 export type PosterColors = { paper: string; ink: string };
 export type TitleLayout = 'bottom' | 'top' | 'corner';
@@ -116,15 +116,8 @@ function titleText(title: string): string {
   return /^[\p{Script=Latin}\s\p{P}\p{N}\p{S}]+$/u.test(title) ? title.toUpperCase() : title;
 }
 
-function titleFamily(title: string, center: [number, number], font: string): string {
-  const script = fontFamily(title, center);
-  if (script === 'Gaegu') return font;
-  if (script === 'Patrick Hand' && font !== 'Gaegu') return font;
-  return script;
-}
-
 export async function loadTitleFont(options: PosterOptions, center: [number, number]): Promise<void> {
-  const family = titleFamily(options.title, center, options.font);
+  const family = chosenFamily(options.title, center, options.font);
   const text = titleText(options.title);
   await Promise.all([
     document.fonts.load(`700 40px "${family}"`, text).catch(() => []),
@@ -207,7 +200,7 @@ export function drawPosterTitle(
     fillStyle: 'solid',
   });
 
-  const family = titleFamily(options.title, center, options.font);
+  const family = chosenFamily(options.title, center, options.font);
   const name = titleText(options.title);
   const cx = (box.x0 + box.x1) / 2;
   const nameY = box.y0 + h * (coords ? 0.56 : 0.64);

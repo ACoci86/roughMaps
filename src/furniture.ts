@@ -46,7 +46,8 @@ export function drawCompass(
   area: Rect,
   colors: Colors,
   wobble: Options,
-  bearing = 0,
+  bearing: number,
+  family: string,
 ): void {
   const r = compassRadius(width, height);
   const [x, y] = compassCenter(area, r, bearing);
@@ -72,7 +73,7 @@ export function drawCompass(
   rc.polygon([at(0, tip), at(-side, 0), at(0, 0)], { ...line, seed: 34 });
 
   ctx.save();
-  ctx.font = `700 ${Math.round(r * 0.6 + 6)}px "Gaegu", sans-serif`;
+  ctx.font = `700 ${Math.round(r * 0.6 + 6)}px "${family}", "Gaegu", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
@@ -93,6 +94,7 @@ export function drawScaleBar(
   lat: number,
   colors: Colors,
   wobble: Options,
+  family: string,
 ): void {
   const { px, label } = scaleLength(zoom, lat, (area.x1 - area.x0) * 0.22);
   const x = area.x0 + MARGIN;
@@ -112,7 +114,7 @@ export function drawScaleBar(
   }
 
   ctx.save();
-  ctx.font = '400 15px "Gaegu", sans-serif';
+  ctx.font = `400 15px "${family}", "Gaegu", sans-serif`;
   ctx.textBaseline = 'bottom';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 3;
