@@ -40,7 +40,17 @@ export function fontFamily(text: string, center: [number, number]): string {
   return LATIN_FONT;
 }
 
+const CYRILLIC = /[\u0400-\u052f\u1c80-\u1c8f\ua640-\ua69f]/;
+const GREEK = /[\u0370-\u03ff\u1f00-\u1fff]/;
+const HEBREW = /[\u0590-\u05ff\ufb1d-\ufb4f]/;
+const COVERS: Record<string, RegExp[]> = {
+  Arimo: [CYRILLIC, GREEK, HEBREW],
+  Tinos: [CYRILLIC, GREEK, HEBREW],
+  Montserrat: [CYRILLIC],
+};
+
 export function chosenFamily(text: string, center: [number, number], chosen: string): string {
+  if (COVERS[chosen]?.some((script) => script.test(text))) return chosen;
   const script = fontFamily(text, center);
   if (script === LATIN_FONT) return chosen;
   if (script === 'Patrick Hand' && chosen !== LATIN_FONT) return chosen;

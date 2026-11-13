@@ -9,7 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Gaegu:wght@300;400;700&family=Yomogi&family=ZCOOL+KuaiLe&family=LXGW+WenKai+TC:wght@400;700&family=Itim&family=Kalam:wght@400;700&family=Patrick+Hand&family=Pangolin&family=Arima:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gveret+Levin&family=Galada&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Gaegu:wght@300;400;700&family=Yomogi&family=ZCOOL+KuaiLe&family=LXGW+WenKai+TC:wght@400;700&family=Itim&family=Kalam:wght@400;700&family=Patrick+Hand&family=Pangolin&family=Arima:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gveret+Levin&family=Galada&family=Arimo:wght@400;700&family=Tinos:wght@400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -172,6 +172,8 @@
             <label class="check"><input type="checkbox" data-setting="compass" checked /><span><span class="setting-name"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 6.5 14.2 12 12 17.5 9.8 12ZM9.8 12h4.4" /></svg>Compass and scale</span><small>North arrow and a scale bar</small></span></label>
             <label class="check"><input type="checkbox" data-setting="border" /><span><span class="setting-name"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5" /><rect x="6.5" y="6.5" width="11" height="11" rx="1" /></svg>Poster border</span><small>A double frame around the whole poster</small></span></label>
           </div>
+          <label for="coords-font"><span class="setting-name"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 19 8 5.5 13 19M4.9 14.5h6.2M20.5 12.5V19" /><circle cx="17.5" cy="16" r="3" /></svg>Coordinates font</span></label>
+          <select id="coords-font" aria-label="Coordinates font"></select>
 
           <h3>Pins</h3>
           <form id="pin-form">

@@ -72,6 +72,8 @@ function focusColor(style: StyleSpec): string {
 }
 const ROAD_KINDS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service', 'path'];
 const PATH_KINDS = ['path', 'track', 'ferry'];
+const CREDIT_WIDTH = 165;
+
 const ROAD_WIDTHS: Record<string, number> = {
   motorway: 8,
   trunk: 8,
@@ -398,6 +400,7 @@ export type SketchSettings = {
   wobblyLabels: boolean;
   titleFont: string;
   titleLayout: TitleLayout;
+  coordsFont: string;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -418,6 +421,7 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   wobblyLabels: true,
   titleFont: 'Gaegu',
   titleLayout: 'bottom',
+  coordsFont: 'Gaegu',
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -1092,7 +1096,7 @@ export async function drawSketch(
 
   const title =
     settings.poster && scene.title.trim()
-      ? { title: scene.title.trim(), layout: settings.titleLayout, font: settings.titleFont, border: settings.border }
+      ? { title: scene.title.trim(), layout: settings.titleLayout, font: settings.titleFont, border: settings.border, coordsFont: settings.coordsFont }
       : null;
   const layout = posterLayout(width, height, settings.border, title);
   const area = layout.map;
@@ -1147,9 +1151,9 @@ export async function drawSketch(
     }
   }
 
+  await loadMapFont(settings.labelFont);
+  if (cancelled()) return false;
   if (settings.compass) {
-    await loadMapFont(settings.labelFont);
-    if (cancelled()) return false;
     fixed(() => drawCompass(ctx, rc, width, height, area, colors, decor, scene.bearing, settings.labelFont));
     fixed(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor, settings.labelFont));
   }
@@ -1170,8 +1174,11 @@ export async function drawSketch(
   );
   fixed(() => {
     const note = '© OpenStreetMap contributors';
+    const family = `"${settings.labelFont}", "Gaegu", sans-serif`;
     ctx.save();
-    ctx.font = '13px "Gaegu", sans-serif';
+    ctx.font = `13px ${family}`;
+    const size = Math.min(13, (13 * CREDIT_WIDTH) / ctx.measureText(note).width);
+    ctx.font = `${Math.round(size * 10) / 10}px ${family}`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.lineJoin = 'round';

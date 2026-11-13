@@ -7,7 +7,7 @@ export type TitleLayout = 'bottom' | 'top' | 'corner';
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
 type Box = [number, number, number, number];
 
-export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima'];
+export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima', 'Arimo', 'Tinos', 'Montserrat'];
 export const TITLE_FONT_NOTES: Record<string, string> = {
   Gaegu: 'Soft, friendly handwriting',
   Kalam: 'Quick pen handwriting',
@@ -15,6 +15,9 @@ export const TITLE_FONT_NOTES: Record<string, string> = {
   Pangolin: 'Round, playful letters',
   Itim: 'Clean, rounded letters',
   Arima: 'Classic serif, like old maps',
+  Arimo: 'Plain and clear, like Arial',
+  Tinos: 'Book serif, like Times New Roman',
+  Montserrat: 'Modern geometric sans',
 };
 
 export const TITLE_LAYOUTS: { id: TitleLayout; label: string; note: string }[] = [
@@ -47,6 +50,7 @@ export type PosterOptions = {
   layout: TitleLayout;
   font: string;
   border: boolean;
+  coordsFont?: string;
 };
 
 export type PosterLayout = {
@@ -122,7 +126,7 @@ export async function loadTitleFont(options: PosterOptions, center: [number, num
   await Promise.all([
     document.fonts.load(`700 40px "${family}"`, text).catch(() => []),
     document.fonts.load(`400 40px "${family}"`, text).catch(() => []),
-    document.fonts.load(`400 20px "Gaegu"`, '0123456789.° NSEW').catch(() => []),
+    document.fonts.load(`400 20px "${options.coordsFont ?? 'Gaegu'}"`, '0123456789.° NSEW').catch(() => []),
   ]);
 }
 
@@ -227,11 +231,12 @@ export function drawPosterTitle(
     return;
   }
   const coordText = formatCoordinates(center);
+  const coordFamily = options.coordsFont ?? 'Gaegu';
   let coordSize = Math.max(Math.min(11, h * 0.2), Math.round(h * 0.16));
-  ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
+  ctx.font = `400 ${coordSize}px "${coordFamily}", "Gaegu", sans-serif`;
   while (coordSize > 5 && ctx.measureText(coordText).width > w * 0.9) {
     coordSize -= 1;
-    ctx.font = `400 ${coordSize}px "Gaegu", sans-serif`;
+    ctx.font = `400 ${coordSize}px "${coordFamily}", "Gaegu", sans-serif`;
   }
   ctx.fillText(coordText, cx, Math.min(lineY + coordSize * 1.25, box.y1 - 4));
   ctx.restore();

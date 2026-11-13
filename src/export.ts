@@ -219,6 +219,7 @@ export function parseConfig(text: string): Config {
       inked: s.inked !== false,
       wobblyLabels: typeof s.wobblyLabels === 'boolean' ? s.wobblyLabels : s.inked !== false,
       titleFont: TITLE_FONTS.includes(String(s.titleFont)) ? String(s.titleFont) : DEFAULT_SETTINGS.titleFont,
+      coordsFont: TITLE_FONTS.includes(String(s.coordsFont)) ? String(s.coordsFont) : DEFAULT_SETTINGS.coordsFont,
       titleLayout: TITLE_LAYOUTS.find((l) => l.id === s.titleLayout)?.id ?? DEFAULT_SETTINGS.titleLayout,
     },
     size: String(data.size ?? ''),

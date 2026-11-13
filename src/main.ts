@@ -82,6 +82,7 @@ routeColor.value = ROUTE_COLOR;
 type SliderKey = 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight' | 'labelScale';
 const titleFont = document.querySelector<HTMLSelectElement>('#title-font')!;
 const labelFont = document.querySelector<HTMLSelectElement>('#label-font')!;
+const coordsFont = document.querySelector<HTMLSelectElement>('#coords-font')!;
 const titleLayout = document.querySelector<HTMLSelectElement>('#title-layout')!;
 const framing = document.querySelector<HTMLDivElement>('#framing')!;
 const start = document.querySelector<HTMLDivElement>('#start')!;
@@ -104,11 +105,15 @@ const pinPicker = iconPicker(pinIcon, () => pinColor.value);
 pinColor.addEventListener('input', pinPicker.refresh);
 for (const font of TITLE_FONTS) titleFont.add(new Option(font, font));
 for (const font of TITLE_FONTS) labelFont.add(new Option(font, font));
+for (const font of TITLE_FONTS) coordsFont.add(new Option(font, font));
 for (const layout of TITLE_LAYOUTS) titleLayout.add(new Option(layout.label, layout.id));
 const fontPicker = dropdown(titleFont, () =>
   TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
 );
 const labelFontPicker = dropdown(labelFont, () =>
+  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
+);
+const coordsFontPicker = dropdown(coordsFont, () =>
   TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
 );
 const layoutPicker = dropdown(titleLayout, () =>
@@ -375,9 +380,11 @@ styleSelect.addEventListener('change', () => {
 titleFont.value = settings.titleFont;
 titleLayout.value = settings.titleLayout;
 labelFont.value = settings.labelFont;
+coordsFont.value = settings.coordsFont;
 fontPicker.refresh();
 layoutPicker.refresh();
 labelFontPicker.refresh();
+coordsFontPicker.refresh();
 
 titleFont.addEventListener('change', () => {
   settings.titleFont = titleFont.value;
@@ -386,6 +393,11 @@ titleFont.addEventListener('change', () => {
 
 labelFont.addEventListener('change', () => {
   settings.labelFont = labelFont.value;
+  redraw();
+});
+
+coordsFont.addEventListener('change', () => {
+  settings.coordsFont = coordsFont.value;
   redraw();
 });
 
@@ -1393,9 +1405,11 @@ async function applyConfig(config: Config): Promise<void> {
   titleFont.value = settings.titleFont;
   titleLayout.value = settings.titleLayout;
   labelFont.value = settings.labelFont;
+  coordsFont.value = settings.coordsFont;
   fontPicker.refresh();
   layoutPicker.refresh();
   labelFontPicker.refresh();
+  coordsFontPicker.refresh();
   sliders.forEach((slider) => {
     const key = slider.dataset.setting as SliderKey;
     slider.value = String(settings[key]);
