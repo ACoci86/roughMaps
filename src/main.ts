@@ -262,25 +262,44 @@ showNote();
 
 let sketchRun = 0;
 
+let movedAt = 0;
+
 async function sketch(): Promise<void> {
   const run = ++sketchRun;
+  const readyAt = performance.now();
   if (countryMode) await loadDetails(map);
   const houses = countryMode ? null : await loadHouses(map);
   if (run !== sketchRun) return;
+  const housesAt = performance.now();
   scene = makeScene(houses);
+  const sceneAt = performance.now();
   stale = false;
   if (fresh || !shownScene) showScene(scene, liveSheet);
   fresh = false;
   await redraw();
   if (run === sketchRun) loading.hidden = true;
+  if (import.meta.env.DEV && run === sketchRun) {
+    const ms = (time: number) => `${Math.round(time)} ms`;
+    console.info(
+      `[sketch] total ${ms(performance.now() - movedAt)}: waiting for the map ${ms(readyAt - movedAt)}, ` +
+        `houses ${ms(housesAt - readyAt)}, scene ${ms(sceneAt - housesAt)}, drawing ${ms(performance.now() - sceneAt)}`,
+    );
+  }
 }
 
 let settleTimer = 0;
+let mapLoaded = false;
+
+function sketchWhenLoaded(): void {
+  if (!map.loaded()) return;
+  map.off('render', sketchWhenLoaded);
+  sketch();
+}
 
 function resketch(): void {
   clearTimeout(settleTimer);
-  map.off('idle', sketch);
-  map.once('idle', sketch);
+  map.off('render', sketchWhenLoaded);
+  map.on('render', sketchWhenLoaded);
   map.triggerRepaint();
 }
 
@@ -304,16 +323,17 @@ map.on('movestart', () => {
   if (!fresh) loading.hidden = true;
   for (const sheet of sheets) if (sheet !== liveSheet) cancelSketch(sheet);
   clearTimeout(settleTimer);
-  map.off('idle', sketch);
+  map.off('render', sketchWhenLoaded);
 });
 
 map.on('moveend', () => {
   clearTimeout(settleTimer);
-  if (normalMap) return;
+  movedAt = performance.now();
+  if (normalMap || !mapLoaded) return;
   settleTimer = window.setTimeout(() => {
     loading.hidden = false;
     resketch();
-  }, 150);
+  }, 80);
 });
 
 viewButton.addEventListener('click', () => {
@@ -328,11 +348,14 @@ viewButton.addEventListener('click', () => {
   setNormalMap(true);
   loading.hidden = true;
   clearTimeout(settleTimer);
-  map.off('idle', sketch);
+  map.off('render', sketchWhenLoaded);
   sketchRun++;
 });
 
-map.once('load', sketchWhenReady);
+map.once('load', () => {
+  mapLoaded = true;
+  sketchWhenReady();
+});
 
 styleSelect.addEventListener('change', () => {
   showNote();

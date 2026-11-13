@@ -13,6 +13,8 @@ import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
 import { fillOffset, inkLines, onlyFill, onlyLines } from './ink';
 import { hatchAngle, mainAngle, ringArea, simplifyShape, splitPieces } from './shapes';
+import { resolveOptions, roughPath } from './roughpath';
+import { makeShapes } from './shapepool';
 import type { Town } from './countries';
 
 export type Point = [number, number];
@@ -21,6 +23,9 @@ type Shape = Line[];
 type Road = { shape: Shape; kind: string };
 export type Label = { name: string; kind: string; points: Point[]; spots?: Point[] };
 export type Poi = { name: string; icon: string; rank: number; point: Point };
+
+const DEV = import.meta.env.DEV;
+const ms = (time: number) => `${Math.round(time)} ms`;
 
 export type Scene = {
   width: number;
@@ -122,17 +127,97 @@ function toShape(map: MapLibreMap, geometry: Geometry, minArea = 0): Shape {
   }
 }
 
-function mergeAreas(list: GeoJSONFeature[]): Geometry[] {
-  const shapes = list
-    .map((f) => f.geometry)
-    .filter((g) => g.type === 'Polygon' || g.type === 'MultiPolygon')
-    .map((g) => g.coordinates as Geom);
-  if (shapes.length < 2) return list.map((f) => f.geometry);
-  try {
-    return [{ type: 'MultiPolygon', coordinates: union(shapes[0], ...shapes.slice(1)) }];
-  } catch {
-    return list.map((f) => f.geometry);
+type Patch = { geometry: Geometry; polygons: Position[][][]; box: [number, number, number, number]; mark: string };
+type Merge = { polygons: Position[][][] | null; used: number };
+const merges = new Map<string, Merge>();
+const KEEP_MERGES = 3;
+let mergeRound = 0;
+
+function patchOf(geometry: Geometry): Patch | null {
+  const polygons =
+    geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.type === 'MultiPolygon' ? geometry.coordinates : null;
+  if (!polygons) return null;
+  let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+  let count = 0;
+  let sum = 0;
+  for (const rings of polygons) {
+    for (const ring of rings) {
+      for (const [x, y] of ring) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        sum += x * 3 + y;
+        count++;
+      }
+    }
   }
+  if (!count) return null;
+  return { geometry, polygons, box: [minX, minY, maxX, maxY], mark: `${count}|${minX}|${minY}|${maxX}|${maxY}|${sum}` };
+}
+
+function touching(patches: Patch[]): Patch[][] {
+  const order = patches
+    .map((_, i) => i)
+    .sort((a, b) => patches[a].box[0] - patches[b].box[0] || patches[a].box[1] - patches[b].box[1]);
+  const parent = patches.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  };
+  for (let a = 0; a < order.length; a++) {
+    const p = patches[order[a]].box;
+    for (let b = a + 1; b < order.length; b++) {
+      const q = patches[order[b]].box;
+      if (q[0] > p[2]) break;
+      if (q[1] <= p[3] && q[3] >= p[1]) parent[find(order[a])] = find(order[b]);
+    }
+  }
+  const groups = new Map<number, Patch[]>();
+  for (const i of order) {
+    const root = find(i);
+    const group = groups.get(root);
+    if (group) group.push(patches[i]);
+    else groups.set(root, [patches[i]]);
+  }
+  return [...groups.values()];
+}
+
+function mergeAreas(list: GeoJSONFeature[]): Geometry[] {
+  if (list.length < 2) return list.map((f) => f.geometry);
+  const seen = new Set<string>();
+  const patches: Patch[] = [];
+  for (const feature of list) {
+    const patch = patchOf(feature.geometry);
+    if (!patch || seen.has(patch.mark)) continue;
+    seen.add(patch.mark);
+    patches.push(patch);
+  }
+  return touching(patches).flatMap((group): Geometry[] => {
+    if (group.length === 1) return [group[0].geometry];
+    group.sort((a, b) => (a.mark < b.mark ? -1 : a.mark > b.mark ? 1 : 0));
+    const key = group.map((patch) => patch.mark).join(';');
+    let merge = merges.get(key);
+    if (!merge) {
+      merge = { polygons: null, used: mergeRound };
+      try {
+        const [first, ...rest] = group.map((patch) => patch.polygons as Geom);
+        merge.polygons = union(first, ...rest);
+      } catch {
+        merge.polygons = null;
+      }
+      merges.set(key, merge);
+    }
+    merge.used = mergeRound;
+    return merge.polygons ? [{ type: 'MultiPolygon', coordinates: merge.polygons }] : group.map((patch) => patch.geometry);
+  });
+}
+
+function forgetOldMerges(): void {
+  for (const [key, merge] of merges) if (merge.used <= mergeRound - KEEP_MERGES) merges.delete(key);
 }
 
 function splitPolygons(list: { geometry: Geometry }[]): Polygon[] {
@@ -198,8 +283,17 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
   const shapes = (geometries: Geometry[], minArea = 0) =>
     geometries.map((g) => toShape(map, g, minArea)).filter((s) => s.length > 0 && onScreen(s));
   const geometries = (list: GeoJSONFeature[]) => list.map((f) => f.geometry);
+  const started = performance.now();
+  let merging = 0;
+  mergeRound++;
+  const merged = (list: GeoJSONFeature[]) => {
+    const from = performance.now();
+    const result = mergeAreas(list);
+    merging += performance.now() - from;
+    return result;
+  };
 
-  return {
+  const scene: Scene = {
     width,
     height,
     zoom: map.getZoom(),
@@ -209,11 +303,11 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     pins: [],
     routes: [],
     highlights: [],
-    water: shapes(mergeAreas(features.water)),
+    water: shapes(merged(features.water)),
     waterParts: shapes(splitPolygons(features.water)),
-    green: shapes(mergeAreas(features.green), MIN_GREEN_AREA),
-    forest: shapes(mergeAreas(features.forest), MIN_GREEN_AREA),
-    sand: shapes(mergeAreas(features.sand)),
+    green: shapes(merged(features.green), MIN_GREEN_AREA),
+    forest: shapes(merged(features.forest), MIN_GREEN_AREA),
+    sand: shapes(merged(features.sand)),
     buildings: shapes(splitPolygons(features.buildings)),
     bridges: shapes(geometries(features.bridges)),
     roads: features.roads
@@ -228,6 +322,13 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     towns: [],
     islets: [],
   };
+  forgetOldMerges();
+  if (DEV) {
+    const total = ms(performance.now() - started);
+    const sizes = `${scene.buildings.length} buildings, ${scene.roads.length} roads`;
+    console.info(`[sketch] scene ready in ${total}, merging areas ${ms(merging)}, ${sizes}`);
+  }
+  return scene;
 }
 
 function prepareNames(map: MapLibreMap, features: MapFeatures, width: number, height: number) {
@@ -277,15 +378,6 @@ function prepareNames(map: MapLibreMap, features: MapFeatures, width: number, he
     ],
     pois,
   };
-}
-
-function toPath(shape: Shape): string {
-  return shape
-    .map(({ points, closed }) => {
-      const d = points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L');
-      return 'M' + d + (closed ? 'Z' : '');
-    })
-    .join('');
 }
 
 export type SketchSettings = {
@@ -362,8 +454,7 @@ export function patternFill(paint: AreaPaint, forced: string | null, weightScale
 
 type Step = () => void;
 
-const generator = rough.generator();
-const shapeCache = new WeakMap<Scene, Map<string, Drawable[]>>();
+const shapeCache = new WeakMap<Scene, Map<string, Placed[]>>();
 const doodleCache = new WeakMap<Scene, Map<string, Doodle[][]>>();
 const treeCache = new WeakMap<Scene, { green: Point[]; forest: Point[] }>();
 type Prepared = { shape: Shape; angle: number | undefined; small: boolean; size: number };
@@ -383,8 +474,69 @@ export function cancelSketch(canvas: HTMLCanvasElement): void {
 
 export type SketchPart = 'all' | 'map' | 'frame';
 
-function nextFrame(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+type Placed = Drawable & { shift?: Point };
+type Wanted = { key: string; i: number; shape: Shape; options: Options };
+const BLANK: Placed = { shape: 'path', sets: [], options: resolveOptions({}) };
+const HELPER_MIN = 250;
+type Kept = { shape: Shape; drawable: Drawable; used: number };
+const kept = new Map<string, Map<number, Kept[]>>();
+const keptView = { zoom: NaN, bearing: NaN, scenes: 0 };
+const sceneNumbers = new WeakMap<Scene, number>();
+const KEEP_SCENES = 2;
+const KEEP_PER_SHAPE = 4;
+const SAME_SPOT = 0.01;
+
+function sceneNumber(scene: Scene): number {
+  const known = sceneNumbers.get(scene);
+  if (known !== undefined) return known;
+  const number = ++keptView.scenes;
+  sceneNumbers.set(scene, number);
+  if (scene.zoom !== keptView.zoom || scene.bearing !== keptView.bearing) {
+    kept.clear();
+    keptView.zoom = scene.zoom;
+    keptView.bearing = scene.bearing;
+    return number;
+  }
+  for (const byShape of kept.values()) {
+    for (const [id, list] of byShape) {
+      const recent = list.filter((entry) => entry.used >= number - KEEP_SCENES);
+      if (recent.length) byShape.set(id, recent);
+      else byShape.delete(id);
+    }
+  }
+  return number;
+}
+
+function offsetBetween(from: Shape, to: Shape): Point | null {
+  const start = from[0]?.points[0];
+  const end = to[0]?.points[0];
+  if (!start || !end || from.length !== to.length) return null;
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  for (let r = 0; r < from.length; r++) {
+    const a = from[r].points;
+    const b = to[r].points;
+    if (a.length !== b.length || from[r].closed !== to[r].closed) return null;
+    for (let k = 0; k < a.length; k++) {
+      if (Math.abs(b[k][0] - a[k][0] - dx) > SAME_SPOT || Math.abs(b[k][1] - a[k][1] - dy) > SAME_SPOT) return null;
+    }
+  }
+  return [dx, dy];
+}
+
+type Yielding = { yield?: () => Promise<void> };
+
+function pause(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: Yielding }).scheduler;
+  if (scheduler?.yield) return scheduler.yield();
+  return new Promise((resolve) => {
+    const { port1, port2 } = new MessageChannel();
+    port1.onmessage = () => {
+      port1.close();
+      resolve();
+    };
+    port2.postMessage(null);
+  });
 }
 
 export async function drawSketch(
@@ -398,6 +550,7 @@ export async function drawSketch(
   const job = output ? null : (jobs.get(canvas) ?? 0) + 1;
   if (job !== null) jobs.set(canvas, job);
   const cancelled = () => job !== null && jobs.get(canvas) !== job;
+  const started = performance.now();
   const { roughness } = settings;
   const { width, height } = scene;
   const ratio = output ? Math.min(output.width / width, output.height / height) : window.devicePixelRatio || 1;
@@ -414,13 +567,74 @@ export async function drawSketch(
 
   if (!shapeCache.has(scene)) shapeCache.set(scene, new Map());
   const cache = shapeCache.get(scene)!;
-  const shaped = (key: string, i: number, make: () => Drawable): Drawable => {
+  const number = sceneNumber(scene);
+  let shapeTime = 0;
+  let made = 0;
+  let reused = 0;
+  let helped = 0;
+  let helperTime = 0;
+  let planning = false;
+  const wanted: Wanted[] = [];
+  const asked = new Set<string>();
+  const found = (key: string, shape: Shape): Placed | undefined => {
+    const id = shape[0]?.key;
+    const list = id === undefined ? undefined : kept.get(key)?.get(id);
+    for (const entry of list ?? []) {
+      const offset = offsetBetween(entry.shape, shape);
+      if (!offset) continue;
+      entry.used = Math.max(entry.used, number);
+      return offset[0] || offset[1] ? { ...entry.drawable, shift: offset } : entry.drawable;
+    }
+    return undefined;
+  };
+  const remember = (key: string, shape: Shape, drawable: Drawable) => {
+    const id = shape[0]?.key;
+    if (id === undefined) return;
+    let byShape = kept.get(key);
+    if (!byShape) kept.set(key, (byShape = new Map()));
+    const list = byShape.get(id);
+    const entry = { shape, drawable, used: number };
+    if (!list) byShape.set(id, [entry]);
+    else if (list.push(entry) > KEEP_PER_SHAPE) list.shift();
+  };
+  const shaped = (key: string, i: number, shape: Shape, options: Options): Placed => {
     let list = cache.get(key);
     if (!list) cache.set(key, (list = []));
-    return (list[i] ??= make());
+    const ready = list[i];
+    if (ready) return ready;
+    const known = found(key, shape);
+    if (known) {
+      reused++;
+      return (list[i] = known);
+    }
+    if (planning) {
+      const mark = `${key}#${i}`;
+      if (!asked.has(mark)) {
+        asked.add(mark);
+        wanted.push({ key, i, shape, options });
+      }
+      return BLANK;
+    }
+    const from = performance.now();
+    const drawable = roughPath(shape, options);
+    shapeTime += performance.now() - from;
+    made++;
+    remember(key, shape, drawable);
+    return (list[i] = drawable);
   };
-  const paint = (drawable: Drawable, options: Options) =>
-    rc.draw({ ...drawable, options: { ...drawable.options, ...options } });
+  const moved = (drawable: Placed, draw: () => void) => {
+    if (planning) return;
+    const shift = drawable.shift;
+    if (!shift) return draw();
+    ctx.save();
+    ctx.translate(shift[0], shift[1]);
+    draw();
+    ctx.restore();
+  };
+  const paint = (drawable: Placed, options: Options) =>
+    moved(drawable, () => rc.draw({ ...drawable, options: { ...drawable.options, ...options } }));
+  const ink = (drawable: Placed, pen: number, seed: number) =>
+    moved(drawable, () => inkLines(ctx, onlyLines(drawable), style.ink, pen, seed));
 
   const wobble = { roughness, bowing: roughness };
   const decor: Options = { roughness: 1, bowing: 1 };
@@ -429,6 +643,11 @@ export async function drawSketch(
   const hasOutline = outlineWidth > 0;
   const forced = settings.fillStyle === 'default' ? null : settings.fillStyle;
   const steps: Step[] = [];
+  const shapeSteps: Step[] = [];
+  const sketched = (step: Step) => {
+    shapeSteps.push(step);
+    steps.push(step);
+  };
   const fixedSteps = new Set<Step>();
   const fixed = (step: Step) => {
     if (part === 'map') return;
@@ -562,38 +781,34 @@ export async function drawSketch(
         addSmall(shape[0].points, size, look(id));
         return;
       }
-      steps.push(() => {
+      sketched(() => {
         const p = look(id);
-        const base = shaped(baseKey, i, () =>
-          generator.path(toPath(shape), {
-            ...wobble,
-            roughness: 0.8 * roughness,
-            seed: id + 1,
-            stroke: hasOutline ? '#000' : 'none',
-            disableMultiStroke: true,
-            fill: '#000',
-            fillStyle: 'solid',
-          }),
-        );
+        const base = shaped(baseKey, i, shape, {
+          ...wobble,
+          roughness: 0.8 * roughness,
+          seed: id + 1,
+          stroke: hasOutline ? '#000' : 'none',
+          disableMultiStroke: true,
+          fill: '#000',
+          fillStyle: 'solid',
+        });
         const tilt = angle === undefined ? undefined : angle + ((id * 37) % 17) - 8;
         const [dx, dy] = inked ? fillOffset(id + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
         if (marker) {
           const gap = layer === 'buildings' ? 2.6 : 3.4;
-          const strokes = shaped(`${layer}|marker|${roughness}`, i, () =>
-            generator.path(toPath(shape), {
-              ...wobble,
-              roughness: Math.min(1.6, 0.6 + 0.4 * roughness),
-              seed: id + 11,
-              stroke: 'none',
-              fill: '#000',
-              fillStyle: 'hachure',
-              hachureGap: gap,
-              fillWeight: gap * 1.45,
-              hachureAngle: tilt === undefined ? -41 : hatchAngle(tilt + 30),
-            }),
-          );
+          const strokes = shaped(`${layer}|marker|${roughness}`, i, shape, {
+            ...wobble,
+            roughness: Math.min(1.6, 0.6 + 0.4 * roughness),
+            seed: id + 11,
+            stroke: 'none',
+            fill: '#000',
+            fillStyle: 'hachure',
+            hachureGap: gap,
+            fillWeight: gap * 1.45,
+            hachureAngle: tilt === undefined ? -41 : hatchAngle(tilt + 30),
+          });
           paint(onlyFill(base), { stroke: 'none', fill: fade(p.color, 0.45) });
           paint(strokes, { fill: fade(p.color, 0.6), fillWeight: gap * 1.45 });
         } else {
@@ -605,15 +820,13 @@ export async function drawSketch(
           if (tilt !== undefined && fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle(tilt);
           const dotSize = fill.fillStyle === 'dots' ? fill.fillWeight : 0;
           const patternKey = `${layer}|${fill.fillStyle}|${tilt === undefined ? fill.hachureAngle : 'along'}|${fill.hachureGap}|${dotSize}|${roughness}`;
-          const overlay = shaped(patternKey, i, () =>
-            generator.path(toPath(shape), { ...wobble, ...fill, seed: id + 1, stroke: 'none', fill: '#000' }),
-          );
+          const overlay = shaped(patternKey, i, shape, { ...wobble, ...fill, seed: id + 1, stroke: 'none', fill: '#000' });
           paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
         }
         ctx.restore();
         if (!hasOutline) return;
         const pen = layer === 'buildings' ? Math.max(0.8, outlineWidth * 1.3) : Math.max(1.1, outlineWidth * 1.9);
-        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, id + 7);
+        if (inked) ink(base, pen, id + 7);
         else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
       });
     });
@@ -622,12 +835,10 @@ export async function drawSketch(
     if (forced === 'solid' || settings.fillWeight <= 0 || (!forced && (!p.pattern || !p.patternColor))) return;
     const [dx, dy] = fillOffset(layer.length * 101, roughness);
     parts.forEach((part, k) => {
-      steps.push(() => {
+      sketched(() => {
         const fill = patternFill(p, forced, settings.fillWeight);
         if (fill.fillStyle !== 'dots') fill.hachureAngle = hatchAngle((flowAngle(part) ?? mainAngle(part)) + ((k * 37) % 11) - 5);
-        const overlay = shaped(`${layer}|parts|${fill.fillStyle}|${fill.hachureGap}|${roughness}`, k, () =>
-          generator.path(toPath(part), { ...wobble, ...fill, seed: k + 1, stroke: 'none', fill: '#000' }),
-        );
+        const overlay = shaped(`${layer}|parts|${fill.fillStyle}|${fill.hachureGap}|${roughness}`, k, part, { ...wobble, ...fill, seed: k + 1, stroke: 'none', fill: '#000' });
         ctx.save();
         ctx.translate(dx, dy);
         paint(overlay, { fill: p.patternColor ?? mix(p.color, style.ink, 0.45), fillWeight: fill.fillWeight });
@@ -638,15 +849,13 @@ export async function drawSketch(
 
   const lineKey = (layer: string) => `${layer}|line|${roughness}`;
   const line = (layer: string, shape: Shape, i: number) =>
-    shaped(lineKey(layer), i, () =>
-      generator.path(toPath(shape), {
-        ...wobble,
-        seed: (shape[0]?.key ?? i) + 1,
-        stroke: '#000',
-        disableMultiStroke: true,
-        preserveVertices: true,
-      }),
-    );
+    shaped(lineKey(layer), i, shape, {
+      ...wobble,
+      seed: (shape[0]?.key ?? i) + 1,
+      stroke: '#000',
+      disableMultiStroke: true,
+      preserveVertices: true,
+    });
 
   areas('sand', scene.sand, () => style.sand);
   areas('green', scene.green, () => style.park);
@@ -656,37 +865,33 @@ export async function drawSketch(
   const targets = highlightShapes(scene);
   const highlight = (index: number, color: string, k: number) => {
     const shape = targets[index];
-    steps.push(() => {
-      const body = shaped(`highlight|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, () =>
-        generator.path(toPath(shape), {
-          ...wobble,
-          roughness: 0.8 * roughness,
-          seed: index + 1,
-          stroke: '#000',
-          disableMultiStroke: true,
-          fill: '#000',
-          fillStyle: 'solid',
-        }),
-      );
+    sketched(() => {
+      const body = shaped(`highlight|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, shape, {
+        ...wobble,
+        roughness: 0.8 * roughness,
+        seed: index + 1,
+        stroke: '#000',
+        disableMultiStroke: true,
+        fill: '#000',
+        fillStyle: 'solid',
+      });
       const [dx, dy] = inked ? fillOffset(index + 977, roughness) : [0, 0];
       ctx.save();
       ctx.translate(dx, dy);
       paint(onlyFill(body), { stroke: 'none', fill: color });
-      const hatch = shaped(`highlight-hatch|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, () =>
-        generator.path(toPath(shape), {
-          ...wobble,
-          seed: index + 5,
-          stroke: 'none',
-          fill: '#000',
-          fillStyle: 'hachure',
-          hachureGap: 3.2,
-          hachureAngle: inked ? hatchAngle(mainAngle(shape) + 30) : -41,
-        }),
-      );
+      const hatch = shaped(`highlight-hatch|${scene.land.length ? 'land' : 'building'}|${roughness}`, index, shape, {
+        ...wobble,
+        seed: index + 5,
+        stroke: 'none',
+        fill: '#000',
+        fillStyle: 'hachure',
+        hachureGap: 3.2,
+        hachureAngle: inked ? hatchAngle(mainAngle(shape) + 30) : -41,
+      });
       paint(hatch, { fill: mix(color, style.ink, 0.35), fillWeight: 0.9 });
       ctx.restore();
       const pen = scene.land.length ? Math.max(1.8, outlineWidth * 2.2) : Math.max(2.2, outlineWidth * 2.6);
-      if (inked) inkLines(ctx, onlyLines(body), style.ink, pen, index + k + 7);
+      if (inked) ink(body, pen, index + k + 7);
       else paint(onlyLines(body), { stroke: style.ink, strokeWidth: pen * 0.8 });
     });
   };
@@ -700,22 +905,20 @@ export async function drawSketch(
   const countryMode = scene.land.length > 0;
   if (countryMode) {
     scene.land.forEach((shape, i) => {
-      steps.push(() => {
-        const base = shaped(`land|${roughness}`, i, () =>
-          generator.path(toPath(shape), {
-            ...wobble,
-            roughness: 0.8 * roughness,
-            seed: i + 1,
-            stroke: '#000',
-            disableMultiStroke: true,
-            fill: '#000',
-            fillStyle: 'solid',
-          }),
-        );
+      sketched(() => {
+        const base = shaped(`land|${roughness}`, i, shape, {
+          ...wobble,
+          roughness: 0.8 * roughness,
+          seed: i + 1,
+          stroke: '#000',
+          disableMultiStroke: true,
+          fill: '#000',
+          fillStyle: 'solid',
+        });
         paint(onlyFill(base), { stroke: 'none', fill: style.paper });
         if (!hasOutline) return;
         const pen = Math.max(1, outlineWidth * 1.5);
-        if (inked) inkLines(ctx, onlyLines(base), style.ink, pen, i + 7);
+        if (inked) ink(base, pen, i + 7);
         else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
       });
     });
@@ -731,7 +934,7 @@ export async function drawSketch(
     const riverInk = style.water.patternColor ?? mix(style.water.color, style.ink, 0.45);
     scene.rivers.forEach(({ shape, rank }, i) => {
       const width = Math.max(0.7, 2.4 - rank * 0.22) * Math.max(0.4, settings.innerStrokeWidth);
-      steps.push(() => paint(line('river', shape, i), { stroke: riverInk, strokeWidth: width }));
+      sketched(() => paint(line('river', shape, i), { stroke: riverInk, strokeWidth: width }));
     });
     scene.towns.forEach(({ point: [x, y], capital }, i) => {
       steps.push(() => {
@@ -796,7 +999,7 @@ export async function drawSketch(
   const inner = settings.innerStrokeWidth;
   if (inner > 0) {
     scene.railways.forEach((shape, i) => {
-      steps.push(() =>
+      sketched(() =>
         paint(line('rail', shape, i), { stroke: style.rail, strokeWidth: 1.5 * inner, strokeLineDash: [8, 4] }),
       );
     });
@@ -812,18 +1015,18 @@ export async function drawSketch(
 
   for (const r of roads) {
     if (r.kind === 'path') {
-      steps.push(() =>
+      sketched(() =>
         paint(line('road', r.shape, r.i), { stroke: road.path, strokeWidth: r.width, strokeLineDash: [4, 3] }),
       );
     } else if (road.edgeRatio > 0) {
-      steps.push(() =>
+      sketched(() =>
         paint(line('road', r.shape, r.i), { stroke: road.edge, strokeWidth: r.width * (1 + 2 * road.edgeRatio) }),
       );
     }
   }
   for (const r of roads) {
     if (r.kind === 'path') continue;
-    steps.push(() =>
+    sketched(() =>
       paint(line('road', r.shape, r.i), {
         stroke: road.colors?.[r.kind] ?? road.fill,
         strokeWidth: r.width,
@@ -855,6 +1058,30 @@ export async function drawSketch(
       rule(1, 0.6, 0.7);
       rule(5, 0.9, 1.1);
     });
+  }
+
+  let helpers: Promise<void> | null = null;
+  if (part !== 'frame') {
+    planning = true;
+    try {
+      for (const step of shapeSteps) step();
+    } finally {
+      planning = false;
+    }
+    if (wanted.length >= HELPER_MIN) {
+      const sent = performance.now();
+      helpers = makeShapes(
+        wanted.map(({ shape, options }) => ({ lines: shape, options })),
+        (index, drawable) => {
+          const { key, i, shape } = wanted[index];
+          cache.get(key)![i] = drawable;
+          remember(key, shape, drawable);
+          helped++;
+        },
+      ).then(() => {
+        helperTime = performance.now() - sent;
+      });
+    }
   }
 
   const title =
@@ -948,15 +1175,33 @@ export async function drawSketch(
     ctx.restore();
   });
 
+  if (helpers) {
+    await helpers;
+    if (cancelled()) return false;
+  }
+
   const todo = part === 'frame' ? steps.filter((step) => fixedSteps.has(step)) : steps;
+  const looping = performance.now();
+  let working = 0;
   let i = 0;
   while (i < todo.length) {
-    const until = performance.now() + 12;
+    const from = performance.now();
+    const until = from + 12;
     while (i < todo.length && performance.now() < until) todo[i++]();
+    working += performance.now() - from;
     if (i < todo.length) {
-      await nextFrame();
+      await pause();
       if (cancelled()) return false;
     }
+  }
+  if (DEV && part !== 'frame') {
+    const ended = performance.now();
+    console.info(
+      `[sketch] ${output ? 'export' : 'preview'} took ${ms(ended - started)}: ` +
+        `setup ${ms(looping - started)}, helpers ${ms(helperTime)} (${helped} shapes), ` +
+        `shapes here ${ms(shapeTime)} (${made} made, ${reused} reused), ` +
+        `painting ${ms(working - shapeTime)}, waiting ${ms(ended - looping - working)}`,
+    );
   }
   return true;
 }
