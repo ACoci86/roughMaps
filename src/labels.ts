@@ -47,6 +47,10 @@ const COVERS: Record<string, RegExp[]> = {
   Arimo: [CYRILLIC, GREEK, HEBREW],
   Tinos: [CYRILLIC, GREEK, HEBREW],
   Montserrat: [CYRILLIC],
+  Roboto: [CYRILLIC, GREEK],
+  'Open Sans': [CYRILLIC, GREEK, HEBREW],
+  'Playfair Display': [CYRILLIC],
+  Merriweather: [CYRILLIC],
 };
 
 export function chosenFamily(text: string, center: [number, number], chosen: string): string {

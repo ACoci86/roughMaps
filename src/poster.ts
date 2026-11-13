@@ -7,7 +7,7 @@ export type TitleLayout = 'bottom' | 'top' | 'corner';
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
 type Box = [number, number, number, number];
 
-export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima', 'Arimo', 'Tinos', 'Montserrat'];
+export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima', 'Arimo', 'Tinos', 'Montserrat', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display', 'Merriweather'];
 export const TITLE_FONT_NOTES: Record<string, string> = {
   Gaegu: 'Soft, friendly handwriting',
   Kalam: 'Quick pen handwriting',
@@ -18,6 +18,11 @@ export const TITLE_FONT_NOTES: Record<string, string> = {
   Arimo: 'Plain and clear, like Arial',
   Tinos: 'Book serif, like Times New Roman',
   Montserrat: 'Modern geometric sans',
+  Roboto: 'Neat, everyday sans',
+  'Open Sans': 'Friendly, open sans',
+  Lato: 'Warm, rounded sans',
+  'Playfair Display': 'Elegant, high-contrast serif',
+  Merriweather: 'Sturdy book serif',
 };
 
 export const TITLE_LAYOUTS: { id: TitleLayout; label: string; note: string }[] = [
