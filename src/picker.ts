@@ -7,7 +7,7 @@ maplibregl.setWorkerUrl(workerUrl);
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const START_CENTER: [number, number] = [-6.2603, 53.3498];
 const START_ZOOM = 15;
-export const MIN_ZOOM = 11;
+export const MIN_ZOOM = 9;
 export const MAX_ZOOM = 18;
 export const COUNTRY_MIN_ZOOM = 2;
 export const COUNTRY_MAX_ZOOM = 10;

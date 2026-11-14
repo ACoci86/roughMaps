@@ -1,0 +1,32 @@
+{
+  "id": "atlas",
+  "name": "Atlas",
+  "note": "School-atlas colours, from green valleys to white peaks",
+  "order": 54,
+  "paper": "#f4f1e8",
+  "ink": "#3a3a3a",
+  "text": "#262626",
+  "outline": 0.4,
+  "buildings": ["#a8998b", "#9c8d7f"],
+  "water": { "color": "#9fcde8", "pattern": "lines", "patternColor": "#4f8fbf", "gap": 7, "weight": 0.5 },
+  "park": { "color": "transparent" },
+  "wood": { "color": "transparent", "pattern": "dots", "patternColor": "#3e6b3a", "gap": 6, "weight": 0.9 },
+  "sand": { "color": "transparent" },
+  "ice": { "color": "#ffffff", "pattern": "lines", "patternColor": "#9cc3e0", "gap": 6, "weight": 0.5 },
+  "road": { "fill": "#ffffff", "edge": "#6b5d50", "edgeRatio": 0.14, "path": "#6b5d50" },
+  "rail": "#3a3a3a",
+  "relief": "#7a6a55",
+  "terrain": "contours",
+  "trees": "none",
+  "bands": [
+    { "at": 0, "color": "#8fbf7f" },
+    { "at": 200, "color": "#b5d38f" },
+    { "at": 500, "color": "#dfe3a3" },
+    { "at": 1000, "color": "#ecd59a" },
+    { "at": 1500, "color": "#ddb27c" },
+    { "at": 2200, "color": "#c48d63" },
+    { "at": 3000, "color": "#a8775a" },
+    { "at": 4000, "color": "#c8bdb4" },
+    { "at": 5000, "color": "#f2efea" }
+  ]
+}

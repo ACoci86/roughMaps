@@ -1,0 +1,51 @@
+{
+  "id": "military",
+  "name": "Military map",
+  "note": "An old army survey sheet with a kilometre grid",
+  "order": 49,
+  "paper": "#e9e1c5",
+  "ink": "#2f3324",
+  "text": "#23261a",
+  "outline": 0.6,
+  "buildings": [
+    "#4b4a3c",
+    "#5a5847"
+  ],
+  "water": {
+    "color": "#bcd0c6",
+    "pattern": "lines",
+    "patternColor": "#4d7a78",
+    "gap": 5,
+    "weight": 0.6
+  },
+  "park": {
+    "color": "#dcdab2"
+  },
+  "wood": {
+    "color": "#c6ca95",
+    "pattern": "dots",
+    "patternColor": "#5f6b35",
+    "gap": 6,
+    "weight": 1
+  },
+  "sand": {
+    "color": "#e4d8b0"
+  },
+  "road": {
+    "fill": "#c8553d",
+    "edge": "#23261a",
+    "edgeRatio": 0.2,
+    "path": "#23261a",
+    "trail": 1.1,
+    "colors": {
+      "minor": "#f1ead2",
+      "service": "#f1ead2"
+    }
+  },
+  "rail": "#23261a",
+  "relief": "#7a5230",
+  "trees": "forest",
+  "terrain": "hachures",
+  "kmGrid": "#2f3324",
+  "titleFont": "Stardos Stencil"
+}

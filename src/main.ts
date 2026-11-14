@@ -15,6 +15,10 @@ import { PIN_COLOR, PIN_ICONS, pinIconSvg, type Pin, type PinIcon } from './pins
 import { TITLE_FONTS, TITLE_FONT_NOTES, TITLE_LAYOUTS, layoutIcon, posterLayout, formatCoordinates, type TitleLayout } from './poster';
 import { ROUTE_COLOR, type Route } from './routes';
 import { pinAt } from './pins';
+import { loadTerrain, sampleHeights, TERRAIN_HINTS, TERRAIN_MODES, type Terrain, type TerrainMode } from './terrain';
+import { densify, distances, type Profile } from './profile';
+import { parseGpx, tripBounds } from './gpx';
+import { formatHeight } from './labels';
 import { dropdown } from './dropdown';
 import {
   SIZES,
@@ -31,7 +35,16 @@ import {
   download,
   slug,
   parseConfig,
+  CUSTOM_SIZE,
+  CUSTOM_LIMITS,
+  bleedShare,
+  withBleed,
+  customSize,
+  naturalOrientation,
+  oriented,
   type Config,
+  type CustomSize,
+  type Orientation,
 } from './export';
 
 const pickerBox = document.querySelector<HTMLDivElement>('#picker')!;
@@ -55,6 +68,13 @@ const suggestionList = document.querySelector<HTMLUListElement>('#suggestions')!
 const frame = document.querySelector<HTMLDivElement>('#frame')!;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#size')!;
 const dpiSelect = document.querySelector<HTMLSelectElement>('#dpi')!;
+const orientationSelect = document.querySelector<HTMLSelectElement>('#orientation')!;
+const customRow = document.querySelector<HTMLDivElement>('#custom-row')!;
+const customWidth = document.querySelector<HTMLInputElement>('#custom-width')!;
+const customHeight = document.querySelector<HTMLInputElement>('#custom-height')!;
+const customUnit = document.querySelector<HTMLSelectElement>('#custom-unit')!;
+const bleedToggle = document.querySelector<HTMLInputElement>('#bleed')!;
+const bleedRow = document.querySelector<HTMLDivElement>('#bleed-row')!;
 const pixelsNote = document.querySelector<HTMLParagraphElement>('#pixels')!;
 const downloadButton = document.querySelector<HTMLButtonElement>('#download')!;
 const saveConfigButton = document.querySelector<HTMLButtonElement>('#save-config')!;
@@ -76,6 +96,11 @@ const routeCancel = document.querySelector<HTMLButtonElement>('#route-cancel')!;
 const routeStatus = document.querySelector<HTMLParagraphElement>('#route-status')!;
 const routeList = document.querySelector<HTMLUListElement>('#route-list')!;
 const downloadPdfButton = document.querySelector<HTMLButtonElement>('#download-pdf')!;
+const downloadLaserButton = document.querySelector<HTMLButtonElement>('#download-laser')!;
+const gpxButton = document.querySelector<HTMLButtonElement>('#gpx-button')!;
+const gpxFile = document.querySelector<HTMLInputElement>('#gpx-file')!;
+const terrainSelect = document.querySelector<HTMLSelectElement>('#terrain')!;
+const terrainNote = document.querySelector<HTMLParagraphElement>('#terrain-note')!;
 const ROUTE_HINT = routeStatus.textContent ?? '';
 routeColor.value = ROUTE_COLOR;
 
@@ -123,7 +148,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile';
 
 const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const PHONE_ZOOM_OUT = 0.6;
@@ -192,14 +217,17 @@ function placedPins() {
   });
 }
 
-function makeScene(houses: Feature[] | null = null): Scene {
+function makeScene(houses: Feature[] | null = null, terrain?: Terrain | null): Scene {
   const features = readFeatures(map);
   if (houses) features.buildings = houses;
   const made = countryMode
     ? prepareCountryScene(map, focusCountry, titleInput.value)
     : prepareScene(map, features, titleInput.value);
+  made.terrain = terrain;
+  made.trim = map.getContainer().clientWidth * bleedPart();
   made.pins = placedPins();
   made.routes = placedRoutes();
+  made.profile = routeProfile();
   made.highlights = placedHighlights();
   sceneAnchors.set(made, anchorHere());
   return made;
@@ -239,6 +267,7 @@ function showScene(shown: Scene, sheet: HTMLCanvasElement): void {
 }
 
 async function redraw(): Promise<void> {
+  rememberSoon();
   frame.classList.toggle('title-top', settings.poster && settings.titleLayout === 'top' && titleInput.value.trim() !== '');
   if (!scene || stale) return;
   const drawn = scene;
@@ -257,6 +286,7 @@ async function redraw(): Promise<void> {
 }
 
 function redrawSoon(): void {
+  rememberSoon();
   clearTimeout(redrawTimer);
   redrawTimer = window.setTimeout(redraw, 250);
 }
@@ -270,7 +300,9 @@ function showNote(): void {
 
 function showSummaries(): void {
   setSummary('place', placeName);
-  setSummary('decorate', [settings.poster && titleInput.value.trim(), pins.length && `${pins.length} pin${pins.length === 1 ? '' : 's'}`, routes.length && `${routes.length} route${routes.length === 1 ? '' : 's'}`].filter(Boolean).join(', '));
+  const terrainName = settings.terrain === 'none' ? '' : TERRAIN_MODES.find((m) => m.id === settings.terrain)?.label;
+  terrainNote.textContent = TERRAIN_HINTS[settings.terrain];
+  setSummary('map', [terrainName, pins.length && `${pins.length} pin${pins.length === 1 ? '' : 's'}`, routes.length && `${routes.length} route${routes.length === 1 ? '' : 's'}`].filter(Boolean).join(', '));
 }
 
 showNote();
@@ -283,10 +315,10 @@ async function sketch(): Promise<void> {
   const run = ++sketchRun;
   const readyAt = performance.now();
   if (countryMode) await loadDetails(map);
-  const houses = countryMode ? null : await loadHouses(map);
+  const [houses, terrain] = await Promise.all([countryMode ? null : loadHouses(map), terrainFor()]);
   if (run !== sketchRun) return;
   const housesAt = performance.now();
-  scene = makeScene(houses);
+  scene = makeScene(houses, terrain);
   const sceneAt = performance.now();
   stale = false;
   if (fresh || !shownScene) showScene(scene, liveSheet);
@@ -300,6 +332,14 @@ async function sketch(): Promise<void> {
         `houses ${ms(housesAt - readyAt)}, scene ${ms(sceneAt - housesAt)}, drawing ${ms(performance.now() - sceneAt)}`,
     );
   }
+}
+
+function wantsTerrain(): boolean {
+  return settings.terrain !== 'none' && !countryMode;
+}
+
+function terrainFor(): Promise<Terrain | null | undefined> {
+  return wantsTerrain() ? loadTerrain(map) : Promise.resolve(undefined);
 }
 
 let settleTimer = 0;
@@ -374,7 +414,8 @@ map.once('load', () => {
 
 styleSelect.addEventListener('change', () => {
   showNote();
-  redraw();
+  if (lookTerrain()) showTerrain();
+  else redraw();
 });
 
 titleFont.value = settings.titleFont;
@@ -388,6 +429,7 @@ coordsFontPicker.refresh();
 
 titleFont.addEventListener('change', () => {
   settings.titleFont = titleFont.value;
+  fontBeforeLook = null;
   redraw();
 });
 
@@ -404,6 +446,64 @@ coordsFont.addEventListener('change', () => {
 titleLayout.addEventListener('change', () => {
   settings.titleLayout = titleLayout.value as TitleLayout;
   redraw();
+});
+
+for (const mode of TERRAIN_MODES) terrainSelect.add(new Option(mode.label, mode.id));
+terrainSelect.value = settings.terrain;
+const terrainPicker = dropdown(terrainSelect, () => TERRAIN_MODES.map((mode) => ({ value: mode.id, label: mode.label, note: mode.note })));
+
+async function showTerrain(): Promise<void> {
+  showSummaries();
+  const shown = scene;
+  if (!shown || stale || !wantsTerrain() || shown.terrain !== undefined) {
+    redraw();
+    return;
+  }
+  loading.hidden = false;
+  const terrain = await loadTerrain(map);
+  if (scene !== shown || stale) return;
+  shown.terrain = terrain;
+  await redraw();
+  loading.hidden = true;
+}
+
+let terrainFromLook = false;
+let fontBeforeLook: string | null = null;
+
+function lookTerrain(): boolean {
+  const style = currentStyle();
+  const wanted = style.terrain;
+  let changed = false;
+  if (wanted && settings.terrain !== wanted && (settings.terrain === 'none' || terrainFromLook)) {
+    settings.terrain = wanted;
+    terrainFromLook = true;
+    changed = true;
+  } else if (!wanted && terrainFromLook) {
+    settings.terrain = 'none';
+    terrainFromLook = false;
+    changed = true;
+  }
+  if (style.titleFont && settings.titleFont !== style.titleFont) {
+    fontBeforeLook ??= settings.titleFont;
+    settings.titleFont = style.titleFont;
+    changed = true;
+  } else if (!style.titleFont && fontBeforeLook !== null) {
+    settings.titleFont = fontBeforeLook;
+    fontBeforeLook = null;
+    changed = true;
+  }
+  if (!changed) return false;
+  terrainSelect.value = settings.terrain;
+  terrainPicker.refresh();
+  titleFont.value = settings.titleFont;
+  fontPicker.refresh();
+  return true;
+}
+
+terrainSelect.addEventListener('change', () => {
+  settings.terrain = terrainSelect.value as TerrainMode;
+  terrainFromLook = false;
+  showTerrain();
 });
 
 fillStyleSelect.value = settings.fillStyle;
@@ -454,23 +554,42 @@ fillStyleSelect.addEventListener('change', () => {
   redraw();
 });
 
+function showFill(slider: HTMLInputElement): void {
+  const min = Number(slider.min);
+  const max = Number(slider.max);
+  slider.style.setProperty('--fill', String((Number(slider.value) - min) / (max - min || 1)));
+}
+
 sliders.forEach((slider) => {
   const key = slider.dataset.setting as SliderKey;
   const label = document.querySelector<HTMLSpanElement>(`[data-value="${key}"]`)!;
   slider.value = String(settings[key]);
   label.textContent = String(settings[key]);
+  showFill(slider);
   slider.addEventListener('input', () => {
     settings[key] = Number(slider.value);
     label.textContent = String(settings[key]);
+    showFill(slider);
     redrawSoon();
   });
 });
+
+const labelOptions = document.querySelector<HTMLDivElement>('#label-options')!;
+const coordsFontRow = document.querySelector<HTMLDivElement>('#coords-font-row')!;
+const profileRow = document.querySelector<HTMLDivElement>('#profile-row')!;
+
+function showDependent(): void {
+  labelOptions.hidden = !settings.labels;
+  coordsFontRow.hidden = !settings.poster || !settings.coords;
+  profileRow.hidden = routes.length === 0;
+}
 
 toggles.forEach((toggle) => {
   const key = toggle.dataset.setting as Toggle;
   toggle.checked = settings[key];
   toggle.addEventListener('change', () => {
     settings[key] = toggle.checked;
+    showDependent();
     showSummaries();
     redraw();
   });
@@ -594,17 +713,44 @@ function placedRoutes() {
   }));
 }
 
+type Heights = { at: number[]; ele: number[] };
+const sampled = new WeakMap<Route, Heights | 'pending' | null>();
+
+function routeProfile(): Profile | null {
+  const longest = routes
+    .map((route) => ({ route, length: distances(route.points).at(-1) ?? 0 }))
+    .sort((a, b) => b.length - a.length)[0];
+  if (!longest || longest.length <= 0) return null;
+  const { route } = longest;
+  if (route.ele && route.ele.length === route.points.length) return { at: distances(route.points), ele: route.ele, color: route.color };
+  const known = sampled.get(route);
+  if (known && known !== 'pending') return { ...known, color: route.color };
+  if (known === undefined) {
+    sampled.set(route, 'pending');
+    const dense = densify(route.points);
+    sampleHeights(dense).then((ele) => {
+      sampled.set(route, ele ? { at: distances(dense), ele } : null);
+      if (!scene || !ele) return;
+      scene.profile = routeProfile();
+      redraw();
+    });
+  }
+  return null;
+}
+
 function refreshRoutes(): void {
   renderRouteList();
   showSummaries();
   if (!scene) return;
   scene.routes = placedRoutes();
+  scene.profile = routeProfile();
   redraw();
 }
 
 function routeUi(): void {
   routeButton.textContent = draft ? 'Finish route' : 'Draw a route';
   routeCancel.hidden = !draft;
+  gpxButton.hidden = !!draft;
   updateCursor();
 }
 
@@ -649,7 +795,45 @@ routeColor.addEventListener('input', () => {
   refreshRoutes();
 });
 
+gpxButton.addEventListener('click', () => gpxFile.click());
+
+gpxFile.addEventListener('change', async () => {
+  const file = gpxFile.files?.[0];
+  gpxFile.value = '';
+  if (!file) return;
+  try {
+    const trip = parseGpx(await file.text());
+    cancelRoute();
+    for (const { points, ele } of trip.tracks) routes.push({ points, color: routeColor.value, ...(ele ? { ele } : {}) });
+    for (const stop of trip.stops) {
+      const height = stop.ele === null ? '' : formatHeight(stop.ele);
+      const note = [stop.name, height].filter(Boolean).join(', ').slice(0, 40);
+      pins.push({ lngLat: stop.lngLat, note, color: pinColor.value, icon: 'pin' });
+    }
+    renderPinList();
+    refreshRoutes();
+    const parts = [
+      trip.tracks.length && `${trip.tracks.length} route${trip.tracks.length === 1 ? '' : 's'}`,
+      trip.stops.length && `${trip.stops.length} pin${trip.stops.length === 1 ? '' : 's'}`,
+    ].filter(Boolean);
+    routeStatus.textContent = `Added ${parts.join(' and ')} from ${file.name}.`;
+    const [[west, south], [east, north]] = tripBounds(trip);
+    const place: Place = {
+      name: placeName,
+      label: placeName,
+      center: [(west + east) / 2, (south + north) / 2],
+      bounds: [[west, south], [east, north]],
+    };
+    setMode(false);
+    const fit = map.cameraForBounds(place.bounds, { padding: 60 })?.zoom ?? CLOSE_UP_ZOOM;
+    flyTo(place.center, Math.min(SEARCH_MAX_ZOOM, Math.max(MIN_ZOOM, fit)));
+  } catch (error) {
+    routeStatus.textContent = (error as Error).message;
+  }
+});
+
 function renderRouteList(): void {
+  showDependent();
   routeList.replaceChildren(
     ...routes.map((route, i) => {
       const name = document.createElement('span');
@@ -663,6 +847,7 @@ function renderRouteList(): void {
         route.color = color.value;
         if (!scene) return;
         scene.routes = placedRoutes();
+        scene.profile = routeProfile();
         redrawSoon();
       });
       const remove = removeButton(`Remove route ${i + 1}`, () => {
@@ -1131,7 +1316,7 @@ searchForm.addEventListener('submit', async (event) => {
   }
 });
 
-const sizeChoices = phone ? SIZES.filter((s) => s.height > s.width) : SIZES;
+const sizeChoices = phone ? SIZES.filter((s) => (s.unit === 'px' ? s.height > s.width : s.id !== 'square')) : SIZES;
 const dpiChoices = phone ? DPI_OPTIONS.filter((d) => d <= PHONE_DPI) : DPI_OPTIONS;
 
 for (const size of sizeChoices) {
@@ -1166,13 +1351,61 @@ const sizePicker = dropdown(sizeSelect, () =>
   sizeChoices.map((size) => ({
     value: size.id,
     label: size.label,
-    note: `${size.group} · ${size.width} × ${size.height} ${size.unit}`,
+    note: size.id === CUSTOM_SIZE ? 'Type your own width and height' : `${size.group} · ${size.width} × ${size.height} ${size.unit}`,
     icon: () => shapeIcon(size.width, size.height),
   })),
 );
 
-function currentSize() {
+const orientationPicker = dropdown(orientationSelect, () => [
+  { value: 'portrait', label: 'Portrait', note: 'Taller than wide', icon: () => shapeIcon(3, 4) },
+  { value: 'landscape', label: 'Landscape', note: 'Wider than tall', icon: () => shapeIcon(4, 3) },
+]);
+
+function customValues(): CustomSize {
+  return { width: Number(customWidth.value), height: Number(customHeight.value), unit: customUnit.value === 'in' ? 'in' : 'mm' };
+}
+
+function setCustom(custom: CustomSize): void {
+  customUnit.value = custom.unit;
+  const [min, max] = CUSTOM_LIMITS[custom.unit];
+  for (const input of [customWidth, customHeight]) {
+    input.min = String(min);
+    input.max = String(max);
+    input.step = custom.unit === 'in' ? '0.1' : '1';
+  }
+  const size = customSize(custom);
+  customWidth.value = String(size.width);
+  customHeight.value = String(size.height);
+}
+
+setCustom({ width: 200, height: 280, unit: 'mm' });
+orientationSelect.value = naturalOrientation(baseSize());
+orientationPicker.refresh();
+
+function baseSize() {
   return SIZES.find((s) => s.id === sizeSelect.value) ?? SIZES[0];
+}
+
+function trimSize() {
+  const base = baseSize();
+  if (base.id === CUSTOM_SIZE) return customSize(customValues());
+  return oriented(base, orientationSelect.value as Orientation);
+}
+
+function currentSize() {
+  const size = trimSize();
+  return bleedToggle.checked ? withBleed(size) : size;
+}
+
+function bleedPart(): number {
+  return bleedToggle.checked ? bleedShare(currentSize()) : 0;
+}
+
+function showSizeControls(): void {
+  const base = baseSize();
+  customRow.hidden = base.id !== CUSTOM_SIZE;
+  orientationPicker.element.hidden = base.id === CUSTOM_SIZE || base.width === base.height;
+  bleedRow.hidden = base.unit === 'px' && base.id !== CUSTOM_SIZE;
 }
 
 function outputPixels() {
@@ -1219,10 +1452,11 @@ function fitPreview(): boolean {
 
 function showOutput(): void {
   const { width, height } = outputPixels();
-  dpiSelect.hidden = currentSize().unit !== 'mm';
-  pixelsNote.textContent = `${width} × ${height} px`;
   const size = currentSize();
-  setSummary('size', size.unit === 'mm' ? `${size.label}, ${dpiSelect.value} DPI` : size.label);
+  dpiSelect.hidden = size.unit === 'px';
+  showSizeControls();
+  pixelsNote.textContent = `${width} × ${height} px`;
+  setSummary('poster', size.unit === 'px' ? size.label : `${size.label}, ${dpiSelect.value} DPI`);
   showSheetInfo();
 }
 
@@ -1233,8 +1467,36 @@ function reshape(): void {
   if (!normalMap && map.isStyleLoaded()) sketchWhenReady();
 }
 
-sizeSelect.addEventListener('change', reshape);
+let shownUnit = baseSize().unit;
+sizeSelect.addEventListener('change', () => {
+  const base = baseSize();
+  if (base.unit === 'px' || shownUnit === 'px') {
+    orientationSelect.value = naturalOrientation(base);
+    orientationPicker.refresh();
+  }
+  shownUnit = base.unit;
+  reshape();
+});
+orientationSelect.addEventListener('change', reshape);
+bleedToggle.addEventListener('change', reshape);
 dpiSelect.addEventListener('change', showOutput);
+
+let customTimer = 0;
+const customChanged = () => {
+  clearTimeout(customTimer);
+  customTimer = window.setTimeout(() => {
+    setCustom(customValues());
+    reshape();
+  }, 600);
+};
+customWidth.addEventListener('input', customChanged);
+customHeight.addEventListener('input', customChanged);
+customUnit.addEventListener('change', () => {
+  const factor = customUnit.value === 'in' ? 1 / 25.4 : 25.4;
+  const round = (v: number) => (customUnit.value === 'in' ? Math.round(v * factor * 10) / 10 : Math.round(v * factor));
+  setCustom({ width: round(Number(customWidth.value)), height: round(Number(customHeight.value)), unit: customValues().unit });
+  reshape();
+});
 new ResizeObserver(() => fitPreview()).observe(frame);
 
 const sheetInfo = document.querySelector<HTMLSpanElement>('#sheet-info')!;
@@ -1294,17 +1556,19 @@ readyDialog.addEventListener('close', () => {
   readyFile = null;
 });
 
-async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf'): Promise<void> {
+async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf' | 'laser'): Promise<void> {
   if (!scene || stale) {
     if (!map.isStyleLoaded()) {
       exportStatus.textContent = 'The map is still loading. Try again in a moment.';
       return;
     }
     if (countryMode) await loadDetails(map);
-    scene = makeScene(countryMode ? null : await loadHouses(map));
+    const [houses, terrain] = await Promise.all([countryMode ? null : loadHouses(map), terrainFor()]);
+    scene = makeScene(houses, terrain);
   }
+  if (wantsTerrain() && scene.terrain === undefined) scene.terrain = await loadTerrain(map);
   const output = outputPixels();
-  const buttons = [downloadButton, downloadSvgButton, downloadSvgzButton, downloadPdfButton];
+  const buttons = [downloadButton, downloadSvgButton, downloadSvgzButton, downloadPdfButton, downloadLaserButton];
   buttons.forEach((b) => (b.disabled = true));
   exportStatus.textContent = 'Drawing...';
   const started = performance.now();
@@ -1315,8 +1579,12 @@ async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf'): Promise<void>
       deliver(blob, `${name}-${output.width}x${output.height}.png`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else if (format === 'pdf') {
-      const blob = await renderPdf(scene, currentStyle(), settings, currentSize(), output, titleInput.value || placeName);
+      const blob = await renderPdf(scene, currentStyle(), settings, currentSize(), output, titleInput.value || placeName, bleedPart());
       deliver(blob, `${name}-${currentSize().id}.pdf`);
+      exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
+    } else if (format === 'laser') {
+      const blob = await renderSvg(scene, currentStyle(), settings, currentSize(), false, true);
+      deliver(blob, `${name}-${currentSize().id}-laser.svg`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else {
       const blob = await renderSvg(scene, currentStyle(), settings, currentSize(), format === 'svgz');
@@ -1362,6 +1630,7 @@ for (const [button, kind] of [
   [downloadSvgButton, 'svg'],
   [downloadSvgzButton, 'svgz'],
   [downloadPdfButton, 'pdf'],
+  [downloadLaserButton, 'laser'],
 ] as const) {
   button.addEventListener('click', () => {
     showDownloadMenu(false);
@@ -1370,6 +1639,7 @@ for (const [button, kind] of [
 }
 
 saveConfigButton.addEventListener('click', () => {
+  showDownloadMenu(false);
   const { lng, lat } = map.getCenter();
   const config: Config = {
     app: 'roughMaps',
@@ -1387,6 +1657,9 @@ saveConfigButton.addEventListener('click', () => {
     settings: { ...settings },
     size: sizeSelect.value,
     dpi: Number(dpiSelect.value),
+    orientation: orientationSelect.value as Orientation,
+    ...(bleedToggle.checked ? { bleed: true } : {}),
+    ...(sizeSelect.value === CUSTOM_SIZE ? { custom: customValues() } : {}),
     ...(countryMode ? { country: focusCountry ?? '' } : {}),
   };
   const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
@@ -1394,14 +1667,16 @@ saveConfigButton.addEventListener('click', () => {
   exportStatus.textContent = 'Config saved';
 });
 
-loadConfigButton.addEventListener('click', () => configFile.click());
+loadConfigButton.addEventListener('click', () => {
+  showDownloadMenu(false);
+  configFile.click();
+});
 
-async function applyConfig(config: Config): Promise<void> {
-  Object.assign(settings, config.settings);
-  styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
-  if (config.tint) tintInput.value = config.tint;
+function syncControls(): void {
   fillStyleSelect.value = settings.fillStyle;
   fillPicker.refresh();
+  terrainSelect.value = settings.terrain;
+  terrainPicker.refresh();
   titleFont.value = settings.titleFont;
   titleLayout.value = settings.titleLayout;
   labelFont.value = settings.labelFont;
@@ -1414,10 +1689,24 @@ async function applyConfig(config: Config): Promise<void> {
     const key = slider.dataset.setting as SliderKey;
     slider.value = String(settings[key]);
     document.querySelector(`[data-value="${key}"]`)!.textContent = String(settings[key]);
+    showFill(slider);
   });
   toggles.forEach((toggle) => (toggle.checked = settings[toggle.dataset.setting as Toggle]));
+  showDependent();
+}
+
+async function applyConfig(config: Config): Promise<void> {
+  Object.assign(settings, config.settings);
+  styleSelect.value = STYLES.some((s) => s.id === config.style) ? config.style : STYLES[0].id;
+  if (config.tint) tintInput.value = config.tint;
+  syncControls();
   if (sizeChoices.some((s) => s.id === config.size)) sizeSelect.value = config.size;
   sizePicker.refresh();
+  orientationSelect.value = config.orientation ?? naturalOrientation(baseSize());
+  shownUnit = baseSize().unit;
+  orientationPicker.refresh();
+  if (config.custom) setCustom(config.custom);
+  bleedToggle.checked = config.bleed === true;
   if (dpiChoices.includes(config.dpi)) dpiSelect.value = String(config.dpi);
   placeName = config.place || 'map';
   titleInput.value = config.title;
@@ -1430,6 +1719,9 @@ async function applyConfig(config: Config): Promise<void> {
   routeUi();
   renderRouteList();
   stopPlacing(PIN_HINT);
+  const look = currentStyle();
+  terrainFromLook = Boolean(look.terrain) && settings.terrain === look.terrain;
+  fontBeforeLook = look.titleFont && settings.titleFont === look.titleFont ? DEFAULT_SETTINGS.titleFont : null;
   showNote();
   showSummaries();
   showOutput();
@@ -1582,6 +1874,9 @@ async function openPreset(preset: Preset): Promise<void> {
     settings: { ...DEFAULT_SETTINGS, roughness: preset.roughness, ...preset.settings },
     size: sizeSelect.value,
     dpi: Number(dpiSelect.value),
+    orientation: orientationSelect.value as Orientation,
+    custom: customValues(),
+    bleed: bleedToggle.checked,
   });
   exportStatus.textContent = `Opened ${preset.place}`;
 }
@@ -1628,3 +1923,89 @@ searchInput.addEventListener('blur', () => document.body.classList.remove('searc
 
 titleInput.addEventListener('input', showSummaries);
 showSummaries();
+
+const undoButton = document.querySelector<HTMLButtonElement>('#undo-button')!;
+const redoButton = document.querySelector<HTMLButtonElement>('#redo-button')!;
+const MAX_UNDO = 60;
+const changes = { past: [] as string[], future: [] as string[], current: '', timer: 0 };
+
+function snapshot(): string {
+  return JSON.stringify({ settings, style: styleSelect.value, tint: tintInput.value, title: titleInput.value, pins, routes, highlights });
+}
+
+function showHistory(): void {
+  undoButton.disabled = changes.past.length === 0;
+  redoButton.disabled = changes.future.length === 0;
+}
+
+function remember(): void {
+  const now = snapshot();
+  if (!changes.current) changes.current = now;
+  if (now === changes.current) return;
+  changes.past.push(changes.current);
+  if (changes.past.length > MAX_UNDO) changes.past.shift();
+  changes.future = [];
+  changes.current = now;
+  showHistory();
+}
+
+function rememberSoon(): void {
+  clearTimeout(changes.timer);
+  changes.timer = window.setTimeout(remember, 400);
+}
+
+function restore(saved: string): void {
+  const state = JSON.parse(saved);
+  Object.assign(settings, state.settings);
+  styleSelect.value = state.style;
+  tintInput.value = state.tint;
+  titleInput.value = state.title;
+  pins = state.pins;
+  routes = state.routes;
+  highlights = state.highlights;
+  draft = null;
+  changes.current = saved;
+  syncControls();
+  renderPinList();
+  renderRouteList();
+  renderHighlightList();
+  routeUi();
+  showNote();
+  showSummaries();
+  showHistory();
+  if (scene) {
+    scene.title = titleInput.value;
+    scene.pins = placedPins();
+    scene.routes = placedRoutes();
+    scene.profile = routeProfile();
+    scene.highlights = placedHighlights();
+  }
+  const look = currentStyle();
+  terrainFromLook = Boolean(look.terrain) && settings.terrain === look.terrain;
+  showTerrain();
+}
+
+function step(back: boolean): void {
+  clearTimeout(changes.timer);
+  remember();
+  const from = back ? changes.past : changes.future;
+  const to = back ? changes.future : changes.past;
+  const saved = from.pop();
+  if (saved === undefined) return;
+  to.push(changes.current);
+  restore(saved);
+}
+
+undoButton.addEventListener('click', () => step(true));
+redoButton.addEventListener('click', () => step(false));
+document.addEventListener('keydown', (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+  if ((event.target as HTMLElement).closest('input[type="text"], input[type="search"], input[type="number"], textarea')) return;
+  const key = event.key.toLowerCase();
+  if (key === 'z' || key === 'y') {
+    event.preventDefault();
+    step(key === 'z' && !event.shiftKey);
+  }
+});
+
+showDependent();

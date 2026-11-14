@@ -1,3 +1,5 @@
+import type { TerrainMode } from '../terrain';
+
 export type Pattern = 'hatch' | 'cross' | 'lines' | 'dots' | 'waves' | 'scribble' | 'stitch';
 
 export type AreaPaint = {
@@ -16,6 +18,7 @@ export type RoadPaint = {
   colors?: Record<string, string>;
   dash?: number[];
   scale?: number;
+  trail?: number;
 };
 
 export type StyleSpec = {
@@ -38,6 +41,15 @@ export type StyleSpec = {
   flat?: boolean;
   grid?: string;
   tint?: string;
+  relief?: string;
+  terrain?: TerrainMode;
+  kmGrid?: string;
+  titleFont?: string;
+  ice?: AreaPaint;
+  rock?: AreaPaint;
+  lift?: string;
+  bands?: { at: number; color: string }[];
+  trees?: 'all' | 'forest' | 'none';
 };
 
 const files = import.meta.glob('./roughmaps/*.json', { eager: true, import: 'default' });

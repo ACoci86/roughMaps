@@ -1,0 +1,22 @@
+{
+  "id": "field-notebook",
+  "name": "Field notebook",
+  "note": "Pencil notes on squared paper, like an expedition sketch",
+  "order": 51,
+  "paper": "#fbfaf4",
+  "ink": "#4a4a4a",
+  "text": "#3a3a3a",
+  "outline": 0.7,
+  "buildings": ["#d8d6cf", "#cfcdc5"],
+  "water": { "color": "#fbfaf4", "pattern": "waves", "patternColor": "#7a8f9a", "gap": 6, "weight": 0.8 },
+  "park": { "color": "#fbfaf4" },
+  "wood": { "color": "#fbfaf4", "pattern": "scribble", "patternColor": "#8a8a80", "gap": 7, "weight": 0.7 },
+  "sand": { "color": "#f3f0e4" },
+  "road": { "fill": "#fbfaf4", "edge": "#5a5a5a", "edgeRatio": 0.18, "path": "#5a5a5a" },
+  "rail": "#5a5a5a",
+  "grid": "#bcd2e6",
+  "relief": "#8c8c86",
+  "terrain": "contours",
+  "trees": "forest",
+  "titleFont": "Kalam"
+}

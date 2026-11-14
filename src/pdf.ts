@@ -30,6 +30,7 @@ export async function imagePdf(
   canvas: HTMLCanvasElement,
   page: { width: number; height: number },
   title: string,
+  bleed = 0,
 ): Promise<Blob> {
   const { width: pw, height: ph } = canvas;
   const pixels = canvas.getContext('2d')!.getImageData(0, 0, pw, ph).data;
@@ -38,12 +39,16 @@ export async function imagePdf(
   const w = page.width.toFixed(2);
   const h = page.height.toFixed(2);
   const content = `q ${w} 0 0 ${h} 0 0 cm /Map Do Q`;
+  const b = bleed.toFixed(2);
+  const trimBox = bleed > 0
+    ? ` /BleedBox [0 0 ${w} ${h}] /TrimBox [${b} ${b} ${(page.width - bleed).toFixed(2)} ${(page.height - bleed).toFixed(2)}]`
+    : '';
   const safeTitle = title.replace(/[^\x20-\x7e]/g, '').replace(/([\\()])/g, '\\$1');
 
   const objects: (string | Uint8Array)[][] = [
     ['<< /Type /Catalog /Pages 2 0 R >>'],
     ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
-    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Map 5 0 R >> >> /Contents 4 0 R >>`],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}]${trimBox} /Resources << /XObject << /Map 5 0 R >> >> /Contents 4 0 R >>`],
     [`<< /Length ${content.length} >>\nstream\n${content}\nendstream`],
     [
       `<< /Type /XObject /Subtype /Image /Width ${pw} /Height ${ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 ` +

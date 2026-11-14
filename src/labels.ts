@@ -1,4 +1,4 @@
-import type { Label, Point, Scene } from './sketch';
+import type { Label, Peak, Point, Scene } from './sketch';
 
 const LATIN_FONT = 'Gaegu';
 const FALLBACK = `"${LATIN_FONT}", "Patrick Hand", "LXGW WenKai TC", sans-serif`;
@@ -66,7 +66,7 @@ export async function loadMapFont(family: string): Promise<void> {
 }
 
 function allLabels(scene: Scene): string[] {
-  return [...scene.places, ...scene.waterNames, ...scene.streetNames].map((l) => l.name);
+  return [...scene.places, ...scene.waterNames, ...scene.streetNames, ...scene.peaks].map((l) => l.name);
 }
 
 export async function loadLabelFonts(scene: Scene, chosen: string): Promise<void> {
@@ -76,7 +76,7 @@ export async function loadLabelFonts(scene: Scene, chosen: string): Promise<void
     if (!byFamily.has(family)) byFamily.set(family, new Set());
     for (const char of text) byFamily.get(family)!.add(char);
   }
-  byFamily.set(chosen, new Set([...(byFamily.get(chosen) ?? []), ...'Aa']));
+  byFamily.set(chosen, new Set([...(byFamily.get(chosen) ?? []), ...'Aa0123456789,m ']));
   await Promise.all(
     [...byFamily].flatMap(([family, chars]) => {
       const sample = [...chars].join('');
@@ -92,8 +92,9 @@ export type PlacedLabel = {
   glyphs: Glyph[];
   size: number;
   bold: boolean;
-  role: 'place' | 'street' | 'water';
+  role: 'place' | 'street' | 'water' | 'peak' | 'terrain';
   family: string;
+  mark?: { kind: Peak['kind']; point: Point };
 };
 
 const PLACE_SIZES: Record<string, number> = {
@@ -120,6 +121,13 @@ const STREET_SIZES: Record<string, number> = {
 };
 
 const SAME_NAME_GAP = 260;
+const MAX_PEAKS = 40;
+const PEAK_NAME_SIZE = 15;
+const PEAK_HEIGHT_SIZE = 12;
+
+export function formatHeight(metres: number): string {
+  return `${metres.toLocaleString('en-US')} m`;
+}
 const MAX_BEND = 0.6;
 
 export class Placer {
@@ -228,7 +236,14 @@ function lineLength(points: Point[]): number {
   return total;
 }
 
-export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer: Placer, scale: number, chosen: string): PlacedLabel[] {
+export function layoutLabels(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  placer: Placer,
+  scale: number,
+  chosen: string,
+  contours: Label[] = [],
+): PlacedLabel[] {
   const placed: PlacedLabel[] = [];
 
   const placePoint = (label: Label, base: number, bold: boolean, role: PlacedLabel['role']) => {
@@ -265,6 +280,34 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
     .sort((a, b) => (PLACE_SIZES[b.kind] ?? 18) - (PLACE_SIZES[a.kind] ?? 18))
     .forEach((label) => placePoint(label, PLACE_SIZES[label.kind] ?? 18, true, 'place'));
 
+  const placePeak = (peak: Peak) => {
+    const [x, y] = peak.point;
+    const nameSize = Math.round(PEAK_NAME_SIZE * scale * 10) / 10;
+    const heightSize = Math.round(PEAK_HEIGHT_SIZE * scale * 10) / 10;
+    const family = chosenFamily(peak.name, scene.center, chosen);
+    const markBox: Box = [x - 7, y - 7, x + 7, y + 6];
+    const lines: { text: string; size: number; bold: boolean; family: string }[] = [];
+    if (peak.name) lines.push({ text: peak.name, size: nameSize, bold: true, family });
+    if (peak.ele !== null) lines.push({ text: formatHeight(peak.ele), size: heightSize, bold: false, family: chosen });
+    const tall = lines.reduce((sum, l) => sum + l.size * 1.1, 0);
+    for (const top of [y + 8, y - 9 - tall]) {
+      let cursor = top;
+      const made = lines.map((l) => {
+        ctx.font = font(l.size, l.bold, l.family);
+        const glyphs = straight(ctx, l.text, [x, cursor + l.size * 0.55]);
+        cursor += l.size * 1.1;
+        return { glyphs, size: l.size, bold: l.bold, role: 'peak' as const, family: l.family };
+      });
+      if (!placer.tryAdd([markBox, ...made.flatMap((m) => glyphBoxes(m.glyphs, m.size))])) continue;
+      placed.push(...made.map((m, i) => (i === 0 ? { ...m, mark: { kind: peak.kind, point: peak.point } } : m)));
+      return;
+    }
+  };
+  [...scene.peaks]
+    .sort((a, b) => Number(a.kind === 'saddle') - Number(b.kind === 'saddle') || (b.ele ?? 0) - (a.ele ?? 0) || b.name.length - a.name.length)
+    .slice(0, MAX_PEAKS)
+    .forEach(placePeak);
+
   scene.waterNames
     .filter((l) => l.points.length === 1)
     .forEach((label) => placePoint(label, 15, false, 'water'));
@@ -282,6 +325,8 @@ export function layoutLabels(ctx: CanvasRenderingContext2D, scene: Scene, placer
     (l) => streetRank(l.kind),
     'street',
   );
+
+  placeLines(contours, () => 11, 'terrain');
 
   return placed;
 }

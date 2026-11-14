@@ -2,7 +2,7 @@ import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
 import type { Point } from './sketch';
 
-export type Route = { points: [number, number][]; color: string };
+export type Route = { points: [number, number][]; color: string; ele?: number[] };
 export type PlacedRoute = { points: Point[]; color: string };
 
 export const ROUTE_COLOR = '#2a6fdb';

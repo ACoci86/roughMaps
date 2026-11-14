@@ -73,9 +73,13 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     list.hidden = true;
     button.setAttribute('aria-expanded', 'false');
     if (closeOpen === close) closeOpen = null;
-    window.removeEventListener('scroll', close, true);
+    window.removeEventListener('scroll', scrolled, true);
     window.removeEventListener('resize', close);
     document.removeEventListener('pointerdown', outside, true);
+  }
+
+  function scrolled(event: Event): void {
+    if (event.target !== list) close();
   }
 
   function outside(event: PointerEvent): void {
@@ -95,10 +99,15 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     list.style.top = `${fits ? below : Math.max(8, box.top - 4 - list.offsetHeight)}px`;
     button.setAttribute('aria-expanded', 'true');
     closeOpen = close;
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', scrolled, true);
     window.addEventListener('resize', close);
     document.addEventListener('pointerdown', outside, true);
-    list.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+    const picked = list.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+    if (picked) {
+      const item = picked.closest('li') ?? picked;
+      list.scrollTop = item.offsetTop - (list.clientHeight - item.offsetHeight) / 2;
+      picked.focus({ preventScroll: true });
+    }
   }
 
   function choose(value: string): void {

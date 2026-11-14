@@ -141,6 +141,15 @@ const ICONS: Record<string, Draw> = {
     generator.path(`M${x} ${y - 3}L${x - 5} ${y - 4.5}L${x - 5} ${y + 3.5}L${x} ${y + 5}L${x + 5} ${y + 3.5}L${x + 5} ${y - 4.5}Z`, o),
     generator.line(x, y - 3, x, y + 5, o),
   ],
+  tent: (x, y, o) => [
+    generator.path(`M${x - 6} ${y + 4.5}L${x} ${y - 5.5}L${x + 6} ${y + 4.5}Z`, o),
+    generator.path(`M${x} ${y - 5.5}L${x - 1.5} ${y + 4.5}M${x - 1.5} ${y + 4.5}L${x + 1.8} ${y + 0.5}L${x + 2.2} ${y + 4.5}`, o),
+  ],
+  hut: (x, y, o) => [
+    generator.path(`M${x - 6} ${y - 0.5}L${x} ${y - 6}L${x + 6} ${y - 0.5}`, o),
+    generator.path(`M${x - 4.5} ${y - 1.5}L${x - 4.5} ${y + 5}L${x + 4.5} ${y + 5}L${x + 4.5} ${y - 1.5}`, o),
+    generator.path(`M${x - 1.5} ${y + 5}L${x - 1.5} ${y + 1}L${x + 1.5} ${y + 1}L${x + 1.5} ${y + 5}`, o),
+  ],
   star: (x, y, o) => {
     const points: Point[] = [];
     for (let i = 0; i < 10; i++) {

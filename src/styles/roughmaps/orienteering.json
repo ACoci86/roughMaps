@@ -1,0 +1,22 @@
+{
+  "id": "orienteering",
+  "name": "Orienteering",
+  "note": "A race map with yellow open land, white forest and brown contours",
+  "order": 50,
+  "paper": "#ffffff",
+  "ink": "#1a1a1a",
+  "text": "#1a1a1a",
+  "outline": 0.4,
+  "buildings": ["#2b2b2b", "#3a3a3a"],
+  "water": { "color": "#7cc4ee", "pattern": "lines", "patternColor": "#2b8fd6", "gap": 5, "weight": 0.6 },
+  "park": { "color": "#ffd36b" },
+  "wood": { "color": "#ffffff" },
+  "sand": { "color": "#f6e7b8" },
+  "rock": { "color": "#d4d4d4" },
+  "road": { "fill": "#d9a066", "edge": "#1a1a1a", "edgeRatio": 0.3, "path": "#1a1a1a", "trail": 1 },
+  "rail": "#1a1a1a",
+  "relief": "#b4642d",
+  "terrain": "contours",
+  "trees": "none",
+  "lift": "#1a1a1a"
+}

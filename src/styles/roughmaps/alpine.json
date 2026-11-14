@@ -1,0 +1,23 @@
+{
+  "id": "alpine",
+  "name": "Alpine",
+  "note": "Grey rock, blue glaciers and fine relief shading",
+  "order": 52,
+  "paper": "#f6f5f1",
+  "ink": "#3b4046",
+  "text": "#2c3036",
+  "outline": 0.5,
+  "buildings": ["#9a9a94", "#8c8c86"],
+  "water": { "color": "#b7d7ea", "pattern": "lines", "patternColor": "#4b8ab8", "gap": 6, "weight": 0.5 },
+  "park": { "color": "#e6ecd6" },
+  "wood": { "color": "#cfdcbc", "pattern": "dots", "patternColor": "#6c8a55", "gap": 6, "weight": 0.9 },
+  "sand": { "color": "#ece6d6" },
+  "ice": { "color": "#eef5fa", "pattern": "lines", "patternColor": "#86b6d8", "gap": 5, "weight": 0.5 },
+  "rock": { "color": "#eceae5", "pattern": "dots", "patternColor": "#a29f97", "gap": 9, "weight": 0.5 },
+  "road": { "fill": "#ffffff", "edge": "#5c6066", "edgeRatio": 0.14, "path": "#5c6066", "trail": 1 },
+  "rail": "#3b4046",
+  "relief": "#7b7f84",
+  "terrain": "both",
+  "trees": "forest",
+  "lift": "#b23a2e"
+}

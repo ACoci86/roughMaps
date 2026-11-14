@@ -1,0 +1,51 @@
+{
+  "id": "trekking",
+  "name": "Trekking map",
+  "note": "A hiking map with contour lines and red trails",
+  "order": 48,
+  "paper": "#f8f4e8",
+  "ink": "#45403a",
+  "text": "#2f2b26",
+  "outline": 0.5,
+  "buildings": [
+    "#d8cdbd",
+    "#cdc1af"
+  ],
+  "water": {
+    "color": "#c4e2f1",
+    "pattern": "lines",
+    "patternColor": "#4f97c4",
+    "gap": 7,
+    "weight": 0.5
+  },
+  "park": {
+    "color": "#e4edd0"
+  },
+  "wood": {
+    "color": "#d3e4b8",
+    "pattern": "dots",
+    "patternColor": "#78a055",
+    "gap": 7,
+    "weight": 0.9
+  },
+  "sand": {
+    "color": "#f1e6c6"
+  },
+  "road": {
+    "fill": "#ffffff",
+    "edge": "#6b6458",
+    "edgeRatio": 0.14,
+    "path": "#d23a2f",
+    "trail": 1.6,
+    "colors": {
+      "motorway": "#e0874a",
+      "trunk": "#e8a259",
+      "primary": "#f1c24f",
+      "secondary": "#f6dc8c"
+    }
+  },
+  "rail": "#5a5248",
+  "relief": "#b0743c",
+  "trees": "forest",
+  "terrain": "contours"
+}

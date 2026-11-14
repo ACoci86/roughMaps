@@ -1,6 +1,6 @@
 import type { StyleSpec } from './styles';
 import { styleSwatch } from './swatch';
-import { LOOK_KINDS } from './kinds';
+import { ALL_SAMPLE, CITY_SAMPLE, LOOK_KINDS } from './kinds';
 
 const MOVES: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
 const folding = window.matchMedia('(max-width: 900px) and (orientation: portrait)');
@@ -92,7 +92,9 @@ function swatch(style: StyleSpec): HTMLButtonElement {
 function buildKinds(container: HTMLElement): void {
   const bar = document.querySelector<HTMLElement>('#look-kinds');
   if (!bar) return;
-  const kinds = [{ name: 'All', looks: [] as string[] }, ...LOOK_KINDS];
+  const kinds = [{ name: 'All', looks: [] as string[], sample: ALL_SAMPLE }, ...LOOK_KINDS];
+  const sample = document.querySelector<HTMLElement>('.look-sample');
+  if (sample) sample.textContent = ALL_SAMPLE;
   const chips = kinds.map((kind, i) => {
     const chip = document.createElement('button');
     chip.type = 'button';
@@ -101,6 +103,7 @@ function buildKinds(container: HTMLElement): void {
     chip.setAttribute('aria-pressed', String(i === 0));
     chip.addEventListener('click', () => {
       for (const other of chips) other.setAttribute('aria-pressed', String(other === chip));
+      if (sample) sample.textContent = kind.sample ?? CITY_SAMPLE;
       for (const button of container.querySelectorAll<HTMLButtonElement>('.swatch')) {
         button.hidden = i > 0 && !kind.looks.includes(button.dataset.style!);
       }

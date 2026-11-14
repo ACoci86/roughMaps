@@ -110,6 +110,20 @@ export const PRESETS: Preset[] = [
   { place: 'Shanghai', center: [121.488, 31.24], zoom: 14.8, style: 'art-deco', roughness: 1.5, settings: { titleFont: 'Arima', border: true }, phone: { center: [121.4891, 31.2391], zoom: 14.1 } },
   { place: 'Arles', center: [4.631, 43.6777], zoom: 15.6, style: 'starry-night', roughness: 3.25, settings: { titleFont: 'Kalam' }, phone: { center: [4.6314, 43.6765], zoom: 15 } },
   { place: 'Saint-Rémy', center: [4.832, 43.789], zoom: 15.8, style: 'starry-night', roughness: 3.25, settings: { titleFont: 'Kalam' }, phone: { center: [4.8313, 43.7883], zoom: 15.2 } },
+  { place: 'Tre Cime di Lavaredo', center: [12.3, 46.6185], zoom: 13.6, style: 'trekking', roughness: 1, settings: { terrain: 'contours', titleFont: 'Montserrat' }, phone: { center: [12.3, 46.6185], zoom: 13 } },
+  { place: 'Chamonix', center: [6.885, 45.915], zoom: 12.6, style: 'trekking', roughness: 1, settings: { terrain: 'contours', titleFont: 'Montserrat' }, phone: { center: [6.875, 45.905], zoom: 12 } },
+  { place: 'Nar Phu Valley', center: [84.2, 28.7], zoom: 11.6, style: 'military', roughness: 1, settings: { terrain: 'hachures', titleFont: 'Stardos Stencil' }, phone: { center: [84.2, 28.7], zoom: 11 } },
+  { place: 'Khumbu', center: [86.76, 27.86], zoom: 11.4, style: 'military', roughness: 1, settings: { terrain: 'hachures', titleFont: 'Stardos Stencil' }, phone: { center: [86.76, 27.86], zoom: 10.8 } },
+  { place: 'Snowdon', center: [-4.076, 53.07], zoom: 13, style: 'orienteering', roughness: 0.75, settings: { terrain: 'contours', titleFont: 'Roboto' }, phone: { center: [-4.076, 53.07], zoom: 12.4 } },
+  { place: 'Helvellyn', center: [-3.03, 54.535], zoom: 12.4, style: 'orienteering', roughness: 0.75, settings: { terrain: 'contours', titleFont: 'Roboto' }, phone: { center: [-3.03, 54.535], zoom: 11.8 } },
+  { place: 'Lake Bled', center: [14.095, 46.364], zoom: 14, style: 'field-notebook', roughness: 1.5, settings: { terrain: 'contours', titleFont: 'Kalam' }, phone: { center: [14.095, 46.364], zoom: 13.4 } },
+  { place: 'Yosemite Valley', center: [-119.58, 37.735], zoom: 12.8, style: 'field-notebook', roughness: 1.5, settings: { terrain: 'contours', titleFont: 'Kalam' }, phone: { center: [-119.58, 37.735], zoom: 12.2 } },
+  { place: 'Matterhorn', center: [7.69, 45.98], zoom: 12.6, style: 'alpine', roughness: 1, settings: { terrain: 'both', titleFont: 'Arima' }, phone: { center: [7.69, 45.98], zoom: 12 } },
+  { place: 'Jungfrau', center: [7.97, 46.55], zoom: 12.2, style: 'alpine', roughness: 1, settings: { terrain: 'both', titleFont: 'Arima' }, phone: { center: [7.97, 46.55], zoom: 11.6 } },
+  { place: 'Verbier', center: [7.2275, 46.096], zoom: 13.4, style: 'ski', roughness: 1, settings: { terrain: 'hachures', titleFont: 'Montserrat' }, phone: { center: [7.2275, 46.096], zoom: 12.8 } },
+  { place: 'St. Anton', center: [10.26, 47.135], zoom: 13.2, style: 'ski', roughness: 1, settings: { terrain: 'hachures', titleFont: 'Montserrat' }, phone: { center: [10.26, 47.135], zoom: 12.6 } },
+  { place: 'Valais', center: [7.6, 46.1], zoom: 9.6, style: 'atlas', roughness: 1, settings: { terrain: 'contours', titleFont: 'Arima' }, phone: { center: [7.6, 46.1], zoom: 9 } },
+  { place: 'Annapurna', center: [83.9, 28.55], zoom: 10.2, style: 'atlas', roughness: 1, settings: { terrain: 'contours', titleFont: 'Arima' }, phone: { center: [83.9, 28.55], zoom: 9.6 } },
 ];
 
 const LAST = 'roughmaps:last-preset';

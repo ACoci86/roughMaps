@@ -1,0 +1,23 @@
+{
+  "id": "ski",
+  "name": "Ski map",
+  "note": "Snowy slopes, dark forests and ski lifts",
+  "order": 53,
+  "paper": "#f8fafc",
+  "ink": "#2b3a4a",
+  "text": "#1f2c3a",
+  "outline": 0.5,
+  "buildings": ["#8e6f5a", "#7d604d"],
+  "water": { "color": "#cfe3f3", "pattern": "lines", "patternColor": "#5d8fbf", "gap": 6, "weight": 0.5 },
+  "park": { "color": "#f8fafc" },
+  "wood": { "color": "#9db596", "pattern": "dots", "patternColor": "#3f6343", "gap": 6, "weight": 1 },
+  "sand": { "color": "#eef1f4" },
+  "ice": { "color": "#ffffff", "pattern": "lines", "patternColor": "#a9c8e2", "gap": 6, "weight": 0.5 },
+  "rock": { "color": "#e6e9ed" },
+  "road": { "fill": "#ffffff", "edge": "#55606b", "edgeRatio": 0.15, "path": "#7a8794" },
+  "rail": "#2b3a4a",
+  "relief": "#8aa4bf",
+  "terrain": "hachures",
+  "trees": "forest",
+  "lift": "#d12f2f"
+}
