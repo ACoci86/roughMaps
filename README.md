@@ -18,7 +18,7 @@ Pick a place you love, like the street where you grew up, the town where you met
 
 It's free, there's no account, and everything happens in your browser.
 
-## <img src="docs/icons/examples.svg" width="22" height="22" alt="" /> A few examples
+## <img src="docs/icons/examples.svg" width="32" height="32" alt="" /> A few examples
 
 <table>
   <tr>
@@ -45,7 +45,7 @@ It's free, there's no account, and everything happens in your browser.
 
 You'll find more than a hundred of these in the **Gallery** inside the app. Click one and it opens, ready to tweak.
 
-## <img src="docs/icons/how.svg" width="22" height="22" alt="" /> How it works
+## <img src="docs/icons/how.svg" width="32" height="32" alt="" /> How it works
 
 roughMaps doesn't trace or filter a picture of a map. It works with the map data itself. Roads, rivers, parks and buildings come in from [OpenStreetMap](https://www.openstreetmap.org) as real shapes rather than pixels, and every one of them gets drawn again from scratch.
 
@@ -58,17 +58,17 @@ Here's roughly what happens each time the map stops moving:
 
 None of this runs on a server. Your browser does all the work, so whatever you make never leaves your computer until you download it.
 
-## <img src="docs/icons/compass.svg" width="22" height="22" alt="" /> Making a map
+## <img src="docs/icons/compass.svg" width="32" height="32" alt="" /> Making a map
 
 The side panel has four tabs. You can go through them in order or jump around, and the map redraws as you change things.
 
-### <img src="docs/icons/place.svg" width="20" height="20" alt="" /> Place
+### <img src="docs/icons/place.svg" width="26" height="26" alt="" /> Place
 
 Search for a city, a street, a landmark or a whole country. Drag the map to frame it and scroll or pinch to zoom. You can zoom out far enough to fit a whole region, or in close enough to see single houses. The rotate slider turns the map if your street runs at an awkward angle.
 
 Searching a country gives you a whole-country map with its capital, which makes a nice travel poster.
 
-### <img src="docs/icons/look.svg" width="20" height="20" alt="" /> Look
+### <img src="docs/icons/look.svg" width="26" height="26" alt="" /> Look
 
 This is where the fun is. There are 55 looks, grouped so they're easy to browse:
 
@@ -81,7 +81,7 @@ This is where the fun is. There are 55 looks, grouped so they're easy to browse:
 
 Below the looks you can change how rough the lines are, from neat to wild. Some looks let you pick the pencil colour. **Drawing details** has finer controls for outlines, roads, hatching and the fill pattern.
 
-### <img src="docs/icons/map.svg" width="20" height="20" alt="" /> Map
+### <img src="docs/icons/map.svg" width="26" height="26" alt="" /> Map
 
 This tab decides what's on the map.
 
@@ -94,7 +94,7 @@ Under **Add to the map** you make it yours:
 - **Highlight a building**, for example your first flat or the place you got married.
 - **Routes** you click point by point, or a **GPX file** from your watch or hiking app. Waypoints in the file become pins with their heights. For your longest route you can add an **elevation profile**: a small hand-drawn height chart with the distance, the total climb and the highest point.
 
-### <img src="docs/icons/poster.svg" width="20" height="20" alt="" /> Poster
+### <img src="docs/icons/poster.svg" width="26" height="26" alt="" /> Poster
 
 Everything about the sheet itself:
 
@@ -110,7 +110,7 @@ Everything about the sheet itself:
 - **Portrait or landscape**, and the print resolution (150, 200 or 300 DPI)
 - **3 mm bleed** for print shops, so they can trim the edges cleanly
 
-## <img src="docs/icons/download.svg" width="22" height="22" alt="" /> Downloading
+## <img src="docs/icons/download.svg" width="32" height="32" alt="" /> Downloading
 
 The **Download** button gives you:
 
@@ -124,13 +124,13 @@ The **Download** button gives you:
 
 You can also **save a settings file**, a tiny file that reopens your exact map later, and open it again from the same menu.
 
-## <img src="docs/icons/keys.svg" width="22" height="22" alt="" /> Handy shortcuts
+## <img src="docs/icons/keys.svg" width="32" height="32" alt="" /> Handy shortcuts
 
 - <kbd>/</kbd> jumps to the search box
 - <kbd>Ctrl</kbd> + <kbd>Z</kbd> undoes your last change, and <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> redoes it (there are buttons for this under the map too)
 - <kbd>Esc</kbd> stops adding a pin, a route or a highlight
 
-## <img src="docs/icons/run.svg" width="22" height="22" alt="" /> Run it yourself
+## <img src="docs/icons/run.svg" width="32" height="32" alt="" /> Run it yourself
 
 You'll need [Node.js](https://nodejs.org). Then:
 
@@ -143,7 +143,7 @@ and open the address it prints. `npm run build` makes a version you can put on a
 
 roughMaps is written in TypeScript with [Vite](https://vite.dev). [MapLibre GL](https://maplibre.org) shows the map you move around, and [Rough.js](https://roughjs.com) does the hand-drawn part.
 
-## <img src="docs/icons/credits.svg" width="22" height="22" alt="" /> Credits
+## <img src="docs/icons/credits.svg" width="32" height="32" alt="" /> Credits
 
 roughMaps stands on a lot of open data that people share for free:
 
@@ -155,7 +155,7 @@ roughMaps stands on a lot of open data that people share for free:
 
 Every map you download carries the OpenStreetMap credit, plus the elevation credit when terrain is shown.
 
-## <img src="docs/icons/license.svg" width="22" height="22" alt="" /> License
+## <img src="docs/icons/license.svg" width="32" height="32" alt="" /> License
 
 roughMaps is made by Alessio Coci and released under the [MIT License](LICENSE).
 
