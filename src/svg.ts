@@ -28,11 +28,18 @@ function paperLike(colour: string, paper: string): boolean {
   return Math.hypot(c[0] - p[0], c[1] - p[1], c[2] - p[2]) < PAPER_GAP;
 }
 
-type Run = { points: number[]; attrs: string; order: number };
-type Mask = { rings: number[][]; order: number };
+function dark(colour: string): boolean {
+  const c = rgba(colour);
+  return !!c && c[3] >= 0.5 && (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255 < 0.3;
+}
+
+type Run = { points: number[]; attrs: string; order: number; reach: number };
+type Mask = { rings: number[][]; order: number; rule: CanvasFillRule; ink: boolean };
 
 const COVER_SCALE = 0.2;
 const COVER_STEP = 2.5;
+const SOLID_SCALE = 0.4;
+const SOLID_CELLS = 16e6;
 
 function clipSegment(ax: number, ay: number, bx: number, by: number, w: number, h: number): number[] | null {
   let t0 = 0;
@@ -321,7 +328,8 @@ class SvgContext {
 
   fill(rule?: CanvasFillRule): void {
     if (this.laser) {
-      if (visible(this.state.fillStyle) && this.covers(this.state.fillStyle)) this.addMask(this.flatRings());
+      const colour = this.state.fillStyle;
+      if (visible(colour) && this.covers(colour)) this.addMask(this.flatRings(), rule ?? 'nonzero', dark(colour));
       return;
     }
     if (!visible(this.state.fillStyle)) return;
@@ -411,9 +419,18 @@ class SvgContext {
     return rings;
   }
 
-  private addMask(rings: number[][]): void {
+  private addMask(rings: number[][], rule: CanvasFillRule = 'nonzero', ink = false): void {
     if (!rings.length) return;
-    this.masks.push({ rings, order: this.order++ });
+    this.masks.push({ rings, order: this.order++, rule, ink });
+  }
+
+  private ringPath(g: CanvasRenderingContext2D, rings: number[][]): void {
+    g.beginPath();
+    for (const ring of rings) {
+      g.moveTo(ring[0], ring[1]);
+      for (let k = 2; k < ring.length; k += 2) g.lineTo(ring[k], ring[k + 1]);
+      g.closePath();
+    }
   }
 
   private covers(colour: string): boolean {
@@ -435,13 +452,8 @@ class SvgContext {
     this.masks.forEach((mask, i) => {
       const code = i + 1;
       g.fillStyle = `rgb(${(code >> 16) & 255}, ${(code >> 8) & 255}, ${code & 255})`;
-      g.beginPath();
-      for (const ring of mask.rings) {
-        g.moveTo(ring[0], ring[1]);
-        for (let k = 2; k < ring.length; k += 2) g.lineTo(ring[k], ring[k + 1]);
-        g.closePath();
-      }
-      g.fill('evenodd');
+      this.ringPath(g, mask.rings);
+      g.fill(mask.rule);
     });
     const data = g.getImageData(0, 0, cols, rows).data;
     for (let i = 0; i < order.length; i++) {
@@ -453,17 +465,25 @@ class SvgContext {
 
   laserPaths(): string[] {
     const { order, cols, rows } = this.coverage();
-    const hidden = (x: number, y: number, after: number) => {
+    const covered = (x: number, y: number, after: number) => {
       const c = Math.floor(x * COVER_SCALE);
       const r = Math.floor(y * COVER_SCALE);
-      if (c < 0 || r < 0 || c >= cols || r >= rows) return false;
+      if (c < 0 || r < 0 || c >= cols || r >= rows) return true;
       return order[r * cols + c] > after;
     };
+    let reach = 0;
+    const hidden = (x: number, y: number, after: number) =>
+      covered(x, y, after) &&
+      covered(x - reach, y, after) &&
+      covered(x + reach, y, after) &&
+      covered(x, y - reach, after) &&
+      covered(x, y + reach, after);
     const calls = new Map<string, { attrs: string; pieces: Piece[] }>();
     for (const run of this.runs) {
       const key = `${run.order}|${run.attrs}`;
       let call = calls.get(key);
       if (!call) calls.set(key, (call = { attrs: run.attrs, pieces: [] }));
+      reach = Math.max(run.reach, 1 / COVER_SCALE);
       let ops: Op[] = [];
       const flush = () => {
         if (ops.length > 1) call!.pieces.push({ ops, x0: 0, y0: 0, x1: 0, y1: 0 });
@@ -509,6 +529,40 @@ class SvgContext {
     return [...groups].flatMap(([attrs, paths]) => [`<g ${attrs}>`, ...paths, '</g>']);
   }
 
+  solidPaths(): string[] {
+    const first = this.masks.findIndex((mask) => mask.ink);
+    if (first < 0) return [];
+    const [width, height] = this.size();
+    const scale = Math.min(SOLID_SCALE, Math.sqrt(SOLID_CELLS / (width * height * 100)));
+    const cols = Math.ceil(width * 10 * scale);
+    const rows = Math.ceil(height * 10 * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = cols;
+    canvas.height = rows;
+    const g = canvas.getContext('2d', { willReadFrequently: true })!;
+    g.setTransform(scale, 0, 0, scale, 0, 0);
+    g.fillStyle = '#000';
+    for (const mask of this.masks.slice(first)) {
+      g.globalCompositeOperation = mask.ink ? 'source-over' : 'destination-out';
+      this.ringPath(g, mask.rings);
+      g.fill(mask.rule);
+    }
+    const alpha = g.getImageData(0, 0, cols, rows).data;
+    const wide = cols + 2;
+    const values = new Float32Array(wide * (rows + 2));
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) values[(row + 1) * wide + col + 1] = alpha[(row * cols + col) * 4 + 3] / 255;
+    }
+    return outlines(values, wide, rows + 2, 0.4).map((ring) => {
+      const ops: Op[] = ring.map(([cx, cy], i) => ({
+        cmd: i ? 'L' : 'M',
+        at: [Math.round((cx - 0.5) / scale), Math.round((cy - 0.5) / scale)],
+      }));
+      ops.push({ cmd: 'Z', at: [] });
+      return `<path d="${pathData([{ ops, x0: 0, y0: 0, x1: 0, y1: 0 }])}"/>`;
+    });
+  }
+
   stroke(): void {
     if (this.laser) {
       if (!visible(this.state.strokeStyle)) return;
@@ -516,7 +570,8 @@ class SvgContext {
       const dash = this.state.lineDash.length ? ` stroke-dasharray="${this.state.lineDash.map((v) => num(v * this.zoom())).join(' ')}"` : '';
       const attrs = `fill="none" stroke="#000000" stroke-width="${LASER_LINE}" stroke-linecap="round" stroke-linejoin="round"${dash}`;
       const order = this.order++;
-      for (const points of this.laserLines()) this.runs.push({ points, attrs, order });
+      const reach = this.state.lineWidth * this.zoom() * 5;
+      for (const points of this.laserLines()) this.runs.push({ points, attrs, order, reach });
       return;
     }
     if (!visible(this.state.strokeStyle)) return;
@@ -530,7 +585,7 @@ class SvgContext {
       if (!visible(this.state.fillStyle) || !this.covers(this.state.fillStyle)) return;
       const [a, b, c, d, e, f] = this.state.matrix;
       const at = (px: number, py: number) => [(a * px + c * py + e) * 10, (b * px + d * py + f) * 10];
-      this.addMask([[...at(x, y), ...at(x + w, y), ...at(x + w, y + h), ...at(x, y + h)]]);
+      this.addMask([[...at(x, y), ...at(x + w, y), ...at(x + w, y + h), ...at(x, y + h)]], 'nonzero', dark(this.state.fillStyle));
       return;
     }
     if (!visible(this.state.fillStyle)) return;
@@ -704,6 +759,9 @@ export function svgCanvas(laser: (Laser & { trim: number }) | null = null): SvgC
           `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${target.width} ${target.height}">`,
           `<g id="engrave-lines">`,
           ...ctx.laserPaths(),
+          `</g>`,
+          `<g id="engrave-solid" fill="none" stroke="#0000ff" stroke-width="${LASER_LINE}">`,
+          ...ctx.solidPaths(),
           `</g>`,
           `<g id="engrave-text" fill="none" stroke="#0000ff" stroke-width="${LASER_LINE}">`,
           ...ctx.textParts,
