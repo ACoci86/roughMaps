@@ -9,6 +9,7 @@ import { searchPlaces, suggestPlaces, matchCities, loadCities, samePlace, type P
 import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountry, countryPlace, prepareCountryScene, type Country } from './countries';
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
+import { setupInstall } from './install';
 import { setupSteps, openStep, setSummary, buildSwatches, selectSwatch } from './panel';
 import { styleSwatch, fillIcon } from './swatch';
 import { PIN_COLOR, PIN_ICONS, pinIconSvg, type Pin, type PinIcon } from './pins';
@@ -171,6 +172,8 @@ let liveSheet = sheets[0];
 let stale = false;
 let fresh = true;
 let normalMap = false;
+let locked = false;
+let home: [number, number] = presetView(preset).center;
 
 type Anchor = { x: number; y: number; w: number; here: LngLat; east: LngLat };
 const ANCHOR_SPAN = 100;
@@ -604,7 +607,7 @@ titleInput.addEventListener('input', () => {
 function updateCursor(): void {
   const tool = placingNote !== null || draft !== null || highlighting;
   frame.classList.toggle('placing', tool);
-  if (tool) map.doubleClickZoom.disable();
+  if (tool || locked) map.doubleClickZoom.disable();
   else map.doubleClickZoom.enable();
 }
 
@@ -915,13 +918,48 @@ function endDrag(event: PointerEvent, keep: boolean): void {
   dragging = -1;
   pinGhost.hidden = true;
   frame.classList.remove('dragging');
-  map.dragPan.enable();
+  if (!locked) map.dragPan.enable();
   if (keep && pin) pin.lngLat = lngLatAt(mapPoint(event));
   refreshPins();
 }
 
 mapSurface.addEventListener('pointerup', (event) => endDrag(event, true));
 mapSurface.addEventListener('pointercancel', (event) => endDrag(event, false));
+
+const lockButton = document.querySelector<HTMLButtonElement>('#lock-button')!;
+const recenterButton = document.querySelector<HTMLButtonElement>('#recenter-button')!;
+const SHACKLE_OPEN = 'M8 10.5V7.5a4 4 0 0 1 7.8-1.2';
+const SHACKLE_SHUT = 'M8 10.5V7.5a4 4 0 0 1 8 0v3';
+
+function setLocked(on: boolean): void {
+  locked = on;
+  for (const handler of [map.dragPan, map.scrollZoom, map.touchZoomRotate, map.boxZoom, map.keyboard]) {
+    if (on) handler.disable();
+    else handler.enable();
+  }
+  updateCursor();
+  frame.classList.toggle('locked', on);
+  const label = on ? 'Unlock the map' : 'Lock the map';
+  lockButton.setAttribute('aria-pressed', String(on));
+  lockButton.setAttribute('aria-label', label);
+  lockButton.title = `${label} (L)`;
+  lockButton.querySelector('.shackle')!.setAttribute('d', on ? SHACKLE_SHUT : SHACKLE_OPEN);
+}
+
+function showRecenter(): void {
+  const p = map.project(home);
+  const box = map.getContainer();
+  recenterButton.disabled = Math.hypot(p.x - box.clientWidth / 2, p.y - box.clientHeight / 2) < 2;
+}
+
+lockButton.addEventListener('click', () => setLocked(!locked));
+recenterButton.addEventListener('click', () => map.easeTo({ center: home, duration: 600 }));
+map.on('moveend', showRecenter);
+document.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() !== 'l' || event.ctrlKey || event.metaKey || event.altKey) return;
+  if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return;
+  setLocked(!locked);
+});
 
 const CROSS =
   '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">' +
@@ -1046,7 +1084,9 @@ function flyTo(center: [number, number], zoom: number): void {
   loading.hidden = false;
   const here = map.getCenter();
   const same = Math.abs(here.lng - center[0]) < 1e-6 && Math.abs(here.lat - center[1]) < 1e-6;
+  home = center;
   if (same && Math.abs(map.getZoom() - zoom) < 0.01) {
+    showRecenter();
     sketchWhenReady();
     return;
   }
@@ -1737,6 +1777,7 @@ async function applyConfig(config: Config): Promise<void> {
     setMode(false);
   }
   framing.hidden = lastPlace === null;
+  home = config.center;
   map.jumpTo({ center: config.center, zoom: config.zoom, bearing: config.bearing });
   showRotation();
   sketchWhenReady();
@@ -2008,4 +2049,5 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+setupInstall(document.querySelector<HTMLButtonElement>('#install-button')!);
 showDependent();

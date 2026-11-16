@@ -476,6 +476,14 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   gap: 8px;
 }
 
+.install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 8px;
+  white-space: nowrap;
+}
+
 .icon-link {
   display: grid;
   place-items: center;
@@ -708,6 +716,14 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   cursor: grabbing;
 }
 
+.frame.locked .maplibregl-control-container {
+  display: none;
+}
+
+.frame.locked:not(.placing):not(.dragging) .maplibregl-canvas-container.maplibregl-interactive {
+  cursor: default;
+}
+
 .frame-actions {
   position: absolute;
   z-index: 4;
@@ -758,6 +774,13 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 .frame-actions button:hover:not(:disabled) {
   background-color: var(--bg);
   border-color: var(--line-strong);
+}
+
+.frame-actions button[aria-pressed='true'],
+.frame-actions button[aria-pressed='true']:hover:not(:disabled) {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .loading {
@@ -1793,8 +1816,15 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
     justify-content: center;
   }
 
-  .support span {
+  .support span,
+  .install span {
     display: none;
+  }
+
+  .install {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
   }
 }
 
@@ -2160,6 +2190,16 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 
 @media (max-width: 480px) and (orientation: portrait) {
   .github {
+    display: none;
+  }
+
+  .frame-actions {
+    gap: 4px;
+  }
+}
+
+@media (max-width: 350px) and (orientation: portrait) {
+  .zoom-level {
     display: none;
   }
 }

@@ -18,6 +18,8 @@ Pick a place you love, like the street where you grew up, the town where you met
 
 It's free, there's no account, and everything happens in your browser.
 
+You can also install it like an app, so it opens from your phone's home screen or your computer's app list. In Chrome or Edge, use the **Install app** button at the top. On an iPhone, tap Share and then **Add to Home Screen**.
+
 ## <img src="docs/icons/examples.svg" width="32" height="32" alt="" /> A few examples
 
 <table>
@@ -65,6 +67,8 @@ The side panel has four tabs. You can go through them in order or jump around, a
 ### <img src="docs/icons/place.svg" width="26" height="26" alt="" /> Place
 
 Search for a city, a street, a landmark or a whole country. Drag the map to frame it and scroll or pinch to zoom. You can zoom out far enough to fit a whole region, or in close enough to see single houses. The rotate slider turns the map if your street runs at an awkward angle.
+
+The two round buttons under the map help on a phone. The lock stops the map from moving when you touch it, so it stays put while you scroll the page or place pins. The target takes you back to the place you searched for.
 
 Searching a country gives you a whole-country map with its capital, which makes a nice travel poster.
 
@@ -127,6 +131,7 @@ You can also **save a settings file**, a tiny file that reopens your exact map l
 ## <img src="docs/icons/keys.svg" width="32" height="32" alt="" /> Handy shortcuts
 
 - <kbd>/</kbd> jumps to the search box
+- <kbd>L</kbd> locks or unlocks the map
 - <kbd>Ctrl</kbd> + <kbd>Z</kbd> undoes your last change, and <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> redoes it (there are buttons for this under the map too)
 - <kbd>Esc</kbd> stops adding a pin, a route or a highlight
 
