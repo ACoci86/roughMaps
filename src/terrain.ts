@@ -2,13 +2,14 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { Point } from './sketch';
 import { simplifyShape } from './shapes';
 
-export type TerrainMode = 'none' | 'contours' | 'hachures' | 'both';
+export type TerrainMode = 'none' | 'contours' | 'hachures' | 'both' | 'ridges';
 
 export const TERRAIN_MODES: { id: TerrainMode; label: string; note: string }[] = [
   { id: 'none', label: 'Off', note: 'No hills or mountains' },
   { id: 'contours', label: 'Contour lines', note: 'Lines of equal height, like a hiking map' },
   { id: 'hachures', label: 'Hachures', note: 'Strokes down the slopes, like an old military map' },
   { id: 'both', label: 'Contours and hachures', note: 'Both together' },
+  { id: 'ridges', label: 'Ridgelines', note: 'Rows of lines that rise over the hills' },
 ];
 
 export const TERRAIN_HINTS: Record<TerrainMode, string> = {
@@ -16,6 +17,7 @@ export const TERRAIN_HINTS: Record<TerrainMode, string> = {
   contours: 'Lines of equal height, with heights written on every fifth line.',
   hachures: 'Short strokes down the slopes, darker where it is steep.',
   both: 'Contour lines with hachures underneath.',
+  ridges: 'Rows of lines lifted by the height of the land, so mountains stand up like a silhouette.',
 };
 
 export const TERRAIN_CREDIT = 'Elevation: Mapzen, USGS and others';
@@ -227,7 +229,7 @@ function length(points: Point[]): number {
 
 type Traced = { level: number; points: Point[]; closed: boolean };
 
-function trace(h: Float32Array, cols: number, rows: number, step: number, shift: number, interval: number, lowest = -Infinity): Traced[] {
+export function trace(h: Float32Array, cols: number, rows: number, step: number, shift: number, interval: number, lowest = -Infinity): Traced[] {
   const levels = new Map<number, Map<number, number[]>>();
   const link = (k: number, a: number, b: number) => {
     let links = levels.get(k);
@@ -308,7 +310,7 @@ function trace(h: Float32Array, cols: number, rows: number, step: number, shift:
   return traced;
 }
 
-function smoothLine(points: Point[], closed: boolean): Point[] | null {
+export function smoothLine(points: Point[], closed: boolean): Point[] | null {
   const [simple] = simplifyShape([{ points: chaikin(chaikin(points, closed), closed), closed }], 0.35);
   return simple ? simple.points : null;
 }
@@ -404,6 +406,50 @@ export function hachureStrokes(t: Terrain): Hachure[] {
     }
   }
   return strokes;
+}
+
+const RIDGE_GAP = 9;
+const RIDGE_LIFT = 2.5;
+const RIDGE_ROOM = 0.32;
+const RIDGE_EDGE = 0.5;
+
+export function ridgeLines(t: Terrain): Point[][] {
+  const width = (t.cols - 1) * t.step;
+  const height = (t.rows - 1) * t.step;
+  let low = Infinity;
+  let high = -Infinity;
+  let sum = 0;
+  for (const v of t.heights) {
+    if (v < low) low = v;
+    if (v > high) high = v;
+    sum += v;
+  }
+  const middle = sum / t.heights.length;
+  const lift = Math.min(RIDGE_LIFT / t.metres, (height * RIDGE_ROOM) / Math.max(1, high - low));
+  const xs: number[] = [];
+  for (let x = 0; x <= width; x += t.step) xs.push(x);
+  const horizon = new Float32Array(xs.length).fill(Infinity);
+  const lines: Point[][] = [];
+  const below = (middle - low) * lift;
+  const above = (high - middle) * lift;
+  for (let base = height + below + RIDGE_GAP / 2; base > -above; base -= RIDGE_GAP) {
+    let run: Point[] = [];
+    const finish = () => {
+      if (run.length > 1) lines.push(run);
+      run = [];
+    };
+    xs.forEach((x, k) => {
+      const y = base - (heightAt(t, x, base) - middle) * lift;
+      if (y < horizon[k] - RIDGE_EDGE) run.push([x, y]);
+      else finish();
+      if (y < horizon[k]) horizon[k] = y;
+    });
+    finish();
+  }
+  return lines.flatMap((points) => {
+    const [simple] = simplifyShape([{ points, closed: false }], 0.3);
+    return simple && simple.points.length > 1 ? [simple.points] : [];
+  });
 }
 
 const SAMPLE_TILES = 36;

@@ -89,8 +89,10 @@ Below the looks you can change how rough the lines are, from neat to wild. Some 
 
 This tab decides what's on the map.
 
-- **Terrain** adds contour lines, hachures or both. Outdoor looks switch it on for you.
+- **Terrain** adds contour lines, hachures or both. Outdoor looks switch it on for you. **Ridgelines** draw the land as rows of lines that rise over hills and mountains, so the peaks stand up like a silhouette.
 - **Labels and doodles** turn street names, little trees and café or museum icons on and off. You can also change the label size and font, and decide whether the letters wobble like handwriting.
+- **Shore lines** draw a few wavy lines along coasts and lakes, like on old sea charts.
+- **Patchwork fields** draws the farmland, each field hatched its own way like a hand-drawn countryside. Where farmland is mapped as one big area, it is cut into fields along the roads and farm tracks.
 
 Under **Add to the map** you make it yours:
 
@@ -104,6 +106,7 @@ Everything about the sheet itself:
 
 - **Title** with 15 fonts, including handwriting, classic serif and an army stencil, placed at the bottom, at the top or in a corner, with the coordinates underneath if you like
 - **Compass and scale bar**, and an optional double **border**
+- **Locator map**: a small map of the country in the corner, with a dot on your place
 - **Paper** in lots of sizes:
   - Print: A5, A4, A3, A2, postcard and a 30 cm square
   - US print: Letter, Tabloid and a 4 × 6 postcard

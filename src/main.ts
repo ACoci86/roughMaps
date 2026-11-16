@@ -10,6 +10,7 @@ import { loadCountries, loadCountryData, loadDetails, matchCountries, findCountr
 import { pickPreset, PRESETS, type Preset } from './presets';
 import { sketchingAnimation } from './sketching';
 import { setupInstall } from './install';
+import { findLocator } from './locator';
 import { setupSteps, openStep, setSummary, buildSwatches, selectSwatch } from './panel';
 import { styleSwatch, fillIcon } from './swatch';
 import { PIN_COLOR, PIN_ICONS, pinIconSvg, type Pin, type PinIcon } from './pins';
@@ -149,7 +150,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile' | 'ripples' | 'fields' | 'locator';
 
 const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const PHONE_ZOOM_OUT = 0.6;
@@ -269,11 +270,18 @@ function showScene(shown: Scene, sheet: HTMLCanvasElement): void {
   fadeTimer = window.setTimeout(() => old.classList.remove('old'), 400);
 }
 
+async function ensureLocator(target: Scene): Promise<void> {
+  if (!settings.locator || countryMode || target.locator !== undefined) return;
+  target.locator = await findLocator(target.center);
+}
+
 async function redraw(): Promise<void> {
   rememberSoon();
   frame.classList.toggle('title-top', settings.poster && settings.titleLayout === 'top' && titleInput.value.trim() !== '');
   if (!scene || stale) return;
   const drawn = scene;
+  await ensureLocator(drawn);
+  if (drawn !== scene || stale) return;
   const style = currentStyle();
   const drawFrame = () => drawSketch(frameCanvas, drawn, style, settings, undefined, 'frame');
   paper.style.background = style.paper;
@@ -1616,6 +1624,7 @@ async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf' | 'laser'): Pro
     scene = makeScene(houses, terrain);
   }
   if (wantsTerrain() && scene.terrain === undefined) scene.terrain = await loadTerrain(map);
+  await ensureLocator(scene);
   const output = outputPixels();
   const buttons = [downloadButton, downloadSvgButton, downloadSvgzButton, downloadPdfButton, downloadLaserButton];
   buttons.forEach((b) => (b.disabled = true));

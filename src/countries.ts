@@ -401,6 +401,7 @@ export function prepareCountryScene(map: MapLibreMap, focus: string | null, titl
     waterParts: [],
     green: [],
     forest: [],
+    fields: [],
     sand: [],
     ice: [],
     rock: [],

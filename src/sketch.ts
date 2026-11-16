@@ -18,7 +18,10 @@ import { resolveOptions, roughPath } from './roughpath';
 import { makeShapes } from './shapepool';
 import type { Town } from './countries';
 import { gridNote, gridNumber, prepareGrid, type KmGrid } from './kmgrid';
-import { bandColor, contourLines, hachureStrokes, heightBands, TERRAIN_CREDIT, type Contour, type Hachure, type Terrain, type TerrainMode } from './terrain';
+import { rippleLines, type Ripple } from './ripples';
+import { splitFields } from './fields';
+import { drawLocator, locatorBox, type Locator } from './locator';
+import { bandColor, contourLines, hachureStrokes, heightBands, ridgeLines, TERRAIN_CREDIT, type Contour, type Hachure, type Terrain, type TerrainMode } from './terrain';
 
 export type Point = [number, number];
 type Line = { points: Point[]; closed: boolean; key?: number };
@@ -47,6 +50,7 @@ export type Scene = {
   waterParts: Shape[];
   green: Shape[];
   forest: Shape[];
+  fields: Shape[];
   sand: Shape[];
   ice: Shape[];
   rock: Shape[];
@@ -62,6 +66,7 @@ export type Scene = {
   peaks: Peak[];
   terrain?: Terrain | null;
   kmGrid?: KmGrid | null;
+  locator?: Locator | null;
   land: Shape[];
   focus: number;
   lakes: Shape[];
@@ -405,6 +410,7 @@ export function prepareScene(map: MapLibreMap, features: MapFeatures, title = ''
     waterParts: shapes(splitPolygons(features.water)),
     green: shapes(merged(features.green), MIN_GREEN_AREA),
     forest: shapes(merged(features.forest), MIN_GREEN_AREA),
+    fields: shapes(splitPolygons(merged(features.fields).map((geometry) => ({ geometry }))), MIN_GREEN_AREA),
     sand: shapes(merged(features.sand)),
     ice: shapes(merged(features.ice)),
     rock: shapes(merged(features.rock)),
@@ -518,6 +524,9 @@ export type SketchSettings = {
   coordsFont: string;
   terrain: TerrainMode;
   profile: boolean;
+  ripples: boolean;
+  fields: boolean;
+  locator: boolean;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -541,6 +550,9 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   coordsFont: 'Gaegu',
   terrain: 'none',
   profile: true,
+  ripples: false,
+  fields: false,
+  locator: false,
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -595,6 +607,39 @@ export function sceneContours(scene: Scene): Contour[] {
   if (!terrain) return [];
   let lines = contourCache.get(terrain);
   if (!lines) contourCache.set(terrain, (lines = contourLines(terrain)));
+  return lines;
+}
+
+const rippleCache = new WeakMap<Scene, Ripple[]>();
+
+function sceneRipples(scene: Scene): Ripple[] {
+  let lines = rippleCache.get(scene);
+  if (!lines) {
+    const sea = scene.land.length > 0;
+    const shapes = (sea ? scene.land : scene.water).map((shape) => shape.map((l) => l.points));
+    rippleCache.set(scene, (lines = rippleLines(shapes, scene.width, scene.height, sea)));
+  }
+  return lines;
+}
+
+const fieldCache = new WeakMap<Scene, Shape[]>();
+
+function sceneFields(scene: Scene): Shape[] {
+  let list = fieldCache.get(scene);
+  if (!list) {
+    const cuts = [...scene.roads.flatMap((r) => r.shape.map((l) => l.points)), ...scene.railways.flatMap((s) => s.map((l) => l.points))];
+    fieldCache.set(scene, (list = splitFields(scene.fields, cuts, scene)));
+  }
+  return list;
+}
+
+const ridgeCache = new WeakMap<Terrain, Point[][]>();
+
+function sceneRidges(scene: Scene): Point[][] {
+  const terrain = scene.terrain;
+  if (!terrain) return [];
+  let lines = ridgeCache.get(terrain);
+  if (!lines) ridgeCache.set(terrain, (lines = ridgeLines(terrain)));
   return lines;
 }
 
@@ -953,7 +998,7 @@ export async function drawSketch(
     batch.rings.push(points);
   };
 
-  const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint, parts?: Shape[]) => {
+  const areas = (layer: string, list: Shape[], look: (i: number) => AreaPaint, parts?: Shape[], turn?: (i: number) => number) => {
     const split = inked && parts !== undefined && parts.length > 0;
     const mode = inked ? 'inked' : 'plain';
     const baseKey = `${layer}|base|${hasOutline}|${roughness}|${mode}`;
@@ -976,7 +1021,7 @@ export async function drawSketch(
           fill: '#000',
           fillStyle: 'solid',
         });
-        const tilt = angle === undefined ? undefined : angle + ((id * 37) % 17) - 8;
+        const tilt = angle === undefined ? undefined : angle + ((id * 37) % 17) - 8 + (turn?.(id) ?? 0);
         const [dx, dy] = inked ? fillOffset(id + layer.length * 101, roughness) : [0, 0];
         ctx.save();
         ctx.translate(dx, dy);
@@ -1076,13 +1121,35 @@ export async function drawSketch(
     gap: 7,
     weight: 0.6,
   };
+  const rippleInk = mix(style.water.patternColor ?? style.water.color, style.ink, 0.5);
+  const RIPPLE_WIDTHS = [1.1, 0.85, 0.6];
+  const ripples = () => {
+    if (!settings.ripples) return;
+    sceneRipples(scene).forEach(({ points, closed, ring }, i) => {
+      sketched(() => paint(line('ripple', [{ points, closed }], i), { stroke: rippleInk, strokeWidth: RIPPLE_WIDTHS[ring - 1] ?? 0.6 }));
+    });
+  };
+
   const rockPaint = style.rock;
   if (rockPaint) areas('rock', scene.rock, () => rockPaint);
+  if (settings.fields) {
+    const tones = [mix(style.paper, style.park.color, 0.7), mix(style.paper, style.sand.color, 0.9), mix(style.park.color, style.sand.color, 0.5)];
+    const fieldPaint = tones.map((color, k): AreaPaint => ({
+      color,
+      pattern: 'lines',
+      patternColor: mix(color, style.ink, 0.4),
+      gap: 3.5 + k,
+      weight: 0.7,
+    }));
+    const pick = (id: number) => Math.imul(id + 1, 2654435761) >>> 0;
+    areas('fields', sceneFields(scene), (id) => fieldPaint[pick(id) % 3], undefined, (id) => ((pick(id) >>> 3) % 2) * 90);
+  }
   areas('sand', scene.sand, () => style.sand);
   areas('green', scene.green, () => style.park);
   areas('forest', scene.forest, () => style.wood);
   areas('ice', scene.ice, () => icePaint);
   areas('water', scene.water, () => style.water, scene.waterParts);
+  if (!scene.land.length) ripples();
 
   if (relief === 'hachures' || relief === 'both') {
     const buckets = new Map<number, Hachure[]>();
@@ -1108,6 +1175,11 @@ export async function drawSketch(
         ctx.restore();
       });
     }
+  }
+  if (relief === 'ridges') {
+    sceneRidges(scene).forEach((points, i) => {
+      sketched(() => paint(line('ridge', [{ points, closed: false }], i), { stroke: reliefInk, strokeWidth: 1 }));
+    });
   }
   if (showContours) {
     sceneContours(scene).forEach((contour, i) => {
@@ -1180,6 +1252,7 @@ export async function drawSketch(
         else paint(onlyLines(base), { stroke: style.ink, strokeWidth: outlineWidth });
       });
     });
+    ripples();
     highlightAll();
     const ring = focusColor(style);
     scene.islets.forEach(([x, y], i) => {
@@ -1423,6 +1496,9 @@ export async function drawSketch(
   ];
   placer.add([[credit[0] - (creditLines.length > 1 ? 215 : 175), credit[1] - 16 * creditLines.length, credit[0], credit[1]]]);
   if (settings.compass) placer.add(furnitureBoxes(sheetW, sheetH, area, scene.bearing));
+  const locator = settings.locator && !scene.land.length ? scene.locator : null;
+  const locatorArea = locator ? locatorBox(area, locator, title && sheet.title && settings.titleLayout === 'corner' ? sheet.title.y1 + trim : 0) : null;
+  if (locatorArea) placer.add([[locatorArea[0] - 4, locatorArea[1] - 4, locatorArea[2] + 4, locatorArea[3] + 4]]);
   const profile = settings.profile && !scene.land.length ? scene.profile : null;
   const profileArea = profile ? profileBox(area, settings.compass) : null;
   if (profileArea) placer.add([profileArea]);
@@ -1524,6 +1600,9 @@ export async function drawSketch(
     fixed(() => drawScaleBar(ctx, rc, area, scene.zoom, scene.center[1], colors, decor, settings.labelFont));
   }
 
+  if (locator && locatorArea) {
+    fixed(() => drawLocator(rc, locator, locatorArea, colors, decor, focusColor(style), mix(text, style.paper, 0.55), mix(text, style.paper, 0.35)));
+  }
   if (profile && profileArea) fixed(() => drawProfile(ctx, rc, profile, profileArea, colors, decor, settings.labelFont));
 
   pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor)));

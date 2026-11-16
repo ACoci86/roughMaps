@@ -5,6 +5,7 @@ export type MapFeatures = {
   water: GeoJSONFeature[];
   green: GeoJSONFeature[];
   forest: GeoJSONFeature[];
+  fields: GeoJSONFeature[];
   sand: GeoJSONFeature[];
   ice: GeoJSONFeature[];
   rock: GeoJSONFeature[];
@@ -71,6 +72,7 @@ export function readFeatures(map: Map): MapFeatures {
     water: read(map, 'water'),
     green: [...read(map, 'park', ['==', ['get', 'class'], 'nature_reserve']), ...landcover(map, ['grass'])],
     forest: landcover(map, ['wood']),
+    fields: landcover(map, ['farmland']),
     sand: landcover(map, ['sand']),
     ice: landcover(map, ['ice']),
     rock: landcover(map, ['rock']),
