@@ -276,7 +276,7 @@ async function ensureLocator(target: Scene): Promise<void> {
 }
 
 async function redraw(): Promise<void> {
-  rememberSoon();
+  remember();
   frame.classList.toggle('title-top', settings.poster && settings.titleLayout === 'top' && titleInput.value.trim() !== '');
   if (!scene || stale) return;
   const drawn = scene;
@@ -297,7 +297,6 @@ async function redraw(): Promise<void> {
 }
 
 function redrawSoon(): void {
-  rememberSoon();
   clearTimeout(redrawTimer);
   redrawTimer = window.setTimeout(redraw, 250);
 }
@@ -1696,10 +1695,9 @@ for (const [button, kind] of [
   });
 }
 
-saveConfigButton.addEventListener('click', () => {
-  showDownloadMenu(false);
+function currentConfig(): Config {
   const { lng, lat } = map.getCenter();
-  const config: Config = {
+  return {
     app: 'roughMaps',
     version: 1,
     place: placeName,
@@ -1720,6 +1718,11 @@ saveConfigButton.addEventListener('click', () => {
     ...(sizeSelect.value === CUSTOM_SIZE ? { custom: customValues() } : {}),
     ...(countryMode ? { country: focusCountry ?? '' } : {}),
   };
+}
+
+saveConfigButton.addEventListener('click', () => {
+  showDownloadMenu(false);
+  const config = currentConfig();
   const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
   download(blob, `${slug(placeName)}-${config.style}.json`);
   exportStatus.textContent = 'Config saved';
@@ -1986,35 +1989,114 @@ showSummaries();
 const undoButton = document.querySelector<HTMLButtonElement>('#undo-button')!;
 const redoButton = document.querySelector<HTMLButtonElement>('#redo-button')!;
 const MAX_UNDO = 60;
-const changes = { past: [] as string[], future: [] as string[], current: '', timer: 0 };
+const MERGE_MS = 1000;
+type Saved = Config & { tint: string; home: [number, number] };
+type Entry = { state: string; label: string };
+const changes = { past: [] as Entry[], future: [] as Entry[], current: '', lastLabel: '', lastAt: 0 };
+let stepping = false;
+const VIEW_KEYS = ['place', 'country', 'center', 'zoom', 'bearing', 'size', 'dpi', 'orientation', 'bleed', 'custom'] as const;
+const SETTING_NAMES: Record<keyof SketchSettings, string> = {
+  roughness: 'roughness',
+  strokeWidth: 'outlines',
+  innerStrokeWidth: 'roads',
+  fillWeight: 'hatching',
+  fillStyle: 'fill pattern',
+  labels: 'labels',
+  doodles: 'doodles',
+  poster: 'title',
+  compass: 'compass and scale',
+  border: 'poster border',
+  coords: 'coordinates',
+  labelScale: 'label size',
+  labelFont: 'label font',
+  inked: 'hand-drawn touches',
+  wobblyLabels: 'hand-drawn letters',
+  titleFont: 'title font',
+  titleLayout: 'title position',
+  coordsFont: 'coordinates font',
+  terrain: 'terrain',
+  profile: 'elevation profile',
+  ripples: 'shore lines',
+  fields: 'patchwork fields',
+  locator: 'locator map',
+};
+
+const round = (value: number, digits: number) => Number(value.toFixed(digits));
 
 function snapshot(): string {
-  return JSON.stringify({ settings, style: styleSelect.value, tint: tintInput.value, title: titleInput.value, pins, routes, highlights });
+  const config = currentConfig();
+  const state: Saved = {
+    ...config,
+    center: [round(config.center[0], 6), round(config.center[1], 6)],
+    zoom: round(config.zoom, 3),
+    tint: tintInput.value,
+    home: [round(home[0], 6), round(home[1], 6)],
+  };
+  return JSON.stringify(state);
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+function changed<T>(before: T[], after: T[], added: string, removed: string, edited: string): string | null {
+  if (after.length > before.length) return added;
+  if (after.length < before.length) return removed;
+  return same(before, after) ? null : edited;
+}
+
+function describe(fromState: string, toState: string): string {
+  const a = JSON.parse(fromState) as Saved;
+  const b = JSON.parse(toState) as Saved;
+  if (a.place !== b.place || a.country !== b.country) return `Go to ${b.place}`;
+  const item =
+    changed(a.pins, b.pins, 'Add a pin', 'Remove a pin', 'Edit a pin') ??
+    changed(a.routes, b.routes, 'Add a route', 'Remove a route', 'Edit a route') ??
+    changed(a.highlights, b.highlights, 'Highlight a building', 'Remove a highlight', 'Change a highlight');
+  if (item) return item;
+  if (a.style !== b.style) return 'Change the look';
+  if (a.tint !== b.tint) return 'Change the pencil colour';
+  if (a.title !== b.title) return 'Edit the title';
+  if (['size', 'dpi', 'orientation', 'bleed', 'custom'].some((k) => !same(a[k as keyof Saved], b[k as keyof Saved]))) return 'Change the paper';
+  if (a.bearing !== b.bearing) return 'Rotate the map';
+  if (a.zoom !== b.zoom) return 'Zoom the map';
+  if (!same(a.center, b.center)) return 'Move the map';
+  const keys = (Object.keys(SETTING_NAMES) as (keyof SketchSettings)[]).filter((k) => !same(a.settings[k], b.settings[k]));
+  if (keys.length === 1) return `Change ${SETTING_NAMES[keys[0]]}`;
+  return keys.length ? 'Change settings' : 'Change';
 }
 
 function showHistory(): void {
-  undoButton.disabled = changes.past.length === 0;
-  redoButton.disabled = changes.future.length === 0;
+  const undo = changes.past[changes.past.length - 1];
+  const redo = changes.future[changes.future.length - 1];
+  undoButton.disabled = !undo;
+  redoButton.disabled = !redo;
+  undoButton.title = undo ? `Undo: ${undo.label} (Ctrl+Z)` : 'Nothing to undo';
+  redoButton.title = redo ? `Redo: ${redo.label} (Ctrl+Shift+Z)` : 'Nothing to redo';
+  undoButton.setAttribute('aria-label', undo ? `Undo: ${undo.label}` : 'Undo');
+  redoButton.setAttribute('aria-label', redo ? `Redo: ${redo.label}` : 'Redo');
 }
 
 function remember(): void {
+  if (stepping) return;
   const now = snapshot();
   if (!changes.current) changes.current = now;
   if (now === changes.current) return;
-  changes.past.push(changes.current);
-  if (changes.past.length > MAX_UNDO) changes.past.shift();
+  const label = describe(changes.current, now);
+  const at = performance.now();
+  const merge = label === changes.lastLabel && at - changes.lastAt < MERGE_MS && changes.past.length > 0;
+  if (!merge) {
+    changes.past.push({ state: changes.current, label });
+    if (changes.past.length > MAX_UNDO) changes.past.shift();
+  } else if (changes.past[changes.past.length - 1].state === now) {
+    changes.past.pop();
+  }
+  changes.lastLabel = label;
+  changes.lastAt = at;
   changes.future = [];
   changes.current = now;
   showHistory();
 }
 
-function rememberSoon(): void {
-  clearTimeout(changes.timer);
-  changes.timer = window.setTimeout(remember, 400);
-}
-
-function restore(saved: string): void {
-  const state = JSON.parse(saved);
+function restoreLight(state: Saved): void {
   Object.assign(settings, state.settings);
   styleSelect.value = state.style;
   tintInput.value = state.tint;
@@ -2023,7 +2105,6 @@ function restore(saved: string): void {
   routes = state.routes;
   highlights = state.highlights;
   draft = null;
-  changes.current = saved;
   syncControls();
   renderPinList();
   renderRouteList();
@@ -2031,7 +2112,6 @@ function restore(saved: string): void {
   routeUi();
   showNote();
   showSummaries();
-  showHistory();
   if (scene) {
     scene.title = titleInput.value;
     scene.pins = placedPins();
@@ -2041,20 +2121,47 @@ function restore(saved: string): void {
   }
   const look = currentStyle();
   terrainFromLook = Boolean(look.terrain) && settings.terrain === look.terrain;
-  showTerrain();
 }
 
-function step(back: boolean): void {
-  clearTimeout(changes.timer);
+async function restore(saved: string): Promise<void> {
+  const state = JSON.parse(saved) as Saved;
+  const before = JSON.parse(changes.current) as Saved;
+  changes.current = saved;
+  if (VIEW_KEYS.every((key) => same(state[key], before[key]))) {
+    restoreLight(state);
+    changes.current = snapshot();
+    showHistory();
+    showTerrain();
+    return;
+  }
+  await applyConfig(state);
+  tintInput.value = state.tint;
+  home = state.home;
+  showRecenter();
+  changes.current = snapshot();
+  showHistory();
+}
+
+async function step(back: boolean): Promise<void> {
+  if (stepping) return;
   remember();
   const from = back ? changes.past : changes.future;
   const to = back ? changes.future : changes.past;
-  const saved = from.pop();
-  if (saved === undefined) return;
-  to.push(changes.current);
-  restore(saved);
+  const entry = from.pop();
+  if (!entry) return;
+  const label = entry.label;
+  to.push({ state: changes.current, label });
+  changes.lastLabel = '';
+  stepping = true;
+  try {
+    await restore(entry.state);
+  } finally {
+    stepping = false;
+  }
+  exportStatus.textContent = `${back ? 'Undone' : 'Redone'}: ${label}`;
 }
 
+showHistory();
 undoButton.addEventListener('click', () => step(true));
 redoButton.addEventListener('click', () => step(false));
 document.addEventListener('keydown', (event) => {

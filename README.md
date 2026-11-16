@@ -135,7 +135,7 @@ You can also **save a settings file**, a tiny file that reopens your exact map l
 
 - <kbd>/</kbd> jumps to the search box
 - <kbd>L</kbd> locks or unlocks the map
-- <kbd>Ctrl</kbd> + <kbd>Z</kbd> undoes your last change, and <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> redoes it (there are buttons for this under the map too)
+- <kbd>Ctrl</kbd> + <kbd>Z</kbd> undoes your last change, whether that was a setting, a pin, moving the map or changing the paper, and <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> redoes it (there are buttons for this under the map too)
 - <kbd>Esc</kbd> stops adding a pin, a route or a highlight
 
 ## <img src="docs/icons/run.svg" width="32" height="32" alt="" /> Run it yourself
