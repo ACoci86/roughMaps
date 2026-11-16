@@ -1539,6 +1539,15 @@ customUnit.addEventListener('change', () => {
 });
 new ResizeObserver(() => fitPreview()).observe(frame);
 
+const frameActions = document.querySelector<HTMLDivElement>('.frame-actions')!;
+const statusBar = document.querySelector<HTMLDivElement>('.status-bar')!;
+function placeZoomLevel(): void {
+  if (narrow.matches) statusBar.prepend(zoomLevel);
+  else frameActions.prepend(zoomLevel);
+}
+narrow.addEventListener('change', placeZoomLevel);
+placeZoomLevel();
+
 const sheetInfo = document.querySelector<HTMLSpanElement>('#sheet-info')!;
 
 function showSheetInfo(): void {

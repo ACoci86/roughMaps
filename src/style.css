@@ -650,6 +650,10 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   flex: none;
 }
 
+.status-bar .zoom-level {
+  font-size: inherit;
+}
+
 .frame {
   position: relative;
   flex: 1;
@@ -2190,16 +2194,6 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
 
 @media (max-width: 480px) and (orientation: portrait) {
   .github {
-    display: none;
-  }
-
-  .frame-actions {
-    gap: 4px;
-  }
-}
-
-@media (max-width: 350px) and (orientation: portrait) {
-  .zoom-level {
     display: none;
   }
 }
