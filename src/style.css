@@ -1495,6 +1495,31 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   overscroll-behavior: contain;
 }
 
+.dropdown-list.searchable {
+  padding-top: 0;
+  max-height: min(420px, calc(100dvh - 16px));
+}
+
+.dropdown-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -4px 4px;
+  padding: 6px 6px 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.dropdown-search input {
+  width: 100%;
+}
+
+.dropdown-empty {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .dropdown-list button {
   display: flex;
   align-items: center;

@@ -21,7 +21,8 @@ import { loadTerrain, sampleHeights, TERRAIN_HINTS, TERRAIN_MODES, type Terrain,
 import { densify, distances, type Profile } from './profile';
 import { parseGpx, tripBounds } from './gpx';
 import { formatHeight } from './labels';
-import { dropdown } from './dropdown';
+import { dropdown, type DropdownSearch } from './dropdown';
+import { googleFonts, previewFont } from './fonts';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -134,15 +135,33 @@ for (const font of TITLE_FONTS) titleFont.add(new Option(font, font));
 for (const font of TITLE_FONTS) labelFont.add(new Option(font, font));
 for (const font of TITLE_FONTS) coordsFont.add(new Option(font, font));
 for (const layout of TITLE_LAYOUTS) titleLayout.add(new Option(layout.label, layout.id));
-const fontPicker = dropdown(titleFont, () =>
-  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
-);
-const labelFontPicker = dropdown(labelFont, () =>
-  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
-);
-const coordsFontPicker = dropdown(coordsFont, () =>
-  TITLE_FONTS.map((font) => ({ value: font, label: font, font, note: TITLE_FONT_NOTES[font] })),
-);
+const fontNote = (font: string, category = 'Google Fonts') =>
+  TITLE_FONT_NOTES[font] ?? category.charAt(0) + category.slice(1).toLowerCase();
+const fontChoices = (select: HTMLSelectElement) => () => {
+  const fonts = !select.value || TITLE_FONTS.includes(select.value) ? TITLE_FONTS : [...TITLE_FONTS, select.value];
+  return fonts.map((font) => ({ value: font, label: font, font, note: fontNote(font) }));
+};
+const fontSearch: DropdownSearch = {
+  placeholder: 'Search Google Fonts',
+  empty: 'No fonts found',
+  find: async (query) => {
+    const q = query.toLowerCase();
+    const starts = (name: string) => (name.toLowerCase() === q ? 0 : name.toLowerCase().startsWith(q) ? 1 : 2);
+    const hits = (await googleFonts())
+      .filter(([name]) => name.toLowerCase().includes(q))
+      .sort((a, b) => starts(a[0]) - starts(b[0]))
+      .slice(0, 40);
+    hits.forEach(([name]) => previewFont(name));
+    return hits.map(([name, category]) => ({ value: name, label: name, font: name, note: fontNote(name, category) }));
+  },
+};
+function setFont(select: HTMLSelectElement, font: string): void {
+  if (![...select.options].some((option) => option.value === font)) select.add(new Option(font, font));
+  select.value = font;
+}
+const fontPicker = dropdown(titleFont, fontChoices(titleFont), fontSearch);
+const labelFontPicker = dropdown(labelFont, fontChoices(labelFont), fontSearch);
+const coordsFontPicker = dropdown(coordsFont, fontChoices(coordsFont), fontSearch);
 const layoutPicker = dropdown(titleLayout, () =>
   TITLE_LAYOUTS.map((layout) => ({ value: layout.id, label: layout.label, note: layout.note, icon: () => layoutIcon(layout.id) })),
 );
@@ -428,10 +447,10 @@ styleSelect.addEventListener('change', () => {
   else redraw();
 });
 
-titleFont.value = settings.titleFont;
+setFont(titleFont, settings.titleFont);
 titleLayout.value = settings.titleLayout;
-labelFont.value = settings.labelFont;
-coordsFont.value = settings.coordsFont;
+setFont(labelFont, settings.labelFont);
+setFont(coordsFont, settings.coordsFont);
 fontPicker.refresh();
 layoutPicker.refresh();
 labelFontPicker.refresh();
@@ -505,7 +524,7 @@ function lookTerrain(): boolean {
   if (!changed) return false;
   terrainSelect.value = settings.terrain;
   terrainPicker.refresh();
-  titleFont.value = settings.titleFont;
+  setFont(titleFont, settings.titleFont);
   fontPicker.refresh();
   return true;
 }
@@ -1738,10 +1757,10 @@ function syncControls(): void {
   fillPicker.refresh();
   terrainSelect.value = settings.terrain;
   terrainPicker.refresh();
-  titleFont.value = settings.titleFont;
+  setFont(titleFont, settings.titleFont);
   titleLayout.value = settings.titleLayout;
-  labelFont.value = settings.labelFont;
-  coordsFont.value = settings.coordsFont;
+  setFont(labelFont, settings.labelFont);
+  setFont(coordsFont, settings.coordsFont);
   fontPicker.refresh();
   layoutPicker.refresh();
   labelFontPicker.refresh();

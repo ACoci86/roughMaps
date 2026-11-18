@@ -104,7 +104,7 @@ Under **Add to the map** you make it yours:
 
 Everything about the sheet itself:
 
-- **Title** with 15 fonts, including handwriting, classic serif and an army stencil, placed at the bottom, at the top or in a corner, with the coordinates underneath if you like
+- **Title** in 15 hand-picked fonts (handwriting, classic serif, an army stencil) or any of the 1,900 Google Fonts, placed at the bottom, at the top or in a corner, with the coordinates underneath if you like
 - **Compass and scale bar**, and an optional double **border**
 - **Locator map**: a small map of the country in the corner, with a dot on your place
 - **Paper** in lots of sizes:

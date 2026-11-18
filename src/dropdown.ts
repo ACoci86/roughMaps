@@ -6,13 +6,23 @@ export type Choice = {
   icon?: () => Element;
 };
 
+export type DropdownSearch = {
+  placeholder: string;
+  empty: string;
+  find: (query: string) => Promise<Choice[]>;
+};
+
 const CHEVRON =
   '<svg class="dropdown-chevron" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">' +
   '<path d="M6 8l4 4 4-4"/></svg>';
 
 let closeOpen: (() => void) | null = null;
 
-export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { element: HTMLElement; refresh: () => void } {
+export function dropdown(
+  select: HTMLSelectElement,
+  choices: () => Choice[],
+  search?: DropdownSearch,
+): { element: HTMLElement; refresh: () => void } {
   const wrap = document.createElement('div');
   wrap.className = 'dropdown';
   const button = document.createElement('button');
@@ -28,6 +38,30 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
   if (select.parentNode) select.replaceWith(wrap);
   select.hidden = true;
   wrap.append(select, button, list);
+
+  let query = '';
+  let found: Choice[] = [];
+  let asked = 0;
+  let timer = 0;
+  let input: HTMLInputElement | null = null;
+  let searchItem: HTMLLIElement | null = null;
+  if (search) {
+    list.classList.add('searchable');
+    input = document.createElement('input');
+    input.type = 'search';
+    input.placeholder = search.placeholder;
+    input.setAttribute('aria-label', search.placeholder);
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    searchItem = document.createElement('li');
+    searchItem.className = 'dropdown-search';
+    searchItem.setAttribute('role', 'presentation');
+    searchItem.append(input);
+    input.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void find(input!.value.trim()), 150);
+    });
+  }
 
   const face = (choice: Choice, withNote: boolean): Node[] => {
     const parts: Node[] = [];
@@ -48,24 +82,46 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     return parts;
   };
 
+  async function find(text: string): Promise<void> {
+    const ask = ++asked;
+    const results = text ? await search!.find(text) : [];
+    if (ask !== asked) return;
+    query = text;
+    found = results;
+    fill();
+  }
+
+  function fill(): void {
+    const shown = query ? found : choices();
+    const items: HTMLLIElement[] = shown.map((choice) => {
+      const item = document.createElement('li');
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.setAttribute('role', 'option');
+      pick.setAttribute('aria-selected', String(choice.value === select.value));
+      pick.append(...face(choice, true));
+      pick.addEventListener('click', () => choose(choice));
+      item.append(pick);
+      return item;
+    });
+    if (query && !shown.length) {
+      const empty = document.createElement('li');
+      empty.className = 'dropdown-empty';
+      empty.textContent = search!.empty;
+      items.push(empty);
+    }
+    if (!searchItem) return list.replaceChildren(...items);
+    if (list.firstChild !== searchItem) list.prepend(searchItem);
+    while (searchItem.nextSibling) searchItem.nextSibling.remove();
+    list.append(...items);
+  }
+
   function refresh(): void {
     const all = choices();
     const current = all.find((choice) => choice.value === select.value) ?? all[0];
     button.replaceChildren(...face(current, false));
     button.insertAdjacentHTML('beforeend', CHEVRON);
-    list.replaceChildren(
-      ...all.map((choice) => {
-        const item = document.createElement('li');
-        const pick = document.createElement('button');
-        pick.type = 'button';
-        pick.setAttribute('role', 'option');
-        pick.setAttribute('aria-selected', String(choice.value === current.value));
-        pick.append(...face(choice, true));
-        pick.addEventListener('click', () => choose(choice.value));
-        item.append(pick);
-        return item;
-      }),
-    );
+    fill();
   }
 
   function close(): void {
@@ -76,6 +132,13 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     window.removeEventListener('scroll', scrolled, true);
     window.removeEventListener('resize', close);
     document.removeEventListener('pointerdown', outside, true);
+    window.clearTimeout(timer);
+    asked++;
+    if (input && (query || input.value)) {
+      input.value = '';
+      query = '';
+      fill();
+    }
   }
 
   function scrolled(event: Event): void {
@@ -90,10 +153,10 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     closeOpen?.();
     const box = button.getBoundingClientRect();
     list.hidden = false;
-    const width = Math.max(box.width, list.scrollWidth, 160);
+    const width = Math.max(box.width, list.scrollWidth, search ? 260 : 160);
     const left = Math.min(box.left, window.innerWidth - width - 8);
     list.style.left = `${Math.max(8, left)}px`;
-    list.style.minWidth = `${box.width}px`;
+    list.style.minWidth = `${Math.min(width, window.innerWidth - 16)}px`;
     const below = box.bottom + 4;
     const fits = below + list.offsetHeight < window.innerHeight - 8;
     list.style.top = `${fits ? below : Math.max(8, box.top - 4 - list.offsetHeight)}px`;
@@ -106,15 +169,17 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     if (picked) {
       const item = picked.closest('li') ?? picked;
       list.scrollTop = item.offsetTop - (list.clientHeight - item.offsetHeight) / 2;
-      picked.focus({ preventScroll: true });
     }
+    if (input && matchMedia('(pointer: fine)').matches) input.focus({ preventScroll: true });
+    else picked?.focus({ preventScroll: true });
   }
 
-  function choose(value: string): void {
-    select.value = value;
+  function choose(choice: Choice): void {
+    if (![...select.options].some((option) => option.value === choice.value)) select.add(new Option(choice.label, choice.value));
+    select.value = choice.value;
+    close();
     select.dispatchEvent(new Event('change', { bubbles: true }));
     refresh();
-    close();
     button.focus();
   }
 
@@ -125,7 +190,11 @@ export function dropdown(select: HTMLSelectElement, choices: () => Choice[]): { 
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       const step = event.key === 'ArrowDown' ? 1 : -1;
-      options[(at + step + options.length) % options.length]?.focus();
+      if (at < 0 && step < 0) options[options.length - 1]?.focus();
+      else options[(at + step + options.length) % options.length]?.focus();
+    } else if (event.key === 'Enter' && event.target === input) {
+      event.preventDefault();
+      options[0]?.click();
     } else if (event.key === 'Escape') {
       event.preventDefault();
       close();

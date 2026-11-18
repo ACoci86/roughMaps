@@ -8,6 +8,7 @@ import type { AreaPaint, StyleSpec } from './styles';
 import { Placer, layoutLabels, drawLabel, loadLabelFonts, loadMapFont } from './labels';
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
 import { drawPosterTitle, drawBorder, loadTitleFont, posterLayout, type Rect, type TitleLayout } from './poster';
+import { loadFont } from './fonts';
 import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
 import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
@@ -779,6 +780,7 @@ export async function drawSketch(
   const job = output ? null : (jobs.get(canvas) ?? 0) + 1;
   if (job !== null) jobs.set(canvas, job);
   const cancelled = () => job !== null && jobs.get(canvas) !== job;
+  await Promise.all([settings.labelFont, settings.titleFont, settings.coordsFont].map(loadFont));
   const started = performance.now();
   const { roughness } = settings;
   const { width, height } = scene;

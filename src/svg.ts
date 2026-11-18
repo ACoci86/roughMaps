@@ -718,11 +718,11 @@ async function toDataUrl(url: string): Promise<string> {
 }
 
 async function embeddedFonts(families: Set<string>, chars: Set<number>): Promise<string> {
-  const link = document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis.com/css2"]');
-  if (!link || !chars.size) return '';
+  const links = [...document.querySelectorAll<HTMLLinkElement>('link[href*="fonts.googleapis.com/css2"]:not([data-preview])')];
+  if (!links.length || !chars.size) return '';
   try {
-    const css = await (await fetch(link.href)).text();
-    const faces = css.match(/@font-face\s*{[^}]*}/g) ?? [];
+    const sheets = await Promise.all(links.map(async (link) => (await fetch(link.href)).text()));
+    const faces = sheets.join('\n').match(/@font-face\s*{[^}]*}/g) ?? [];
     const wanted = faces.filter((face) => {
       const family = face.match(/font-family:\s*'([^']+)'/)?.[1] ?? '';
       const range = face.match(/unicode-range:\s*([^;]+);/)?.[1];
@@ -736,7 +736,7 @@ async function embeddedFonts(families: Set<string>, chars: Set<number>): Promise
     );
     return embedded.join('\n');
   } catch {
-    return `@import url('${link.href}');`;
+    return links.map((link) => `@import url('${link.href}');`).join('\n');
   }
 }
 

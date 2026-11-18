@@ -1,7 +1,8 @@
 import { drawSketch, DEFAULT_SETTINGS, type Scene, type SketchSettings } from './sketch';
 import type { StyleSpec } from './styles';
 import { PIN_COLOR, PIN_ICONS, type Pin } from './pins';
-import { TITLE_FONTS, TITLE_LAYOUTS } from './poster';
+import { TITLE_LAYOUTS } from './poster';
+import { isFontName } from './fonts';
 import { svgCanvas } from './svg';
 import { imagePdf } from './pdf';
 import { ROUTE_COLOR, type Route } from './routes';
@@ -282,11 +283,11 @@ export function parseConfig(text: string): Config {
       coords: s.coords !== false,
       border: s.border === true,
       labelScale: clamp(s.labelScale, 0.5, 2, DEFAULT_SETTINGS.labelScale),
-      labelFont: TITLE_FONTS.includes(String(s.labelFont)) ? String(s.labelFont) : DEFAULT_SETTINGS.labelFont,
+      labelFont: isFontName(String(s.labelFont)) ? String(s.labelFont) : DEFAULT_SETTINGS.labelFont,
       inked: s.inked !== false,
       wobblyLabels: typeof s.wobblyLabels === 'boolean' ? s.wobblyLabels : s.inked !== false,
-      titleFont: TITLE_FONTS.includes(String(s.titleFont)) ? String(s.titleFont) : DEFAULT_SETTINGS.titleFont,
-      coordsFont: TITLE_FONTS.includes(String(s.coordsFont)) ? String(s.coordsFont) : DEFAULT_SETTINGS.coordsFont,
+      titleFont: isFontName(String(s.titleFont)) ? String(s.titleFont) : DEFAULT_SETTINGS.titleFont,
+      coordsFont: isFontName(String(s.coordsFont)) ? String(s.coordsFont) : DEFAULT_SETTINGS.coordsFont,
       titleLayout: TITLE_LAYOUTS.find((l) => l.id === s.titleLayout)?.id ?? DEFAULT_SETTINGS.titleLayout,
       terrain: TERRAIN_MODES.find((m) => m.id === s.terrain)?.id ?? DEFAULT_SETTINGS.terrain,
       profile: s.profile !== false,
