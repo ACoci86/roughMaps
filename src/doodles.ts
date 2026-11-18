@@ -50,32 +50,51 @@ function inside([x, y]: Point, rings: BoxedRing[]): boolean {
   return hit;
 }
 
-export function treeSpots(
-  areas: Ring[][],
+export type TreeLayer = { areas: Ring[][]; spacing: number; seed: number };
+
+function gridSpots(
+  areas: BoxedRing[][],
   spacing: number,
+  step: number,
   seed: number,
   [width, height]: [number, number],
-  limit = MAX_TREES,
-  avoidAreas: Ring[][] = [],
+  avoid: BoxedRing[][],
 ): Point[] {
   const rand = random(seed);
   const spots: Point[] = [];
-  const avoid = avoidAreas.map(boxed);
-  for (const area of areas) {
-    const rings = boxed(area);
+  const reach = spacing * 0.35;
+  for (const rings of areas) {
     const minX = Math.max(0, Math.min(...rings.map((r) => r.box[0])));
     const minY = Math.max(0, Math.min(...rings.map((r) => r.box[1])));
     const maxX = Math.min(width, Math.max(...rings.map((r) => r.box[2])));
     const maxY = Math.min(height, Math.max(...rings.map((r) => r.box[3])));
-    const reach = spacing * 0.35;
-    for (let row = 0, y = minY + spacing / 2; y < maxY; y += spacing * 0.87, row++) {
-      for (let x = minX + (row % 2 ? spacing / 2 : 0); x < maxX; x += spacing) {
-        const p: Point = [x + (rand() - 0.5) * spacing * 0.5, y + (rand() - 0.5) * spacing * 0.5];
+    for (let row = 0, y = minY + step / 2; y < maxY; y += step * 0.87, row++) {
+      for (let x = minX + (row % 2 ? step / 2 : 0); x < maxX; x += step) {
+        const p: Point = [x + (rand() - 0.5) * step * 0.5, y + (rand() - 0.5) * step * 0.5];
         const around: Point[] = [p, [p[0] - reach, p[1]], [p[0] + reach, p[1]], [p[0], p[1] - reach], [p[0], p[1] + reach]];
         if (around.every((q) => inside(q, rings)) && !avoid.some((a) => inside(p, a))) spots.push(p);
-        if (spots.length >= limit) return spots;
       }
     }
+  }
+  return spots;
+}
+
+export function treeSpots(
+  layers: TreeLayer[],
+  size: [number, number],
+  avoidAreas: Ring[][] = [],
+  limit = MAX_TREES,
+): Point[][] {
+  const avoid = avoidAreas.map(boxed);
+  const boxedLayers = layers.map((layer) => layer.areas.map(boxed));
+  const layout = (scale: number) =>
+    layers.map((layer, i) => gridSpots(boxedLayers[i], layer.spacing, layer.spacing * scale, layer.seed, size, avoid));
+  const count = (spots: Point[][]) => spots.reduce((sum, list) => sum + list.length, 0);
+  let scale = 1;
+  let spots = layout(scale);
+  while (count(spots) > limit && scale < 64) {
+    scale *= Math.sqrt(count(spots) / limit) * 1.02;
+    spots = layout(scale);
   }
   return spots;
 }

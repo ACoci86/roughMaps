@@ -1298,10 +1298,14 @@ export async function drawSketch(
   if (settings.doodles) {
     if (!treeCache.has(scene)) {
       const rings = (list: Shape[]) => list.map((shape) => shape.map((l) => l.points));
-      const water = rings(scene.water);
-      const size: [number, number] = [width, height];
-      const green = treeSpots(rings(scene.green), 24, 7, size, 900, water);
-      const forest = treeSpots(rings(scene.forest), 16, 11, size, 900 - green.length, water);
+      const [green, forest] = treeSpots(
+        [
+          { areas: rings(scene.green), spacing: 24, seed: 7 },
+          { areas: rings(scene.forest), spacing: 16, seed: 11 },
+        ],
+        [width, height],
+        rings(scene.water),
+      );
       treeCache.set(scene, { green, forest });
     }
     const cached = treeCache.get(scene)!;
