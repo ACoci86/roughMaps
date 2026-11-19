@@ -23,6 +23,7 @@ import { parseGpx, tripBounds } from './gpx';
 import { formatHeight } from './labels';
 import { dropdown, type DropdownSearch } from './dropdown';
 import { googleFonts, previewFont } from './fonts';
+import { hersheyName, isHershey, loadHershey } from './hershey';
 import {
   SIZES,
   DPI_OPTIONS,
@@ -139,7 +140,11 @@ const fontNote = (font: string, category = 'Google Fonts') =>
   TITLE_FONT_NOTES[font] ?? category.charAt(0) + category.slice(1).toLowerCase();
 const fontChoices = (select: HTMLSelectElement) => () => {
   const fonts = !select.value || TITLE_FONTS.includes(select.value) ? TITLE_FONTS : [...TITLE_FONTS, select.value];
-  return fonts.map((font) => ({ value: font, label: font, font, note: fontNote(font) }));
+  return fonts.map((font) =>
+    isHershey(font)
+      ? { value: font, label: font, drawn: () => hersheyName(font), note: fontNote(font) }
+      : { value: font, label: font, font, note: fontNote(font) },
+  );
 };
 const fontSearch: DropdownSearch = {
   placeholder: 'Search Google Fonts',
@@ -162,6 +167,7 @@ function setFont(select: HTMLSelectElement, font: string): void {
 const fontPicker = dropdown(titleFont, fontChoices(titleFont), fontSearch);
 const labelFontPicker = dropdown(labelFont, fontChoices(labelFont), fontSearch);
 const coordsFontPicker = dropdown(coordsFont, fontChoices(coordsFont), fontSearch);
+void loadHershey().then(() => [fontPicker, labelFontPicker, coordsFontPicker].forEach((picker) => picker.refresh()));
 const layoutPicker = dropdown(titleLayout, () =>
   TITLE_LAYOUTS.map((layout) => ({ value: layout.id, label: layout.label, note: layout.note, icon: () => layoutIcon(layout.id) })),
 );
@@ -169,7 +175,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile' | 'ripples' | 'fields' | 'locator';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile' | 'ripples' | 'fields' | 'locator' | 'credit';
 
 const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const PHONE_ZOOM_OUT = 0.6;
@@ -2038,6 +2044,7 @@ const SETTING_NAMES: Record<keyof SketchSettings, string> = {
   ripples: 'shore lines',
   fields: 'patchwork fields',
   locator: 'locator map',
+  credit: 'map credit',
 };
 
 const round = (value: number, digits: number) => Number(value.toFixed(digits));

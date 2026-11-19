@@ -1,4 +1,5 @@
 import type { Label, Peak, Point, Scene } from './sketch';
+import { HERSHEY_FONTS } from './hershey';
 
 const LATIN_FONT = 'Gaegu';
 const FALLBACK = `"${LATIN_FONT}", "Patrick Hand", "LXGW WenKai TC", sans-serif`;
@@ -51,6 +52,7 @@ const COVERS: Record<string, RegExp[]> = {
   'Open Sans': [CYRILLIC, GREEK, HEBREW],
   'Playfair Display': [CYRILLIC],
   Merriweather: [CYRILLIC],
+  ...Object.fromEntries(HERSHEY_FONTS.map((family) => [family, [CYRILLIC, GREEK]])),
 };
 
 export function chosenFamily(text: string, center: [number, number], chosen: string): string {

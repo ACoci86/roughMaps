@@ -9,6 +9,7 @@ import { Placer, layoutLabels, drawLabel, loadLabelFonts, loadMapFont } from './
 import { treeSpots, tree, icon, ICON_RADIUS, type Doodle } from './doodles';
 import { drawPosterTitle, drawBorder, loadTitleFont, posterLayout, type Rect, type TitleLayout } from './poster';
 import { loadFont } from './fonts';
+import { strokeFonts } from './hershey';
 import { drawCompass, drawScaleBar, furnitureBoxes } from './furniture';
 import { drawPin, loadPinFonts, pinBoxes, type PlacedPin } from './pins';
 import { drawRoute, type PlacedRoute } from './routes';
@@ -528,6 +529,7 @@ export type SketchSettings = {
   ripples: boolean;
   fields: boolean;
   locator: boolean;
+  credit: boolean;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -554,6 +556,7 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   ripples: false,
   fields: false,
   locator: false,
+  credit: true,
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -790,6 +793,7 @@ export async function drawSketch(
 
   const rc = rough.canvas(canvas);
   const ctx = canvas.getContext('2d')!;
+  strokeFonts(ctx);
   if (part !== 'frame') {
     ctx.fillStyle = style.paper;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1496,11 +1500,10 @@ export async function drawSketch(
     ]);
   }
   const creditLines = [
-    '© OpenStreetMap contributors',
-    ...(relief === 'none' ? [] : [TERRAIN_CREDIT]),
+    ...(settings.credit ? ['© OpenStreetMap contributors', ...(relief === 'none' ? [] : [TERRAIN_CREDIT])] : []),
     ...(kmGrid ? [gridNote(kmGrid)] : []),
   ];
-  placer.add([[credit[0] - (creditLines.length > 1 ? 215 : 175), credit[1] - 16 * creditLines.length, credit[0], credit[1]]]);
+  if (creditLines.length) placer.add([[credit[0] - (creditLines.length > 1 ? 215 : 175), credit[1] - 16 * creditLines.length, credit[0], credit[1]]]);
   if (settings.compass) placer.add(furnitureBoxes(sheetW, sheetH, area, scene.bearing));
   const locator = settings.locator && !scene.land.length ? scene.locator : null;
   const locatorArea = locator ? locatorBox(area, locator, title && sheet.title && settings.titleLayout === 'corner' ? sheet.title.y1 + trim : 0) : null;
@@ -1653,6 +1656,7 @@ export async function drawSketch(
     });
   }
   fixed(() => {
+    if (!creditLines.length) return;
     const note = creditLines[0];
     const family = `"${settings.labelFont}", "Gaegu", sans-serif`;
     ctx.save();

@@ -104,7 +104,7 @@ Under **Add to the map** you make it yours:
 
 Everything about the sheet itself:
 
-- **Title** in 15 hand-picked fonts (handwriting, classic serif, an army stencil) or any of the 1,900 Google Fonts, placed at the bottom, at the top or in a corner, with the coordinates underneath if you like
+- **Title** in 15 hand-picked fonts (handwriting, classic serif, an army stencil), any of the 1,900 Google Fonts or single-line Hershey fonts made for pen plotters, placed at the bottom, at the top or in a corner, with the coordinates underneath if you like
 - **Compass and scale bar**, and an optional double **border**
 - **Locator map**: a small map of the country in the corner, with a dot on your place
 - **Paper** in lots of sizes:
@@ -160,8 +160,9 @@ roughMaps stands on a lot of open data that people share for free:
 - Countries, lakes and rivers from [Natural Earth](https://www.naturalearthdata.com)
 - Elevation from [Mapzen Terrain Tiles](https://registry.opendata.aws/terrain-tiles/), built from USGS, Copernicus and other open data
 - Fonts from [Google Fonts](https://fonts.google.com), all under open font licenses
+- Single-line plotter fonts: the Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards. The format of the font data was originally created by James Hurt, Cognition, Inc.
 
-Every map you download carries the OpenStreetMap credit, plus the elevation credit when terrain is shown.
+Every map you download carries the OpenStreetMap credit, plus the elevation credit when terrain is shown. You can switch it off for maps you keep to yourself, but leave it on if you share, post or sell the map, since the OpenStreetMap license asks for it.
 
 ## <img src="docs/icons/license.svg" width="32" height="32" alt="" /> License
 

@@ -1,3 +1,5 @@
+import { isHershey, loadHershey } from './hershey';
+
 export type WebFont = [family: string, category: string, weights: number[]];
 
 const CSS = 'https://fonts.googleapis.com/css2';
@@ -46,6 +48,7 @@ function stylesheet(href: string, preview: boolean): Promise<boolean> {
 const param = (family: string) => family.replace(/ /g, '+');
 
 export function loadFont(family: string): Promise<void> {
+  if (isHershey(family)) return loadHershey();
   if (!isFontName(family) || builtInFonts().has(family)) return Promise.resolve();
   let job = loading.get(family);
   if (!job) {
@@ -61,7 +64,7 @@ export function loadFont(family: string): Promise<void> {
 }
 
 export function previewFont(family: string): void {
-  if (!isFontName(family) || builtInFonts().has(family) || loading.has(family) || previewed.has(family)) return;
+  if (!isFontName(family) || isHershey(family) || builtInFonts().has(family) || loading.has(family) || previewed.has(family)) return;
   previewed.add(family);
   void stylesheet(`${CSS}?family=${param(family)}&text=${encodeURIComponent(family)}&display=swap`, true);
 }

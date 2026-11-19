@@ -3,6 +3,7 @@ export type Choice = {
   label: string;
   note?: string;
   font?: string;
+  drawn?: () => Element | null;
   icon?: () => Element;
 };
 
@@ -70,7 +71,11 @@ export function dropdown(
     text.className = 'dropdown-text';
     const label = document.createElement('span');
     label.className = 'dropdown-label';
-    label.textContent = choice.label;
+    const drawn = choice.drawn?.();
+    if (drawn) {
+      label.append(drawn);
+      label.style.fontSize = '16px';
+    } else label.textContent = choice.label;
     if (choice.font) label.style.fontFamily = `"${choice.font}", cursive`;
     text.append(label);
     if (withNote && choice.note) {

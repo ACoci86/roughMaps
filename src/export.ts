@@ -294,6 +294,7 @@ export function parseConfig(text: string): Config {
       ripples: s.ripples === true,
       fields: s.fields === true,
       locator: s.locator === true,
+      credit: s.credit !== false,
     },
     size: String(data.size ?? ''),
     dpi: Number(data.dpi),

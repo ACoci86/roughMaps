@@ -1,13 +1,14 @@
 import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
 import { chosenFamily } from './labels';
+import { HERSHEY_FONTS, HERSHEY_NOTES } from './hershey';
 
 export type PosterColors = { paper: string; ink: string };
 export type TitleLayout = 'bottom' | 'top' | 'corner';
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
 type Box = [number, number, number, number];
 
-export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima', 'Arimo', 'Tinos', 'Montserrat', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display', 'Merriweather', 'Stardos Stencil'];
+export const TITLE_FONTS = ['Gaegu', 'Kalam', 'Patrick Hand', 'Pangolin', 'Itim', 'Arima', 'Arimo', 'Tinos', 'Montserrat', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display', 'Merriweather', 'Stardos Stencil', ...HERSHEY_FONTS];
 export const TITLE_FONT_NOTES: Record<string, string> = {
   Gaegu: 'Soft, friendly handwriting',
   Kalam: 'Quick pen handwriting',
@@ -24,6 +25,7 @@ export const TITLE_FONT_NOTES: Record<string, string> = {
   'Playfair Display': 'Elegant, high-contrast serif',
   Merriweather: 'Sturdy book serif',
   'Stardos Stencil': 'Army stencil lettering',
+  ...HERSHEY_NOTES,
 };
 
 export const TITLE_LAYOUTS: { id: TitleLayout; label: string; note: string }[] = [
