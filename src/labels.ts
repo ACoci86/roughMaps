@@ -161,7 +161,7 @@ export class Placer {
 
 const FONT_SCALE: Record<string, number> = { 'Aref Ruqaa': 1.25 };
 
-function font(size: number, bold: boolean, family: string): string {
+export function textFont(size: number, bold: boolean, family: string): string {
   return `${bold ? 700 : 400} ${size * (FONT_SCALE[family] ?? 1)}px "${family}", ${FALLBACK}`;
 }
 
@@ -251,7 +251,7 @@ export function layoutLabels(
   const placePoint = (label: Label, base: number, bold: boolean, role: PlacedLabel['role']) => {
     const size = Math.round(base * scale * 10) / 10;
     const family = chosenFamily(label.name, scene.center, chosen);
-    ctx.font = font(size, bold, family);
+    ctx.font = textFont(size, bold, family);
     for (const spot of [label.points[0], ...(label.spots ?? [])]) {
       const glyphs = straight(ctx, label.name, spot);
       if (placer.tryAdd(glyphBoxes(glyphs, size))) {
@@ -266,7 +266,7 @@ export function layoutLabels(
     for (const label of labels) {
       const s = Math.round(size(label) * scale * 10) / 10;
       const family = chosenFamily(label.name, scene.center, chosen);
-      ctx.font = font(s, false, family);
+      ctx.font = textFont(s, false, family);
       const glyphs = along(ctx, label.name, label.points, s);
       if (!glyphs) continue;
       const middle = glyphs[Math.floor(glyphs.length / 2)];
@@ -295,7 +295,7 @@ export function layoutLabels(
     for (const top of [y + 8, y - 9 - tall]) {
       let cursor = top;
       const made = lines.map((l) => {
-        ctx.font = font(l.size, l.bold, l.family);
+        ctx.font = textFont(l.size, l.bold, l.family);
         const glyphs = straight(ctx, l.text, [x, cursor + l.size * 0.55]);
         cursor += l.size * 1.1;
         return { glyphs, size: l.size, bold: l.bold, role: 'peak' as const, family: l.family };
@@ -361,7 +361,7 @@ export function drawLabel(
   jitter = 0,
 ): void {
   ctx.save();
-  ctx.font = font(label.size, label.bold, label.family);
+  ctx.font = textFont(label.size, label.bold, label.family);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';

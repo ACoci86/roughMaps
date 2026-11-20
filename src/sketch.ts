@@ -1491,7 +1491,7 @@ export async function drawSketch(
   );
   const credit = [area.x1 - 10, area.y1 - 7] as const;
 
-  await loadPinFonts(pins, scene.center);
+  await loadPinFonts(pins, scene.center, settings.labelFont);
   if (cancelled()) return false;
   const placer = new Placer(width, height);
   placer.add(layout.reserved);
@@ -1515,7 +1515,7 @@ export async function drawSketch(
   const profile = settings.profile && !scene.land.length ? scene.profile : null;
   const profileArea = profile ? profileBox(area, settings.compass) : null;
   if (profileArea) placer.add([profileArea]);
-  placer.add(pinBoxes(ctx, pins, scene.center, area.x1));
+  placer.add(pinBoxes(ctx, pins, scene.center, area.x1, settings.labelFont));
   placer.add(scene.towns.map(({ point: [x, y] }) => [x - 7, y - 7, x + 7, y + 7] as [number, number, number, number]));
 
   if (kmGrid && gridInk && part !== 'frame') {
@@ -1618,7 +1618,7 @@ export async function drawSketch(
   }
   if (profile && profileArea) fixed(() => drawProfile(ctx, rc, profile, profileArea, colors, decor, settings.labelFont));
 
-  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor)));
+  pins.forEach((pin, i) => steps.push(() => drawPin(ctx, rc, pin, i, scene.center, area.x1, colors, decor, settings.labelFont)));
 
   if (trim) {
     fixed(() => {

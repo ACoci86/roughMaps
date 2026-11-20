@@ -1,7 +1,7 @@
 import rough from 'roughjs';
 import type { RoughCanvas } from 'roughjs/bin/canvas';
 import type { Options } from 'roughjs/bin/core';
-import { fontFamily } from './labels';
+import { chosenFamily, textFont } from './labels';
 import type { Point } from './sketch';
 
 export type PinIcon = 'pin' | 'heart' | 'star' | 'house' | 'cross';
@@ -26,8 +26,8 @@ const SIZE = 11;
 const NOTE_SIZE = 18;
 const GAP = 6;
 
-function font(note: string, center: [number, number]): string {
-  return `700 ${NOTE_SIZE}px "${fontFamily(note, center)}", "Gaegu", sans-serif`;
+function font(note: string, center: [number, number], chosen: string): string {
+  return textFont(NOTE_SIZE, true, chosenFamily(note, center, chosen));
 }
 
 function middle(pin: PlacedPin): number {
@@ -37,16 +37,16 @@ function middle(pin: PlacedPin): number {
   return y - SIZE;
 }
 
-export async function loadPinFonts(pins: PlacedPin[], center: [number, number]): Promise<void> {
+export async function loadPinFonts(pins: PlacedPin[], center: [number, number], chosen: string): Promise<void> {
   await Promise.all(
     pins
       .filter((p) => p.note)
-      .map((p) => document.fonts.load(font(p.note, center), p.note).catch(() => [])),
+      .map((p) => document.fonts.load(font(p.note, center, chosen), p.note).catch(() => [])),
   );
 }
 
-function noteSide(ctx: CanvasRenderingContext2D, pin: PlacedPin, center: [number, number], width: number) {
-  ctx.font = font(pin.note, center);
+function noteSide(ctx: CanvasRenderingContext2D, pin: PlacedPin, center: [number, number], width: number, chosen: string) {
+  ctx.font = font(pin.note, center, chosen);
   const w = ctx.measureText(pin.note).width;
   const [x] = pin.point;
   const right = x + SIZE + GAP + w < width - 8;
@@ -58,13 +58,14 @@ export function pinBoxes(
   pins: PlacedPin[],
   center: [number, number],
   width: number,
+  chosen: string,
 ): Box[] {
   return pins.flatMap((pin) => {
     const [x, y] = pin.point;
     const cy = middle(pin);
     const boxes: Box[] = [[x - SIZE - 3, cy - SIZE - 3, x + SIZE + 3, Math.max(y, cy + SIZE) + 3]];
     if (pin.note) {
-      const { w, right } = noteSide(ctx, pin, center, width);
+      const { w, right } = noteSide(ctx, pin, center, width, chosen);
       const x0 = right ? x + SIZE + GAP : x - SIZE - GAP - w;
       boxes.push([x0 - 2, cy - NOTE_SIZE * 0.6, x0 + w + 2, cy + NOTE_SIZE * 0.6]);
     }
@@ -137,13 +138,14 @@ export function drawPin(
   width: number,
   colors: Colors,
   wobble: Options,
+  chosen: string,
 ): void {
   drawIcon(rc, pin, 101 + index * 3, colors, wobble);
   if (!pin.note) return;
   const [x] = pin.point;
-  const { right } = noteSide(ctx, pin, center, width);
+  const { right } = noteSide(ctx, pin, center, width, chosen);
   ctx.save();
-  ctx.font = font(pin.note, center);
+  ctx.font = font(pin.note, center, chosen);
   ctx.textAlign = right ? 'left' : 'right';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
