@@ -1637,6 +1637,15 @@ readyDialog.addEventListener('close', () => {
   readyFile = null;
 });
 
+const STATS = 'https://roughmaps-stats.roughmaps-app.workers.dev/hit';
+
+function ping(data: Record<string, string>): void {
+  if (!location.hostname.endsWith('roughmaps.pages.dev')) return;
+  try {
+    navigator.sendBeacon(STATS, JSON.stringify(data));
+  } catch {}
+}
+
 async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf' | 'laser'): Promise<void> {
   if (!scene || stale) {
     if (!map.isStyleLoaded()) {
@@ -1656,21 +1665,26 @@ async function exportFile(format: 'png' | 'svg' | 'svgz' | 'pdf' | 'laser'): Pro
   const started = performance.now();
   try {
     const name = `${slug(placeName)}-${currentStyle().id}`;
+    const counted = (size: string) => ping({ kind: 'download', format, place: placeName, style: currentStyle().id, size });
     if (format === 'png') {
       const blob = await renderPng(scene, currentStyle(), settings, output);
       deliver(blob, `${name}-${output.width}x${output.height}.png`);
+      counted(`${output.width}x${output.height}`);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else if (format === 'pdf') {
       const blob = await renderPdf(scene, currentStyle(), settings, currentSize(), output, titleInput.value || placeName, bleedPart());
       deliver(blob, `${name}-${currentSize().id}.pdf`);
+      counted(currentSize().id);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else if (format === 'laser') {
       const blob = await renderSvg(scene, currentStyle(), settings, currentSize(), false, true);
       deliver(blob, `${name}-${currentSize().id}-laser.svg`);
+      counted(currentSize().id);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     } else {
       const blob = await renderSvg(scene, currentStyle(), settings, currentSize(), format === 'svgz');
       deliver(blob, `${name}-${currentSize().id}.${format}`);
+      counted(currentSize().id);
       exportStatus.textContent = `Done in ${seconds(started)} s (${(blob.size / 1e6).toFixed(1)} MB)`;
     }
   } catch (error) {
@@ -2202,3 +2216,4 @@ document.addEventListener('keydown', (event) => {
 
 setupInstall(document.querySelector<HTMLButtonElement>('#install-button')!);
 showDependent();
+ping({ kind: 'visit' });
