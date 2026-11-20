@@ -283,6 +283,7 @@ export function parseConfig(text: string): Config {
       coords: s.coords !== false,
       border: s.border === true,
       labelScale: clamp(s.labelScale, 0.5, 2, DEFAULT_SETTINGS.labelScale),
+      pinScale: clamp(s.pinScale, 0.5, 3, DEFAULT_SETTINGS.pinScale),
       labelFont: isFontName(String(s.labelFont)) ? String(s.labelFont) : DEFAULT_SETTINGS.labelFont,
       inked: s.inked !== false,
       wobblyLabels: typeof s.wobblyLabels === 'boolean' ? s.wobblyLabels : s.inked !== false,

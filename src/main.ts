@@ -108,7 +108,7 @@ const terrainNote = document.querySelector<HTMLParagraphElement>('#terrain-note'
 const ROUTE_HINT = routeStatus.textContent ?? '';
 routeColor.value = ROUTE_COLOR;
 
-type SliderKey = 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight' | 'labelScale';
+type SliderKey = 'roughness' | 'strokeWidth' | 'innerStrokeWidth' | 'fillWeight' | 'labelScale' | 'pinScale';
 const titleFont = document.querySelector<HTMLSelectElement>('#title-font')!;
 const labelFont = document.querySelector<HTMLSelectElement>('#label-font')!;
 const coordsFont = document.querySelector<HTMLSelectElement>('#coords-font')!;
@@ -919,7 +919,7 @@ mapSurface.addEventListener(
   'pointerdown',
   (event) => {
     if (!scene || normalMap || usingTool() || event.button !== 0) return;
-    const index = pinAt(placedPins(), mapPoint(event));
+    const index = pinAt(placedPins(), mapPoint(event), settings.pinScale);
     if (index < 0) return;
     map.dragPan.disable();
     dragging = index;
@@ -940,7 +940,7 @@ mapSurface.addEventListener('pointermove', (event) => {
     moveGhost(event);
     return;
   }
-  const overPin = scene && !normalMap && !usingTool() && pinAt(placedPins(), mapPoint(event)) >= 0;
+  const overPin = scene && !normalMap && !usingTool() && pinAt(placedPins(), mapPoint(event), settings.pinScale) >= 0;
   mapSurface.style.cursor = overPin ? 'pointer' : '';
 });
 
@@ -2047,6 +2047,7 @@ const SETTING_NAMES: Record<keyof SketchSettings, string> = {
   border: 'poster border',
   coords: 'coordinates',
   labelScale: 'label size',
+  pinScale: 'pin size',
   labelFont: 'label font',
   inked: 'hand-drawn touches',
   wobblyLabels: 'hand-drawn letters',

@@ -26,30 +26,30 @@ const SIZE = 11;
 const NOTE_SIZE = 18;
 const GAP = 6;
 
-function font(note: string, center: [number, number], chosen: string): string {
-  return textFont(NOTE_SIZE, true, chosenFamily(note, center, chosen));
+function font(note: string, center: [number, number], chosen: string, k: number): string {
+  return textFont(NOTE_SIZE * k, true, chosenFamily(note, center, chosen));
 }
 
-function middle(pin: PlacedPin): number {
+function middle(pin: PlacedPin, k: number): number {
   const y = pin.point[1];
-  if (pin.icon === 'pin') return y - RISE;
+  if (pin.icon === 'pin') return y - RISE * k;
   if (pin.icon === 'cross') return y;
-  return y - SIZE;
+  return y - SIZE * k;
 }
 
-export async function loadPinFonts(pins: PlacedPin[], center: [number, number], chosen: string): Promise<void> {
+export async function loadPinFonts(pins: PlacedPin[], center: [number, number], chosen: string, k: number): Promise<void> {
   await Promise.all(
     pins
       .filter((p) => p.note)
-      .map((p) => document.fonts.load(font(p.note, center, chosen), p.note).catch(() => [])),
+      .map((p) => document.fonts.load(font(p.note, center, chosen, k), p.note).catch(() => [])),
   );
 }
 
-function noteSide(ctx: CanvasRenderingContext2D, pin: PlacedPin, center: [number, number], width: number, chosen: string) {
-  ctx.font = font(pin.note, center, chosen);
+function noteSide(ctx: CanvasRenderingContext2D, pin: PlacedPin, center: [number, number], width: number, chosen: string, k: number) {
+  ctx.font = font(pin.note, center, chosen, k);
   const w = ctx.measureText(pin.note).width;
   const [x] = pin.point;
-  const right = x + SIZE + GAP + w < width - 8;
+  const right = x + (SIZE + GAP) * k + w < width - 8;
   return { w, right };
 }
 
@@ -59,59 +59,62 @@ export function pinBoxes(
   center: [number, number],
   width: number,
   chosen: string,
+  k: number,
 ): Box[] {
   return pins.flatMap((pin) => {
     const [x, y] = pin.point;
-    const cy = middle(pin);
-    const boxes: Box[] = [[x - SIZE - 3, cy - SIZE - 3, x + SIZE + 3, Math.max(y, cy + SIZE) + 3]];
+    const cy = middle(pin, k);
+    const s = SIZE * k;
+    const boxes: Box[] = [[x - s - 3, cy - s - 3, x + s + 3, Math.max(y, cy + s) + 3]];
     if (pin.note) {
-      const { w, right } = noteSide(ctx, pin, center, width, chosen);
-      const x0 = right ? x + SIZE + GAP : x - SIZE - GAP - w;
-      boxes.push([x0 - 2, cy - NOTE_SIZE * 0.6, x0 + w + 2, cy + NOTE_SIZE * 0.6]);
+      const { w, right } = noteSide(ctx, pin, center, width, chosen, k);
+      const x0 = right ? x + s + GAP * k : x - s - GAP * k - w;
+      boxes.push([x0 - 2, cy - NOTE_SIZE * k * 0.6, x0 + w + 2, cy + NOTE_SIZE * k * 0.6]);
     }
     return boxes;
   });
 }
 
-function star(x: number, c: number): [number, number][] {
+function star(x: number, c: number, s: number): [number, number][] {
   return Array.from({ length: 10 }, (_, i) => {
-    const r = i % 2 ? SIZE * 0.5 : SIZE * 1.15;
+    const r = i % 2 ? s * 0.5 : s * 1.15;
     const a = (i * Math.PI) / 5 - Math.PI / 2;
-    return [x + Math.cos(a) * r, c + 1 + Math.sin(a) * r];
+    return [x + Math.cos(a) * r, c + (s / SIZE) + Math.sin(a) * r];
   });
 }
 
-function drawIcon(rc: RoughCanvas, pin: PlacedPin, seed: number, colors: Colors, wobble: Options): void {
+function drawIcon(rc: RoughCanvas, pin: PlacedPin, seed: number, colors: Colors, wobble: Options, k = 1): void {
   const [x, y] = pin.point;
-  const c = middle(pin);
-  const s = SIZE;
+  const c = middle(pin, k);
+  const s = SIZE * k;
+  const head = HEAD * k;
   const fill = pin.color || colors.ink;
-  const look = { ...wobble, stroke: colors.ink, strokeWidth: 1.5, fill, fillStyle: 'solid' };
+  const look = { ...wobble, stroke: colors.ink, strokeWidth: 1.5 * k, fill, fillStyle: 'solid' };
 
   if (pin.icon === 'cross') {
     for (const [dx, k] of [[1, 0], [-1, 1]] as const) {
       const line = [x - s * 0.8 * dx, c - s * 0.8, x + s * 0.8 * dx, c + s * 0.8] as const;
-      rc.line(...line, { ...wobble, seed: seed + k, stroke: colors.ink, strokeWidth: 7, disableMultiStroke: true });
-      rc.line(...line, { ...wobble, seed: seed + k, stroke: fill, strokeWidth: 4, disableMultiStroke: true });
+      rc.line(...line, { ...wobble, seed: seed + k, stroke: colors.ink, strokeWidth: 7 * k, disableMultiStroke: true });
+      rc.line(...line, { ...wobble, seed: seed + k, stroke: fill, strokeWidth: 4 * k, disableMultiStroke: true });
     }
     return;
   }
 
-  if (pin.icon !== 'heart') rc.ellipse(x, y, 12, 3.5, { ...wobble, seed, stroke: colors.ink, strokeWidth: 1 });
+  if (pin.icon !== 'heart') rc.ellipse(x, y, 12 * k, 3.5 * k, { ...wobble, seed, stroke: colors.ink, strokeWidth: k });
 
   if (pin.icon === 'pin') {
     const shape =
-      `M${x} ${y} C${x - 3} ${y - 8} ${x - HEAD} ${c + HEAD * 0.9} ${x - HEAD} ${c} ` +
-      `A${HEAD} ${HEAD} 0 1 1 ${x + HEAD} ${c} C${x + HEAD} ${c + HEAD * 0.9} ${x + 3} ${y - 8} ${x} ${y} Z`;
+      `M${x} ${y} C${x - 3 * k} ${y - 8 * k} ${x - head} ${c + head * 0.9} ${x - head} ${c} ` +
+      `A${head} ${head} 0 1 1 ${x + head} ${c} C${x + head} ${c + head * 0.9} ${x + 3 * k} ${y - 8 * k} ${x} ${y} Z`;
     rc.path(shape, { ...look, seed: seed + 1 });
-    rc.circle(x, c, HEAD * 0.8, { ...look, seed: seed + 2, strokeWidth: 1, fill: colors.paper });
+    rc.circle(x, c, head * 0.8, { ...look, seed: seed + 2, strokeWidth: k, fill: colors.paper });
   } else if (pin.icon === 'heart') {
     const shape =
       `M${x} ${c + s} C${x - s * 1.5} ${c + s * 0.05} ${x - s * 1.15} ${c - s * 1.15} ${x} ${c - s * 0.4} ` +
       `C${x + s * 1.15} ${c - s * 1.15} ${x + s * 1.5} ${c + s * 0.05} ${x} ${c + s} Z`;
     rc.path(shape, { ...look, seed: seed + 1 });
   } else if (pin.icon === 'star') {
-    rc.polygon(star(x, c), { ...look, seed: seed + 1 });
+    rc.polygon(star(x, c, s), { ...look, seed: seed + 1 });
   } else {
     rc.polygon(
       [
@@ -125,7 +128,7 @@ function drawIcon(rc: RoughCanvas, pin: PlacedPin, seed: number, colors: Colors,
       ],
       { ...look, seed: seed + 1 },
     );
-    rc.rectangle(x - s * 0.25, c + s * 0.3, s * 0.5, s * 0.7, { ...look, seed: seed + 2, strokeWidth: 1, fill: colors.paper });
+    rc.rectangle(x - s * 0.25, c + s * 0.3, s * 0.5, s * 0.7, { ...look, seed: seed + 2, strokeWidth: k, fill: colors.paper });
   }
 }
 
@@ -139,31 +142,33 @@ export function drawPin(
   colors: Colors,
   wobble: Options,
   chosen: string,
+  k: number,
 ): void {
-  drawIcon(rc, pin, 101 + index * 3, colors, wobble);
+  drawIcon(rc, pin, 101 + index * 3, colors, wobble, k);
   if (!pin.note) return;
   const [x] = pin.point;
-  const { right } = noteSide(ctx, pin, center, width, chosen);
+  const { right } = noteSide(ctx, pin, center, width, chosen, k);
   ctx.save();
-  ctx.font = font(pin.note, center, chosen);
+  ctx.font = font(pin.note, center, chosen, k);
   ctx.textAlign = right ? 'left' : 'right';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 4 * k;
   ctx.strokeStyle = colors.paper;
   ctx.fillStyle = colors.ink;
-  const tx = right ? x + SIZE + GAP : x - SIZE - GAP;
-  const ty = middle(pin);
+  const tx = right ? x + (SIZE + GAP) * k : x - (SIZE + GAP) * k;
+  const ty = middle(pin, k);
   ctx.strokeText(pin.note, tx, ty);
   ctx.fillText(pin.note, tx, ty);
   ctx.restore();
 }
 
-export function pinAt(pins: PlacedPin[], [px, py]: Point): number {
+export function pinAt(pins: PlacedPin[], [px, py]: Point, k: number): number {
+  const s = SIZE * k;
   for (let i = pins.length - 1; i >= 0; i--) {
     const [x, y] = pins[i].point;
-    const cy = middle(pins[i]);
-    if (Math.abs(px - x) <= SIZE + 4 && py >= cy - SIZE - 4 && py <= Math.max(y, cy + SIZE) + 4) return i;
+    const cy = middle(pins[i], k);
+    if (Math.abs(px - x) <= s + 4 && py >= cy - s - 4 && py <= Math.max(y, cy + s) + 4) return i;
   }
   return -1;
 }
