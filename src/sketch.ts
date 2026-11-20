@@ -530,6 +530,7 @@ export type SketchSettings = {
   fields: boolean;
   locator: boolean;
   credit: boolean;
+  cleanExtras: boolean;
 };
 
 export const DEFAULT_SETTINGS: SketchSettings = {
@@ -557,6 +558,7 @@ export const DEFAULT_SETTINGS: SketchSettings = {
   fields: false,
   locator: false,
   credit: true,
+  cleanExtras: false,
 };
 
 function mix(a: string, b: string, t: number): string {
@@ -872,7 +874,9 @@ export async function drawSketch(
     moved(drawable, () => inkLines(ctx, onlyLines(drawable), style.ink, pen, seed));
 
   const wobble = { roughness, bowing: roughness };
-  const decor: Options = { roughness: 1, bowing: 1 };
+  const decor: Options = settings.cleanExtras
+    ? { roughness: 0, bowing: 0, disableMultiStroke: true, disableMultiStrokeFill: true }
+    : { roughness: 1, bowing: 1 };
   const text = style.text ?? style.ink;
   const outlineWidth = style.outline * settings.strokeWidth;
   const hasOutline = outlineWidth > 0;
@@ -1390,8 +1394,8 @@ export async function drawSketch(
     steps.push(() =>
       rc.line(from[0], from[1], to[0], to[1], {
         ...decor,
-        roughness: 0.5,
-        bowing: 0.3,
+        roughness: 0.5 * Number(decor.roughness),
+        bowing: 0.3 * Number(decor.bowing),
         seed: i + 701,
         stroke: gridInk,
         strokeWidth: 0.8,

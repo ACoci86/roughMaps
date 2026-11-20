@@ -194,7 +194,7 @@ export function drawLocator(
       const [simple] = simplifyShape([{ points: clipped, closed: true }], 0.5);
       return simple && simple.points.length >= 3 ? [simple.points] : [];
     });
-  const line = { ...wobble, roughness: 0.6, bowing: 0.5 };
+  const line = { ...wobble, roughness: 0.6 * Number(wobble.roughness ?? 1), bowing: 0.5 * Number(wobble.bowing ?? 1) };
 
   rc.rectangle(bx0, by0, bx1 - bx0, by1 - by0, { ...line, seed: 61, stroke: colors.ink, strokeWidth: 1.2, fill: colors.paper, fillStyle: 'solid' });
   rings(locator.others).forEach((ring, i) =>

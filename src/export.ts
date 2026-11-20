@@ -295,6 +295,7 @@ export function parseConfig(text: string): Config {
       fields: s.fields === true,
       locator: s.locator === true,
       credit: s.credit !== false,
+      cleanExtras: s.cleanExtras === true,
     },
     size: String(data.size ?? ''),
     dpi: Number(data.dpi),

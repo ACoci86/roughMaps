@@ -175,7 +175,7 @@ const pinStatus = document.querySelector<HTMLParagraphElement>('#pin-status')!;
 const pinList = document.querySelector<HTMLUListElement>('#pin-list')!;
 const PIN_HINT = pinStatus.textContent ?? '';
 
-type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile' | 'ripples' | 'fields' | 'locator' | 'credit';
+type Toggle = 'labels' | 'doodles' | 'poster' | 'compass' | 'border' | 'inked' | 'wobblyLabels' | 'coords' | 'profile' | 'ripples' | 'fields' | 'locator' | 'credit' | 'cleanExtras';
 
 const phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const PHONE_ZOOM_OUT = 0.6;
@@ -2059,6 +2059,7 @@ const SETTING_NAMES: Record<keyof SketchSettings, string> = {
   fields: 'patchwork fields',
   locator: 'locator map',
   credit: 'map credit',
+  cleanExtras: 'clean lines for extras',
 };
 
 const round = (value: number, digits: number) => Number(value.toFixed(digits));
